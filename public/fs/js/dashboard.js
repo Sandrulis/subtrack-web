@@ -8,19 +8,29 @@ var editingId = null;
 var deletingId = null;
 var calendarView = null;
 
-/* ---- Init ---- */
-document.addEventListener('DOMContentLoaded', function () {
+/* ---- Init ----
+ * Paneļa skripti tiek ielādēti pēc React mount (FsScripts); DOMContentLoaded
+ * šajā brīdī jau ir noticis – inicializāciju jāpalaiž arī tad.
+ */
+function fsBootDashboard() {
     setDefaultDate();
     renderList();
     initCalendarNav();
     initIconPicker();
     initColorPicker();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fsBootDashboard);
+} else {
+    fsBootDashboard();
+}
 
 /* ---- Render ---- */
 function renderList(scrollToItemId) {
     var list = document.getElementById('sub-list');
     var empty = document.getElementById('empty-state');
+    if (!list || !empty) return;
 
     updateStats();
     renderPaymentCalendar();

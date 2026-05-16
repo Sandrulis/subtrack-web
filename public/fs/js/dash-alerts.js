@@ -31,10 +31,70 @@ function closeDashNotifyPanel() {
     var btn = document.getElementById('dash-notify-toggle');
     if (panel) {
         panel.classList.add('hidden');
+        clearDashNotifyPanelMobPlacement(panel);
     }
     if (btn) {
         btn.setAttribute('aria-expanded', 'false');
     }
+}
+
+/** Noņem fixed izkārtojumu (desktop atgriežas pie absolute). */
+function clearDashNotifyPanelMobPlacement(panel) {
+    if (!panel) return;
+    panel.classList.remove('dash-notify-panel--mob-fixed');
+    panel.style.removeProperty('top');
+    panel.style.removeProperty('right');
+    panel.style.removeProperty('left');
+    panel.style.removeProperty('width');
+}
+
+/**
+ * Šauri ekrāniem: viewport fixed + platums zem clampa, lai panelis neiejauztos kreisajā pusē.
+ * (Plats panelis + mazs wrap ap pogu izraisa nobīdi.)
+ */
+function syncDashNotifyPanelMobPlacement() {
+    var panel = document.getElementById('dash-notify-panel');
+    var toggle = document.getElementById('dash-notify-toggle');
+    if (!panel || !toggle || panel.classList.contains('hidden')) {
+        if (panel) clearDashNotifyPanelMobPlacement(panel);
+        return;
+    }
+
+    var mq = window.matchMedia('(max-width: 768px)');
+    if (!mq.matches) {
+        clearDashNotifyPanelMobPlacement(panel);
+        return;
+    }
+
+    var vw = Math.max(
+        typeof window.innerWidth === 'number' ? window.innerWidth : 0,
+        document.documentElement ? document.documentElement.clientWidth || 0 : 0
+    );
+
+    var margin = 14;
+    var r = toggle.getBoundingClientRect();
+    var boundedRight = Math.min(Math.max(r.right, margin), vw - margin);
+    var insetR = vw - boundedRight;
+
+    var pwAnchored = Math.min(360, boundedRight - margin);
+    var pwWide = vw - 2 * margin;
+    var useWide = pwAnchored < Math.min(280, vw - 2 * margin);
+    var pw;
+
+    if (useWide && pwWide > pwAnchored + 48) {
+        pw = pwWide;
+        insetR = margin;
+    } else {
+        pw = Math.max(120, Math.min(pwAnchored, vw - insetR - margin));
+    }
+
+    var topPx = Math.round(r.bottom + 8);
+
+    panel.classList.add('dash-notify-panel--mob-fixed');
+    panel.style.top = topPx + 'px';
+    panel.style.right = Math.round(Math.max(insetR, margin)) + 'px';
+    panel.style.left = 'auto';
+    panel.style.width = Math.round(pw) + 'px';
 }
 
 function refreshDashNotifications() {
@@ -109,6 +169,8 @@ function refreshDashNotifications() {
             listU.innerHTML = upcoming.map(function (s) { return buildNotifyItemRow(s, false); }).join('');
         }
     }
+
+    syncDashNotifyPanelMobPlacement();
 }
 
 function initDashNotifications() {
@@ -121,9 +183,14 @@ function initDashNotifications() {
         if (panel.classList.contains('hidden')) {
             panel.classList.remove('hidden');
             toggle.setAttribute('aria-expanded', 'true');
+            requestAnimationFrame(function () {
+                syncDashNotifyPanelMobPlacement();
+                requestAnimationFrame(syncDashNotifyPanelMobPlacement);
+            });
         } else {
             panel.classList.add('hidden');
             toggle.setAttribute('aria-expanded', 'false');
+            clearDashNotifyPanelMobPlacement(panel);
         }
     });
 
@@ -141,9 +208,30 @@ function initDashNotifications() {
         }
     });
 
+    var resizeT;
+    function onReflow() {
+        syncDashNotifyPanelMobPlacement();
+    }
+    window.addEventListener(
+        'resize',
+        function () {
+            clearTimeout(resizeT);
+            resizeT = setTimeout(onReflow, 100);
+        },
+        { passive: true }
+    );
+
+    window.addEventListener('orientationchange', onReflow);
+
     refreshDashNotifications();
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+function fsBootDashAlerts() {
     initDashNotifications();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fsBootDashAlerts);
+} else {
+    fsBootDashAlerts();
+}

@@ -26,12 +26,18 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    function bootSignupPwToggle() {
         var buttons = document.querySelectorAll('.js-password-toggle');
         for (var i = 0; i < buttons.length; i++) {
             buttons[i].addEventListener('click', function () {
                 togglePassword(this);
             });
         }
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootSignupPwToggle);
+    } else {
+        bootSignupPwToggle();
+    }
 })(document);

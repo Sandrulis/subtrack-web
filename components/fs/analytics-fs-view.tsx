@@ -2,23 +2,28 @@
 
 import { NavDash } from "@/components/nav-dash";
 import { FsScripts } from "@/components/fs/load-fs-scripts";
+import type { NavUserDisplay } from "@/lib/auth/user-display";
 
 const ANALYTICS_SCRIPTS = [
   "/fs/js/subscriptions-data.js",
   "/fs/js/subscriptions-helpers.js",
-  "/fs/js/dash-notifications.js",
+  "/fs/js/dash-alerts.js",
   "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js",
   "https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js",
   "/fs/js/analytics.js",
 ] as const;
 
-export function AnalyticsFsView() {
+export function AnalyticsFsView({
+  userDisplay,
+}: {
+  userDisplay?: NavUserDisplay | null;
+}) {
   const year = new Date().getFullYear();
 
   return (
     <>
       <div className="app-layout app-layout-stacked">
-        <NavDash active="analytics" />
+        <NavDash active="analytics" userDisplay={userDisplay} />
         <main className="main-content">
           <div className="page-header">
             <div>

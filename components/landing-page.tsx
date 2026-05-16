@@ -89,10 +89,32 @@ export function LandingHeroCalendarMock() {
 export function LandingHeroDashboardMock() {
   return (
     <div className="landing-hero-dashboard-mock" aria-hidden="true">
-      <div className="dashboard-top-split">
-        <LandingHeroCalendarMock />
-        <div className="dashboard-top-aside">
-          <div className="stats-row stats-row--aside landing-hero-mock-stats">
+      <div className="dashboard-overview-main">
+        <div className="dashboard-overview-calendar-col">
+          <LandingHeroCalendarMock />
+        </div>
+
+        <div className="dashboard-overview-right-col">
+          <div className="dashboard-overview-head-col">
+            <div className="page-header">
+              <div>
+                <h2 className="page-title landing-hero-dashboard-title">
+                  Abonamenti
+                </h2>
+                <p className="page-subtitle">
+                  Pārvaldiet savus ikmēneša abonementus
+                </p>
+              </div>
+              <span
+                className="btn btn-primary landing-hero-dashboard-add-btn"
+                aria-hidden="true"
+              >
+                <i className="fa-solid fa-plus" /> Pievienot
+              </span>
+            </div>
+          </div>
+
+          <div className="dashboard-overview-stats-row landing-hero-mock-stats">
             <div className="stat-card">
               <div className="stat-label">Kopējā mēneša summa</div>
               <div className="stat-value">€184.35</div>
@@ -103,6 +125,9 @@ export function LandingHeroDashboardMock() {
               <div className="stat-value">8</div>
               <div className="stat-note">kopā</div>
             </div>
+          </div>
+
+          <div className="dashboard-overview-next-slot dashboard-next-pay-slot">
             <div className="stat-card stat-card--next-pay">
               <div className="stat-label">Nākamais maksājums</div>
               <div className="stat-next-body">

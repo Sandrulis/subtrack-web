@@ -229,6 +229,12 @@ function renderAnalytics() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+function fsBootAnalytics() {
     renderAnalytics();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fsBootAnalytics);
+} else {
+    fsBootAnalytics();
+}

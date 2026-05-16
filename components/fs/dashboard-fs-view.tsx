@@ -2,6 +2,7 @@
 
 import { NavDash } from "@/components/nav-dash";
 import { FsScripts } from "@/components/fs/load-fs-scripts";
+import type { NavUserDisplay } from "@/lib/auth/user-display";
 import {
   FA_ICONS_MORE,
   FA_ICONS_PREVIEW,
@@ -11,111 +12,127 @@ import {
 const DASH_SCRIPTS = [
   "/fs/js/subscriptions-data.js",
   "/fs/js/subscriptions-helpers.js",
-  "/fs/js/dash-notifications.js",
+  "/fs/js/dash-alerts.js",
   "/fs/js/dashboard.js",
 ] as const;
 
-export function DashboardFsView() {
+export function DashboardFsView({
+  userDisplay,
+}: {
+  userDisplay?: NavUserDisplay | null;
+}) {
   const year = new Date().getFullYear();
 
   return (
     <>
       <div className="app-layout app-layout-stacked">
-        <NavDash active="dashboard" />
+        <NavDash active="dashboard" userDisplay={userDisplay} />
         <main className="main-content">
-          <div className="dashboard-top-split">
-            <div className="dashboard-top-calendar">
-              <div className="pay-calendar-card">
-                <div className="pay-calendar-toolbar">
-                  <button
-                    type="button"
-                    className="pay-cal-nav"
-                    id="cal-prev"
-                    aria-label="Iepriekšējais mēnesis"
-                  >
-                    <i className="fa-solid fa-chevron-left" aria-hidden="true" />
-                  </button>
-                  <h2 className="pay-calendar-title" id="pay-calendar-title">
-                    Kalendārs
-                  </h2>
-                  <button
-                    type="button"
-                    className="pay-cal-nav"
-                    id="cal-next"
-                    aria-label="Nākamais mēnesis"
-                  >
-                    <i
-                      className="fa-solid fa-chevron-right"
-                      aria-hidden="true"
-                    />
-                  </button>
-                </div>
-                <div
-                  id="pay-calendar"
-                  className="pay-calendar"
-                  role="region"
-                  aria-labelledby="pay-calendar-title"
-                />
-                <p className="pay-calendar-hint">
-                  <span
-                    className="pay-cal-legend-i pay-cal-legend-i--due"
-                    aria-hidden="true"
-                  />
-                  gaidāms maksājums
-                  <span className="pay-calendar-hint-sep">·</span>
-                  <span
-                    className="pay-cal-legend-i pay-cal-legend-i--overdue"
-                    aria-hidden="true"
-                  />
-                  kavēts
-                </p>
-              </div>
-            </div>
-
-            <div className="dashboard-top-aside">
-              <div className="page-header">
-                <div>
-                  <h1 className="page-title">Abonamenti</h1>
-                  <p className="page-subtitle">
-                    Pārvaldiet savus ikmēneša abonementus
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => window.openAddModal?.()}
-                >
-                  <i className="fa-solid fa-plus" /> Pievienot
-                </button>
-              </div>
-
-              <div className="stats-row stats-row--aside">
-                <div className="stat-card">
-                  <div className="stat-label">Kopējā mēneša summa</div>
-                  <div className="stat-value" id="stat-total">
-                    €0.00
-                  </div>
-                  <div className="stat-note">par mēnesi</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-label">Aktīvie abonamenti</div>
-                  <div className="stat-value" id="stat-count">
-                    0
-                  </div>
-                  <div className="stat-note">kopā</div>
-                </div>
-                <div className="stat-card stat-card--next-pay">
-                  <div className="stat-label">Nākamais maksājums</div>
-                  <div className="stat-next-body">
-                    <div className="stat-next-text">
-                      <div className="stat-value stat-value--next" id="stat-next">
-                        -
-                      </div>
-                      <div className="stat-next-name" id="stat-next-name">
-                        nav abonementa
-                      </div>
+          <div className="dashboard-overview">
+            <div className="dashboard-overview-main">
+              <div className="dashboard-overview-calendar-col">
+                <div className="dashboard-top-calendar">
+                  <div className="pay-calendar-card">
+                    <div className="pay-calendar-toolbar">
+                      <button
+                        type="button"
+                        className="pay-cal-nav"
+                        id="cal-prev"
+                        aria-label="Iepriekšējais mēnesis"
+                      >
+                        <i className="fa-solid fa-chevron-left" aria-hidden="true" />
+                      </button>
+                      <h2 className="pay-calendar-title" id="pay-calendar-title">
+                        Kalendārs
+                      </h2>
+                      <button
+                        type="button"
+                        className="pay-cal-nav"
+                        id="cal-next"
+                        aria-label="Nākamais mēnesis"
+                      >
+                        <i
+                          className="fa-solid fa-chevron-right"
+                          aria-hidden="true"
+                        />
+                      </button>
                     </div>
-                    <div className="stat-next-amount" id="stat-next-amount" />
+                    <div
+                      id="pay-calendar"
+                      className="pay-calendar"
+                      role="region"
+                      aria-labelledby="pay-calendar-title"
+                    />
+                    <p className="pay-calendar-hint">
+                      <span
+                        className="pay-cal-legend-i pay-cal-legend-i--due"
+                        aria-hidden="true"
+                      />
+                      gaidāms maksājums
+                      <span className="pay-calendar-hint-sep">·</span>
+                      <span
+                        className="pay-cal-legend-i pay-cal-legend-i--overdue"
+                        aria-hidden="true"
+                      />
+                      kavēts
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="dashboard-overview-right-col">
+                <div className="dashboard-overview-head-col">
+                  <div className="page-header">
+                    <div>
+                      <h1 className="page-title">Abonamenti</h1>
+                      <p className="page-subtitle">
+                        Pārvaldiet savus ikmēneša abonementus
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => window.openAddModal?.()}
+                    >
+                      <i className="fa-solid fa-plus" /> Pievienot
+                    </button>
+                  </div>
+                </div>
+
+                <div className="dashboard-overview-stats-row">
+                  <div className="stat-card">
+                    <div className="stat-label">Kopējā mēneša summa</div>
+                    <div className="stat-value" id="stat-total">
+                      €0.00
+                    </div>
+                    <div className="stat-note">par mēnesi</div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-label">Aktīvie abonamenti</div>
+                    <div className="stat-value" id="stat-count">
+                      0
+                    </div>
+                    <div className="stat-note">kopā</div>
+                  </div>
+                </div>
+
+                <div className="dashboard-overview-next-slot dashboard-next-pay-slot">
+                  <div className="stat-card stat-card--next-pay">
+                    <div className="stat-label">Nākamais maksājums</div>
+                    <div className="stat-next-body">
+                      <div className="stat-next-text">
+                        <div
+                          className="stat-value stat-value--next"
+                          id="stat-next"
+                        >
+                          -
+                        </div>
+                        <div className="stat-next-name" id="stat-next-name">
+                          nav abonementa
+                        </div>
+                      </div>
+                      <div className="stat-next-amount" id="stat-next-amount" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -128,19 +145,31 @@ export function DashboardFsView() {
 
           <div id="sub-list" className="sub-list" />
 
-          <div id="empty-state" className="empty-state hidden">
-            <div>
-              <i className="fa-solid fa-receipt empty-icon-fa" />
+          <div
+            id="empty-state"
+            className="empty-state empty-state--dashboard hidden"
+            aria-live="polite"
+          >
+            <div className="empty-state-card">
+              <div className="empty-state-icon-wrap" aria-hidden="true">
+                <i className="fa-solid fa-calendar-days empty-state-main-icon" />
+              </div>
+              <h3>Vēl nav ierakstu</h3>
+              <p className="empty-state-lead">
+                Šeit redzēsiet savus abonementus un citus regulāros maksājumus.
+                Kalendārs un kopsavilkuma kartītes atjaunosies automātiski, kad būs vismaz viens ieraksts.
+              </p>
+              <p className="empty-state-secondary">
+                Sāciet ar pogu „Pievienot“ augšējā labajā stūrī – tas prasa tikai nosaukumu, summu un nākamo maksājuma datumu.
+              </p>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => window.openAddModal?.()}
+              >
+                <i className="fa-solid fa-plus" /> Pievienot pirmo ierakstu
+              </button>
             </div>
-            <h3>Nav abonementa</h3>
-            <p>Pievienojiet savu pirmo abonementu, lai sāktu sekot izdevumiem.</p>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => window.openAddModal?.()}
-            >
-              <i className="fa-solid fa-plus" /> Pievienot pirmo
-            </button>
           </div>
         </main>
 

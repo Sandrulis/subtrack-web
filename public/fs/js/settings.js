@@ -115,7 +115,7 @@ function subtrackPrefsRefreshPreview() {
     body.textContent = subtrackFormatPrefsPreview(p);
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+function fsBootSettings() {
     var form = document.getElementById('settings-form');
     if (!form) return;
 
@@ -138,4 +138,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         showToast('Iestatījumi saglabāti pārlūkprogrammā.', 'success');
     });
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fsBootSettings);
+} else {
+    fsBootSettings();
+}
