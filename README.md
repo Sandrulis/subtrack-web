@@ -1,6 +1,6 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.2.15` (skatīt lapas lejas daļā **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**).
+**Versija:** `0.2.16` (skatīt lapas lejas daļā **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**).
 
 **SubTrack** ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. Biznesa loģika abonementiem pašlaik daļēji balstās uz **FS prototipa JavaScript** (`public/fs/js/`), kas ielādējas demonstrācijas režīmā; **īstā datu glabāšana un backend** (Supabase Auth + Postgres shēmas pamats `database/supabase/`; abonementu sinhronizācija ar DB kā turpmāks solis) tiek pieslēgta pakāpeniski.
 
@@ -196,6 +196,10 @@ Paneļa **demonstrācijas** dati pašlaik no `localStorage` + `public/fs/js`. Su
 ## Izmaiņu žurnāls
 
 Šeit īss pieraksts par izlaistām izmaiņām; detalizētākās funkcijas un SQL skatīt augšējās sadaļās.
+
+### 0.2.16 (2026-05-17)
+
+- **Dependabot – `.github/dependabot.yml`** – formāts kā GitHub dokumentācijā (**`directory: "/"`**, pēdiņām ap **`npm`** un **`weekly`**, augšējā `#` sakārt kā komentāru), lai nebūtu validatora „invalid details’’.
 
 ### 0.2.15 (2026-05-17)
 
