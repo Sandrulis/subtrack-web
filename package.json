@@ -1,12 +1,15 @@
 {
   "name": "subtrack-web",
-  "version": "0.2.0",
+  "version": "0.2.15",
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:webpack": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "audit": "npm audit --audit-level=high",
+    "security:smoke-users-rls": "node scripts/security-smoke-users-rls.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
@@ -24,5 +27,8 @@
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": ">=8.5.10"
   }
 }

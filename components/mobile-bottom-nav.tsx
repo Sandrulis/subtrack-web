@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLayoutEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 
 type MobileBottomNavProps = {
   mode: "guest" | "authed";
@@ -27,6 +28,7 @@ export function MobileBottomNav({
   mode,
   isAdmin = false,
 }: MobileBottomNavProps) {
+  const { t } = useSubtrackIntl();
   const pathname = usePathname() ?? "";
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
@@ -43,14 +45,14 @@ export function MobileBottomNav({
     mode === "guest" ? (
       <nav
         className="mobile-bottom-nav"
-        aria-label="Sākumlapas sadaļas"
+        aria-label={t("mobile.nav.guest_sections")}
       >
         <div className="mobile-bottom-nav-pill">
           <Link
             href="/#features"
             className="mobile-bottom-nav-link"
             data-landing-anchor="features"
-            aria-label="Iespējas"
+            aria-label={t("mobile.aria.features")}
           >
             <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
               <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
@@ -65,7 +67,7 @@ export function MobileBottomNav({
             href="/#demo"
             className="mobile-bottom-nav-link"
             data-landing-anchor="demo"
-            aria-label="Demonstrācija"
+            aria-label={t("mobile.aria.demo")}
           >
             <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
               <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
@@ -80,7 +82,7 @@ export function MobileBottomNav({
             href="/#faq"
             className="mobile-bottom-nav-link"
             data-landing-anchor="faq"
-            aria-label="FAQ"
+            aria-label={t("mobile.aria.faq")}
           >
             <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
               <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
@@ -94,7 +96,7 @@ export function MobileBottomNav({
         </div>
       </nav>
     ) : (
-      <nav className="mobile-bottom-nav" aria-label="Galvenā navigācija">
+      <nav className="mobile-bottom-nav" aria-label={t("mobile.nav.authed_primary")}>
         <div className="mobile-bottom-nav-pill">
           <Link
             href="/dashboard"
@@ -105,7 +107,7 @@ export function MobileBottomNav({
             aria-current={
               authedSegmentKey === "dashboard" ? "page" : undefined
             }
-            aria-label="Panelis"
+            aria-label={t("nav.dashboard")}
           >
             <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
               <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
@@ -125,7 +127,7 @@ export function MobileBottomNav({
             aria-current={
               authedSegmentKey === "analytics" ? "page" : undefined
             }
-            aria-label="Analītika"
+            aria-label={t("nav.analytics")}
           >
             <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
               <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
@@ -146,7 +148,7 @@ export function MobileBottomNav({
               aria-current={
                 authedSegmentKey === "admin" ? "page" : undefined
               }
-              aria-label="Administrācija"
+              aria-label={t("nav.admin")}
             >
               <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
                 <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">

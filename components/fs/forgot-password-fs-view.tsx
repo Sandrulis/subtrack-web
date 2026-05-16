@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { SiteStandardCopyrightNotice } from "@/components/site-standard-copyright-notice";
 
 export function ForgotPasswordFsView() {
-  const year = new Date().getFullYear();
+
   const [step, setStep] = useState<"request" | "success">("request");
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -109,9 +110,7 @@ export function ForgotPasswordFsView() {
       </div>
 
       <footer className="landing-footer">
-        <p>
-          &copy; {year} SubTrack. Visi tiesības aizsargātas.
-        </p>
+        <SiteStandardCopyrightNotice />
       </footer>
     </>
   );

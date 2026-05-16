@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 import { NavDash } from "@/components/nav-dash";
+import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 
 export type AdminNavActive =
@@ -35,30 +36,31 @@ type AdminShellProps = {
 const navItems: {
   href: string;
   key: AdminNavActive;
-  label: string;
-  /** Īsāka etiķete šauram ekrānam (horizontālā josla). */
-  labelShort: string;
+  labelKey:
+    | "admin.nav.users"
+    | "admin.nav.languages"
+    | "admin.nav.translations"
+    | "admin.nav.system";
 }[] = [
-  { href: "/admin/users", key: "users", label: "Lietotāji", labelShort: "Lietotāji" },
+  { href: "/admin/users", key: "users", labelKey: "admin.nav.users" },
   {
-    href: "/admin/system",
-    key: "system",
-    label: "Sistēmas iestatījumi",
-    labelShort: "Sistēma",
+    href: "/admin/languages",
+    key: "languages",
+    labelKey: "admin.nav.languages",
   },
-  { href: "/admin/languages", key: "languages", label: "Valodas", labelShort: "Valodas" },
   {
     href: "/admin/translations",
     key: "translations",
-    label: "Tulkojumi",
-    labelShort: "Tulkojumi",
+    labelKey: "admin.nav.translations",
   },
+  { href: "/admin/system", key: "system", labelKey: "admin.nav.system" },
 ];
 
 export function AdminShell({
   children,
   userDisplay,
 }: AdminShellProps) {
+  const { t, systemSiteName } = useSubtrackIntl();
   const pathname = usePathname() ?? "";
   const navActive = useMemo(
     () => navActiveFromPath(pathname),
@@ -82,15 +84,15 @@ export function AdminShell({
     <div className="app-layout app-layout-stacked admin-app">
       <NavDash active="admin" userDisplay={userDisplay} />
       <div className="admin-body">
-        <aside className="admin-sidebar" aria-label="Administrācijas izvēlne">
+        <aside className="admin-sidebar" aria-label={t("admin.sidebar.menu")}>
           <div className="admin-sidebar-head">
-            <p className="admin-sidebar-title">Administrācija</p>
+            <p className="admin-sidebar-title">{t("admin.sidebar.title")}</p>
             <p className="admin-sidebar-scroll-hint" aria-hidden="true">
-              Ritini
+              {t("admin.sidebar.scroll_hint")}
             </p>
           </div>
           <div className="admin-side-nav-scroll" ref={navScrollRef}>
-            <nav className="admin-side-nav" aria-label="Administrācijas sadaļas">
+            <nav className="admin-side-nav" aria-label={t("admin.sidebar.sections_nav")}>
               {navItems.map((item) => (
                 <Link
                   key={item.key}
@@ -101,9 +103,9 @@ export function AdminShell({
                   }
                   aria-current={navActive === item.key ? "page" : undefined}
                 >
-                  <span className="admin-side-link-text-full">{item.label}</span>
+                  <span className="admin-side-link-text-full">{t(item.labelKey)}</span>
                   <span className="admin-side-link-text-short">
-                    {item.labelShort}
+                    {t(item.labelKey)}
                   </span>
                 </Link>
               ))}
@@ -113,8 +115,12 @@ export function AdminShell({
         <div className="admin-main">{children}</div>
       </div>
       <footer className="landing-footer admin-footer">
-        <p>&copy; {year} SubTrack. Visi tiesības aizsargātas.</p>
+        <p>
+          &copy; {year} {systemSiteName}. {t("admin.footer.rights_reserved")}
+        </p>
       </footer>
+
+      <div className="toast-container" id="toast-container" />
     </div>
   );
 }

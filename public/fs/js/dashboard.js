@@ -115,11 +115,15 @@ function renderPaymentCalendar() {
     var m = calendarView.m;
     var payMap = getPaymentsByDateInMonth(y, m);
 
-    var monthNames = ['janvāris', 'februāris', 'marts', 'aprīlis', 'maijs', 'jūnijs', 'jūlijs', 'augusts', 'septembris', 'oktobris', 'novembris', 'decembris'];
     var titleEl = document.getElementById('pay-calendar-title');
+    var locale = typeof fsIntlLocale === 'function' ? fsIntlLocale() : 'lv-LV';
     if (titleEl) {
-        var mn = monthNames[m];
-        titleEl.textContent = mn.charAt(0).toUpperCase() + mn.slice(1) + ' ' + y;
+        try {
+            var mf = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' });
+            titleEl.textContent = mf.format(new Date(y, m, 15));
+        } catch (fmtErr) {
+            titleEl.textContent = String(m + 1) + '.' + String(y);
+        }
     }
 
     var today = new Date();
@@ -129,7 +133,17 @@ function renderPaymentCalendar() {
     var startPad = (first.getDay() + 6) % 7;
     var daysInMonth = new Date(y, m + 1, 0).getDate();
 
-    var wdays = ['Pr', 'Ot', 'Tr', 'Ce', 'Pk', 'Se', 'Sv'];
+    var wdFmt = new Intl.DateTimeFormat(locale, { weekday: 'short' });
+    var wdays = [];
+    var wiDay;
+    for (wiDay = 0; wiDay < 7; wiDay++) {
+        var ref = new Date(1970, 0, 5 + wiDay);
+        try {
+            wdays.push(wdFmt.format(ref));
+        } catch (we) {
+            wdays.push(String(wiDay + 1));
+        }
+    }
     var html = '<div class="pay-cal-weekdays">';
     for (var wi = 0; wi < wdays.length; wi++) {
         html += '<span class="pay-cal-wd">' + wdays[wi] + '</span>';
@@ -331,10 +345,21 @@ function formatDateWithYear(dateStr) {
     if (!dateStr) return '';
     var d = new Date(dateStr + 'T00:00:00');
     if (isNaN(d.getTime())) return '';
-    var day = d.getDate();
-    var month = d.getMonth() + 1;
-    var pad = function (n) { return n < 10 ? '0' + n : String(n); };
-    return pad(day) + '.' + pad(month) + '.' + d.getFullYear();
+    var loc = typeof fsIntlLocale === 'function' ? fsIntlLocale() : 'lv-LV';
+    try {
+        return new Intl.DateTimeFormat(loc, {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        }).format(d);
+    } catch (err) {
+        var day = d.getDate();
+        var month = d.getMonth() + 1;
+        var pad = function (n) {
+            return n < 10 ? '0' + n : String(n);
+        };
+        return pad(day) + '.' + pad(month) + '.' + d.getFullYear();
+    }
 }
 
 function wholeMonthsFromEndRemaining(endStr) {
@@ -349,12 +374,6 @@ function wholeMonthsFromEndRemaining(endStr) {
     return Math.max(0, total);
 }
 
-function formatAtlikusiMenesi(n) {
-    if (n <= 0) return '';
-    if (n === 1) return 'atlikuši 1 mēnesis';
-    return 'atlikuši ' + n + ' mēneši';
-}
-
 function buildTermHtml(s) {
     if (!s.termStart || !s.termEnd) return '';
     var pct = computeTermProgressPct(s.termStart, s.termEnd);
@@ -363,19 +382,26 @@ function buildTermHtml(s) {
     var rightCol;
     var dateLine = escHtml(formatDateWithYear(s.termStart)) + ' - ' + escHtml(formatDateWithYear(s.termEnd));
     if (pct >= 100) {
-        rightCol = '<span class="sub-term-pct sub-term-pct-done">Termiņš ir noslēgts</span>';
+        rightCol = '<span class="sub-term-pct sub-term-pct-done">' + escHtml(FsT('fs.dashboard.term_done')) + '</span>';
     } else {
         var mo = wholeMonthsFromEndRemaining(s.termEnd);
         var remParen = mo > 0
-            ? ' <span class="sub-term-atlikums">(' + escHtml(formatAtlikusiMenesi(mo)) + ')</span>'
+            ? ' <span class="sub-term-atlikums">(' + escHtml(formatMonthsRemainingLong(mo)) + ')</span>'
             : '';
         dateLine = dateLine + remParen;
-        rightCol = '<span class="sub-term-pct"><strong>' + pct + '%</strong> no termiņa</span>';
+        rightCol =
+            '<span class="sub-term-pct"><strong>' +
+            pct +
+            '%</strong> ' +
+            escHtml(FsT('fs.dashboard.term_progress_suffix')) +
+            '</span>';
     }
     return '<div class="sub-term-block">' +
         '<div class="sub-term-header">' +
-        '<div class="sub-term-label"><i class="fa-solid fa-hourglass-half"></i> Atmaksas termiņš: ' +
-        dateLine + '</div>' +
+        '<div class="sub-term-label"><i class="fa-solid fa-hourglass-half"></i> ' +
+        escHtml(FsT('landing.mock.term_label')) +
+        dateLine +
+        '</div>' +
         rightCol +
         '</div>' +
         '<div class="sub-term-bar-track"><div class="sub-term-bar-fill" style="width:' + pct + '%;background:' + escAttr(c) + ';"></div></div>' +
@@ -408,14 +434,19 @@ function buildDeviceTermHtml(dev, parentColor) {
     var rightCol;
     var dateLine = escHtml(formatDateWithYear(dev.termStart)) + ' - ' + escHtml(formatDateWithYear(dev.termEnd));
     if (pct >= 100) {
-        rightCol = '<span class="sub-term-pct sub-term-pct-done">Termiņš ir noslēgts</span>';
+        rightCol = '<span class="sub-term-pct sub-term-pct-done">' + escHtml(FsT('fs.dashboard.term_done')) + '</span>';
     } else {
-        var mo = wholeMonthsFromEndRemaining(dev.termEnd);
-        var remParen = mo > 0
-            ? ' <span class="sub-term-atlikums">(' + escHtml(formatAtlikusiMenesi(mo)) + ')</span>'
+        var moD = wholeMonthsFromEndRemaining(dev.termEnd);
+        var remParenD = moD > 0
+            ? ' <span class="sub-term-atlikums">(' + escHtml(formatMonthsRemainingLong(moD)) + ')</span>'
             : '';
-        dateLine = dateLine + remParen;
-        rightCol = '<span class="sub-term-pct"><strong>' + pct + '%</strong> no termiņa</span>';
+        dateLine = dateLine + remParenD;
+        rightCol =
+            '<span class="sub-term-pct"><strong>' +
+            pct +
+            '%</strong> ' +
+            escHtml(FsT('fs.dashboard.term_progress_suffix')) +
+            '</span>';
     }
     return '<div class="sub-term-block sub-term-block--device">' +
         '<div class="sub-term-header">' +
@@ -439,7 +470,7 @@ function buildItem(s) {
     var dateIcon = urgencyClass === 'overdue'
         ? '<i class="fa-solid fa-triangle-exclamation"></i> '
         : (urgencyClass === 'soon' ? '<i class="fa-solid fa-hourglass-half"></i> ' : '<i class="fa-regular fa-calendar"></i> ');
-    var periodLabel = periodText(s.period);
+    var periodLabel = periodTextUi(s.period);
     var amountMonth = monthlyAmount(s.amount, s.period);
     var devExtra = sumDeviceAmounts(s);
     var displayTotal = amountMonth + devExtra;
@@ -451,9 +482,15 @@ function buildItem(s) {
             deviceBlocks += buildDeviceTermHtml(d, s.color);
         });
     }
-    var amountNote = devExtra > 0
-        ? '<div class="sub-amount-note">+' + devExtra.toFixed(2) + ' € papildu</div>'
-        : '';
+    var extraWord = FsT('fs.dashboard.device_extra_note');
+    var amountNote =
+        devExtra > 0
+            ? '<div class="sub-amount-note">+' +
+              devExtra.toFixed(2) +
+              ' € ' +
+              escHtml(extraWord || 'papildu') +
+              '</div>'
+            : '';
 
     return '<div class="sub-item" id="item-' + s.id + '">' +
         '<div class="sub-item-top">' +
@@ -468,19 +505,51 @@ function buildItem(s) {
                     (s.note ? '<span class="sub-note-inline">' + escHtml(s.note) + '</span>' : '') +
                     '<span class="sub-category-pill">' + escHtml(categoryLabel(s.category)) + '</span>' +
                     '</div>' +
-                    '<div class="' + dateLineClass + '">' + dateIcon + '<span>Nākamais maksājums: ' + escHtml(dateLabel) + '</span>' + overdueMeta + '</div>' +
+                    '<div class="' +
+                    dateLineClass +
+                    '">' +
+                    dateIcon +
+                    '<span>' +
+                    escHtml(FsT('landing.mock.pay_line')) +
+                    escHtml(dateLabel) +
+                    '</span>' +
+                    overdueMeta +
+                    '</div>' +
                 '</div>' +
                 '<div class="sub-right">' +
                     '<div class="sub-actions">' +
-                        '<button type="button" class="icon-btn mark-paid" data-tooltip="Atzīmēt kā samaksātu" aria-label="Atzīmēt kā samaksātu" onclick="markPaid(' + s.id + ')"><i class="fa-solid fa-check"></i></button>' +
-                        '<button type="button" class="icon-btn" data-tooltip="Labot" aria-label="Labot" onclick="openEditModal(' + s.id + ')"><i class="fa-solid fa-pen"></i></button>' +
-                        '<button type="button" class="icon-btn delete" data-tooltip="Dzēst" aria-label="Dzēst" onclick="openDeleteModal(' + s.id + ')"><i class="fa-solid fa-trash"></i></button>' +
+                        '<button type="button" class="icon-btn mark-paid" data-tooltip="' +
+                        escAttr(FsT('fs.dashboard.tooltip_mark_paid')) +
+                        '" aria-label="' +
+                        escAttr(FsT('fs.dashboard.aria_mark_paid')) +
+                        '" onclick="markPaid(' +
+                        s.id +
+                        ')"><i class="fa-solid fa-check"></i></button>' +
+                        '<button type="button" class="icon-btn" data-tooltip="' +
+                        escAttr(FsT('fs.dashboard.tooltip_edit')) +
+                        '" aria-label="' +
+                        escAttr(FsT('fs.dashboard.aria_edit')) +
+                        '" onclick="openEditModal(' +
+                        s.id +
+                        ')"><i class="fa-solid fa-pen"></i></button>' +
+                        '<button type="button" class="icon-btn delete" data-tooltip="' +
+                        escAttr(FsT('fs.dashboard.tooltip_delete')) +
+                        '" aria-label="' +
+                        escAttr(FsT('fs.dashboard.aria_delete')) +
+                        '" onclick="openDeleteModal(' +
+                        s.id +
+                        ')"><i class="fa-solid fa-trash"></i></button>' +
                     '</div>' +
                     '<div class="sub-amount-wrap">' +
                         '<div class="sub-amount">€' + displayTotal.toFixed(2) + '</div>' +
                         amountNote +
                         '<div class="sub-period">' + escHtml(periodLabel) + '</div>' +
-                        (s.period !== 'monthly' ? '<div class="sub-period">≈ €' + amountMonth.toFixed(2) + '/mēn.</div>' : '') +
+                        (s.period !== 'monthly'
+                            ? '<div class="sub-period">≈ €' +
+                              amountMonth.toFixed(2) +
+                              escHtml(FsT('fs.analytics.per_month_abbr') || '/mēn.') +
+                              '</div>'
+                            : '') +
                     '</div>' +
                 '</div>' +
             '</div>' +
@@ -491,46 +560,14 @@ function buildItem(s) {
 }
 
 /* ---- Mark paid (frontend demo: nākamais datums pēc perioda, saraksts sakārtots pēc termiņa) ---- */
-function addOneBillingPeriod(d, period) {
-    var x = new Date(d.getTime());
-    if (period === 'yearly') {
-        x.setFullYear(x.getFullYear() + 1);
-    } else if (period === 'weekly') {
-        x.setDate(x.getDate() + 7);
-    } else {
-        x.setMonth(x.getMonth() + 1);
-    }
-    return x;
-}
-
-function toISODateLocal(d) {
-    var y = d.getFullYear();
-    var m = String(d.getMonth() + 1);
-    if (m.length < 2) m = '0' + m;
-    var day = String(d.getDate());
-    if (day.length < 2) day = '0' + day;
-    return y + '-' + m + '-' + day;
-}
-
-function advanceNextDueAfterPayment(dateStr, period) {
-    var next = addOneBillingPeriod(new Date(dateStr + 'T00:00:00'), period);
-    var today = new Date();
-    today.setHours(0, 0, 0, 0);
-    var guard = 0;
-    while (next < today && guard < 240) {
-        next = addOneBillingPeriod(next, period);
-        guard++;
-    }
-    return toISODateLocal(next);
-}
-
 function markPaid(id) {
     var idx = subscriptions.findIndex(function (x) { return x.id === id; });
     if (idx === -1) return;
     var s = subscriptions[idx];
     var period = s.period || 'monthly';
     s.date = advanceNextDueAfterPayment(s.date, period);
-    showToast('Maksājums atzīmēts. Nākamais termiņš: ' + formatDate(s.date) + '.', 'success');
+    var raw = FsT('fs.dashboard.toast_marked_paid');
+    showToast(raw ? raw.replace(/\{date\}/g, formatDate(s.date)) : 'Maksājums.', 'success');
     renderList(id);
 }
 
@@ -546,7 +583,7 @@ function updateStats() {
     if (subscriptions.length === 0) {
         document.getElementById('stat-next').textContent = '-';
         document.getElementById('stat-next-amount').textContent = '';
-        document.getElementById('stat-next-name').textContent = 'nav abonementa';
+        document.getElementById('stat-next-name').textContent = FsT('fs.dashboard.empty_no_subscriptions') || '';
         return;
     }
 
@@ -567,7 +604,8 @@ function updateStats() {
     } else {
         document.getElementById('stat-next').textContent = '-';
         document.getElementById('stat-next-amount').textContent = '';
-        document.getElementById('stat-next-name').textContent = 'nav gaidāmo';
+        document.getElementById('stat-next-name').textContent =
+            FsT('fs.dashboard.empty_nothing_upcoming') || '';
     }
 }
 
@@ -577,8 +615,8 @@ function openAddModal() {
     collapseModalAdvanced();
     clearDeviceEditor();
     editingId = null;
-    document.getElementById('modal-title').textContent = 'Pievienot abonementu';
-    document.getElementById('modal-save-btn').textContent = 'Pievienot';
+    document.getElementById('modal-title').textContent = FsT('fs.dashboard.modal_add_title');
+    document.getElementById('modal-save-btn').textContent = FsT('fs.dashboard.modal_add_submit');
     document.getElementById('sub-name').value = '';
     document.getElementById('sub-category').value = 'subscription';
     document.getElementById('sub-amount').value = '';
@@ -600,8 +638,8 @@ function openEditModal(id) {
     collapseIconPicker();
     clearDeviceEditor();
 
-    document.getElementById('modal-title').textContent = 'Labot abonementu';
-    document.getElementById('modal-save-btn').textContent = 'Saglabāt';
+    document.getElementById('modal-title').textContent = FsT('fs.dashboard.modal_edit_title');
+    document.getElementById('modal-save-btn').textContent = FsT('fs.dashboard.modal_save');
     document.getElementById('sub-name').value = s.name || '';
     document.getElementById('sub-category').value = normalizeCategoryKey(s.category);
     document.getElementById('sub-amount').value = s.amount != null ? s.amount : '';
@@ -649,7 +687,7 @@ function saveSubscription() {
     if (!date) { shakeInput('sub-date'); return; }
 
     if ((termStart && !termEnd) || (!termStart && termEnd)) {
-        showToast('Lai rādītu progress joslu, aizpildiet abus datumus vai atstatiet tukšus.', 'error');
+        showToast(FsT('fs.dashboard.toast_term_dates_invalid'), 'error');
         if (!termStart) shakeInput('sub-term-start');
         else shakeInput('sub-term-end');
         return;
@@ -658,7 +696,7 @@ function saveSubscription() {
         var ts = new Date(termStart + 'T00:00:00');
         var te = new Date(termEnd + 'T00:00:00');
         if (te <= ts) {
-            showToast('„Termiņš līdz” ir jābūt pēc „termiņš no”.', 'error');
+            showToast(FsT('fs.dashboard.toast_term_end_after_start'), 'error');
             shakeInput('sub-term-end');
             return;
         }
@@ -686,10 +724,10 @@ function saveSubscription() {
         if (idx !== -1) {
             subscriptions[idx] = Object.assign({ id: editingId }, payload);
         }
-        showToast('Abonements saglabāts!', 'success');
+        showToast(FsT('fs.dashboard.toast_saved'), 'success');
     } else {
         subscriptions.push(Object.assign({ id: nextId++ }, payload));
-        showToast('Abonements pievienots!', 'success');
+        showToast(FsT('fs.dashboard.toast_added'), 'success');
     }
 
     closeModal();
@@ -700,7 +738,9 @@ function saveSubscription() {
 function openDeleteModal(id) {
     deletingId = id;
     var s = subscriptions.find(function(x) { return x.id === id; });
-    document.getElementById('delete-confirm-name').textContent = 'Vai tiešām vēlaties dzēst "' + (s ? s.name : '') + '"? Šo darbību nevar atcelt.';
+    document.getElementById('delete-confirm-name').textContent = FsT(
+        'fs.dashboard.delete_body',
+    ).replace(/\{name\}/g, s ? s.name : '');
     document.getElementById('delete-overlay').classList.add('open');
 }
 
@@ -717,7 +757,7 @@ function confirmDelete() {
     subscriptions = subscriptions.filter(function(x) { return x.id !== deletingId; });
     closeDeleteModal();
     renderList();
-    showToast('Abonements dzēsts.', 'success');
+    showToast(FsT('fs.dashboard.toast_deleted'), 'success');
 }
 
 /* ---- Icon picker ---- */
@@ -744,7 +784,7 @@ function collapseIconPicker() {
     }
     if (btn) {
         btn.setAttribute('aria-expanded', 'false');
-        btn.textContent = 'Parādīt visas';
+        btn.textContent = FsT('fs.dashboard.icon_show_all');
     }
 }
 
@@ -755,7 +795,7 @@ function toggleIconPickerExpand() {
     more.classList.toggle('hidden');
     var expanded = !more.classList.contains('hidden');
     btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    btn.textContent = expanded ? 'Rādīt mazāk' : 'Parādīt visas';
+    btn.textContent = expanded ? FsT('fs.dashboard.icon_show_less') : FsT('fs.dashboard.icon_show_all');
 }
 
 /* ---- Papildu opcijas (kredīta termiņš, papildu pozīcijas) modālī ---- */
@@ -842,15 +882,43 @@ function addDeviceRow(data) {
     div.className = 'sub-device-editor';
     div.innerHTML =
         '<div class="sub-device-editor-top">' +
-            '<span class="sub-device-editor-title">Papildu pozīcija</span>' +
-            '<button type="button" class="sub-device-remove" aria-label="Noņemt" onclick="removeDeviceRow(this)"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>' +
+            '<span class="sub-device-editor-title">' +
+            escHtml(FsT('fs.dashboard.device_row_title')) +
+            '</span>' +
+            '<button type="button" class="sub-device-remove" aria-label="' +
+            escAttr(FsT('fs.dashboard.aria_remove_device_row')) +
+            '" onclick="removeDeviceRow(this)"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>' +
         '</div>' +
-        '<div class="form-group"><label>Nosaukums</label><input type="text" class="sub-device-name" placeholder="piem. Apdrošināšana, modēms" value="' + escAttr(nameV) + '"></div>' +
-        '<div class="form-group"><label>Piezīme (neobligāti)</label><input type="text" class="sub-device-note" placeholder="piem. Mans, Sievas" value="' + escAttr(noteV) + '"></div>' +
-        '<div class="form-group"><label>Papildu summa (€ / mēn.)</label><input type="number" class="sub-device-amount" placeholder="0" step="0.01" min="0" value="' + escAttr(amountV) + '"></div>' +
+        '<div class="form-group"><label>' +
+        escHtml(FsT('fs.dashboard.device_label_name')) +
+        '</label><input type="text" class="sub-device-name" placeholder="' +
+        escAttr(FsT('fs.dashboard.device_placeholder_name')) +
+        '" value="' +
+        escAttr(nameV) +
+        '"></div>' +
+        '<div class="form-group"><label>' +
+        escHtml(FsT('fs.dashboard.device_label_note_optional')) +
+        '</label><input type="text" class="sub-device-note" placeholder="' +
+        escAttr(FsT('fs.dashboard.device_placeholder_note')) +
+        '" value="' +
+        escAttr(noteV) +
+        '"></div>' +
+        '<div class="form-group"><label>' +
+        escHtml(FsT('fs.dashboard.device_label_extra_amount')) +
+        '</label><input type="number" class="sub-device-amount" placeholder="0" step="0.01" min="0" value="' +
+        escAttr(amountV) +
+        '"></div>' +
         '<div class="form-row">' +
-            '<div class="form-group"><label>Termiņš no</label><input type="date" class="sub-device-ts" value="' + escAttr(tsV) + '"></div>' +
-            '<div class="form-group"><label>Termiņš līdz</label><input type="date" class="sub-device-te" value="' + escAttr(teV) + '"></div>' +
+            '<div class="form-group"><label>' +
+            escHtml(FsT('fs.dashboard.term_start')) +
+            '</label><input type="date" class="sub-device-ts" value="' +
+            escAttr(tsV) +
+            '"></div>' +
+            '<div class="form-group"><label>' +
+            escHtml(FsT('fs.dashboard.term_end')) +
+            '</label><input type="date" class="sub-device-te" value="' +
+            escAttr(teV) +
+            '"></div>' +
         '</div>';
     c.appendChild(div);
 }
@@ -871,18 +939,18 @@ function collectDevicesFromForm() {
         var hasAny = name || ts || te || (amountRaw !== '' && !isNaN(amount) && amount !== 0);
         if (!hasAny) continue;
         if ((ts && !te) || (!ts && te)) {
-            showToast('Katras papildu pozīcijas termiņam aizpildiet abus datumus vai atstatiet tukšus.', 'error');
+            showToast(FsT('fs.dashboard.toast_device_term_both_dates'), 'error');
             return null;
         }
         if (ts && te && !name) {
-            showToast('Norādiet pozīcijas nosaukumu, ja norādīts termiņš.', 'error');
+            showToast(FsT('fs.dashboard.toast_device_name_when_term'), 'error');
             return null;
         }
         if (ts && te) {
             var dts = new Date(ts + 'T00:00:00');
             var dte = new Date(te + 'T00:00:00');
             if (dte <= dts) {
-                showToast('„Termiņš līdz” pozīcijai ir jābūt pēc „no”.', 'error');
+                showToast(FsT('fs.dashboard.toast_device_term_order'), 'error');
                 return null;
             }
         }
@@ -946,22 +1014,6 @@ function getOverdueDays(dateStr) {
     today.setHours(0, 0, 0, 0);
     var d = new Date(dateStr + 'T00:00:00');
     return Math.max(0, Math.round((today - d) / 86400000));
-}
-
-function formatOverdueLabel(days) {
-    if (days === 1) return '1 diena kavējumā';
-    var mod10 = days % 10;
-    var mod100 = days % 100;
-    if (mod10 === 1 && mod100 !== 11) return days + ' diena kavējumā';
-    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 > 20)) return days + ' dienas kavējumā';
-    return days + ' dienu kavējumā';
-}
-
-function periodText(period) {
-    if (period === 'monthly') return 'mēnesī';
-    if (period === 'yearly') return 'gadā';
-    if (period === 'weekly') return 'nedēļā';
-    return period;
 }
 
 function escAttr(str) {

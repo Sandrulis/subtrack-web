@@ -1,6 +1,9 @@
+"use client";
+
+import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import { NavUserMenu } from "@/components/nav-user-menu";
 import { signOutAction } from "@/lib/auth/actions";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
-import { NavUserMenu } from "@/components/nav-user-menu";
 
 type NavSessionActionsProps = {
   userDisplay: NavUserDisplay | null | undefined;
@@ -15,6 +18,7 @@ export function NavSessionActions({
   userDisplay,
   showDashboardInUserMenu = false,
 }: NavSessionActionsProps) {
+  const { t } = useSubtrackIntl();
   return (
     <div className="dash-actions">
       <div className="dash-notify-wrap">
@@ -24,7 +28,7 @@ export function NavSessionActions({
           id="dash-notify-toggle"
           aria-expanded="false"
           aria-controls="dash-notify-panel"
-          aria-label="Paziņojumi"
+          aria-label={t("session.notify_toggle_aria")}
         >
           <span
             id="dash-notify-icon"
@@ -67,21 +71,46 @@ export function NavSessionActions({
             0
           </span>
         </button>
+        <button
+          type="button"
+          className="dash-notify-menu-backdrop hidden"
+          id="dash-notify-backdrop"
+          tabIndex={-1}
+          aria-hidden="true"
+        />
         <div
           className="dash-notify-panel hidden"
           id="dash-notify-panel"
           role="region"
-          aria-label="Maksājumu paziņojumi"
+          aria-label={t("session.notify_panel_aria")}
         >
           <div className="dash-notify-panel-inner">
             <div className="dash-notify-head">
-              <span className="dash-notify-head-title">Paziņojumi</span>
+              <span className="dash-notify-head-title">{t("session.notify_title")}</span>
+            </div>
+            <div
+              className="dash-notify-today hidden"
+              id="dash-notify-today-section"
+            >
+              <div className="dash-notify-today-row">
+                <h3 className="dash-notify-section-title dash-notify-today-title">
+                  {t("session.notify_today_title")}
+                </h3>
+                <button
+                  type="button"
+                  className="dash-notify-today-ok hidden"
+                  id="dash-notify-today-paid-btn"
+                  aria-label={t("session.notify_today_mark_paid_aria")}
+                >
+                  <i className="fa-solid fa-check" aria-hidden="true" />
+                </button>
+              </div>
             </div>
             <div
               className="dash-notify-section"
               id="dash-notify-overdue-section"
             >
-              <h3 className="dash-notify-section-title">Kavētie maksājumi</h3>
+              <h3 className="dash-notify-section-title">{t("session.notify_overdue")}</h3>
               <div
                 className="dash-notify-list"
                 id="dash-notify-overdue-list"
@@ -91,7 +120,7 @@ export function NavSessionActions({
               className="dash-notify-section"
               id="dash-notify-upcoming-section"
             >
-              <h3 className="dash-notify-section-title">Gaidāmie maksājumi</h3>
+              <h3 className="dash-notify-section-title">{t("session.notify_upcoming")}</h3>
               <div
                 className="dash-notify-list"
                 id="dash-notify-upcoming-list"
@@ -127,7 +156,7 @@ export function NavSessionActions({
               d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5-5-5zM4 5h7V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h7v-2H4V5z"
             />
           </svg>
-          <span className="dash-exit-text">Iziet</span>
+          <span className="dash-exit-text">{t("session.sign_out")}</span>
         </button>
       </form>
     </div>

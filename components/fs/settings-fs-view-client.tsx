@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NavDash } from "@/components/nav-dash";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -13,112 +14,191 @@ import {
   readDisplayPreferencesFromLocalStorage,
   writeDisplayPreferencesToLocalStorage,
 } from "@/lib/user-display-preferences";
+import type { SettingsLanguageOption } from "@/components/fs/settings-fs-view";
+import { SiteStandardCopyrightNotice } from "@/components/site-standard-copyright-notice";
+import { applyUiLocaleInBrowser } from "@/lib/html-lang";
+import { pushDomToast } from "@/lib/push-dom-toast";
+import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 
-function pushToast(msg: string, type: "success" | "error") {
-  const container = document.getElementById("toast-container");
-  if (!container) return;
-  const toast = document.createElement("div");
-  toast.className = `toast ${type}`;
-  const prefix =
-    type === "success"
-      ? '<i class="fa-solid fa-check"></i> '
-      : '<i class="fa-solid fa-circle-exclamation"></i> ';
-  const esc = (s: string) =>
-    String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  toast.innerHTML = prefix + esc(msg);
-  container.appendChild(toast);
-  setTimeout(() => {
-    toast.style.opacity = "0";
-    toast.style.transition = "opacity .3s";
-    setTimeout(() => toast.remove(), 320);
-  }, 2800);
+function pickInterfaceLanguageAgainstCatalog(
+  code: string,
+  catalog: SettingsLanguageOption[],
+  systemDefaultCode: string,
+): string {
+  if (!catalog.length) return code;
+  if (catalog.some((o) => o.code === code)) return code;
+  const def = systemDefaultCode.trim().toLowerCase();
+  if (catalog.some((o) => o.code === def)) return def;
+  return catalog[0]!.code;
 }
+
+const AUTOSAVE_DEBOUNCE_MS = 450;
 
 export function SettingsFsViewClient({
   userDisplay,
   dbPreferencesRaw,
+  languageOptions,
+  preferenceBase,
 }: {
   userDisplay?: NavUserDisplay | null;
   /** No servera: `users.display_preferences` vai null */
   dbPreferencesRaw: unknown | null;
+  languageOptions: SettingsLanguageOption[];
+  preferenceBase: DisplayPreferences;
 }) {
-  const year = new Date().getFullYear();
   const [prefs, setPrefs] = useState<DisplayPreferences>(() =>
-    mergeDisplayPreferences({}),
+    mergeDisplayPreferences({}, preferenceBase),
   );
   const [hydrated, setHydrated] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    queueMicrotask(() => {
-      if (cancelled) return;
-      const local = readDisplayPreferencesFromLocalStorage();
-      const merged = mergeDisplayPreferencesFromSources(local, dbPreferencesRaw);
-      setPrefs(merged);
-      setHydrated(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [dbPreferencesRaw]);
+  const router = useRouter();
 
-  const previewText = useMemo(() => formatDisplayPreferencesPreview(prefs), [prefs]);
+  const { t, locale } = useSubtrackIntl();
+  const intlLocale = useMemo(() => uiLocaleCodeToBcp47ForIntl(locale), [locale]);
 
-  function updateField<K extends keyof DisplayPreferences>(
-    key: K,
-    value: DisplayPreferences[K],
-  ) {
-    setPrefs((p) => mergeDisplayPreferences({ ...p, [key]: value }));
-  }
+  const latestPrefsRef = useRef(prefs);
+  latestPrefsRef.current = prefs;
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const next = mergeDisplayPreferences(prefs);
-    let savedRemote = false;
-    let serverProblem: string | null = null;
+  const hydratedRef = useRef(false);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const persistSnapshotRef = useRef<(snapshot: DisplayPreferences) => Promise<void>>(
+    async () => {},
+  );
 
+  async function persistSnapshot(snapshot: DisplayPreferences): Promise<void> {
+    pushDomToast(t("settings.toast_server_saving"), "info");
     try {
+      if (!writeDisplayPreferencesToLocalStorage(snapshot)) {
+        pushDomToast(t("settings.toast_browser_fail"), "error");
+        return;
+      }
+      applyUiLocaleInBrowser(snapshot.interface_language_code);
+
       const supabase = createBrowserSupabaseClient();
       const {
         data: { user },
         error: userErr,
       } = await supabase.auth.getUser();
       if (userErr || !user) {
-        pushToast("Nav aktīvas sesijas.", "error");
+        pushDomToast(t("settings.toast_local_only"), "error");
         return;
       }
 
       const { error } = await supabase
         .from("users")
-        .update({ display_preferences: next })
+        .update({ display_preferences: snapshot })
         .eq("id", user.id);
 
       if (error) {
-        serverProblem = error.message || "Neizdevās saglabāt serverī.";
-      } else {
-        savedRemote = true;
+        const raw = (error.message || "").trim();
+        const detail = raw.length > 0 ? raw : t("settings.toast_server_unknown_error");
+        pushDomToast(`${t("settings.toast_generic_server_error_prefix")} ${detail}`, "error");
+        return;
       }
+      pushDomToast(t("settings.toast_saved"), "success");
     } catch {
-      serverProblem = "Neizdevās savienoties ar serveri.";
+      pushDomToast(t("settings.toast_save_connection_failure"), "error");
     }
+  }
 
-    if (!writeDisplayPreferencesToLocalStorage(next)) {
-      pushToast("Neizdevās saglabāt pārlūkā (localStorage).", "error");
-      return;
-    }
+  persistSnapshotRef.current = persistSnapshot;
 
-    if (savedRemote) {
-      pushToast("Iestatījumi saglabāti kontā un pārlūkā.", "success");
-    } else if (serverProblem) {
-      pushToast(`Saglabāti pārlūkā. ${serverProblem}`, "error");
-    } else {
-      pushToast("Saglabāti pārlūkā.", "success");
-    }
+  const languageOptionCodesKey = useMemo(
+    () => languageOptions.map((o) => o.code).sort().join("\0"),
+    [languageOptions],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      const local = readDisplayPreferencesFromLocalStorage();
+      let merged = mergeDisplayPreferencesFromSources(local, dbPreferencesRaw, preferenceBase);
+      merged = mergeDisplayPreferences(merged, preferenceBase);
+      if (languageOptions.length > 0) {
+        merged = mergeDisplayPreferences(
+          {
+            ...merged,
+            interface_language_code: pickInterfaceLanguageAgainstCatalog(
+              merged.interface_language_code,
+              languageOptions,
+              preferenceBase.interface_language_code,
+            ),
+          },
+          preferenceBase,
+        );
+      }
+      setPrefs(merged);
+      applyUiLocaleInBrowser(merged.interface_language_code);
+      setHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [dbPreferencesRaw, languageOptionCodesKey, preferenceBase]);
+
+  useEffect(() => {
+    hydratedRef.current = hydrated;
+  }, [hydrated]);
+
+  useEffect(() => {
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+      if (hydratedRef.current) {
+        void persistSnapshotRef.current(latestPrefsRef.current);
+      }
+    };
+  }, []);
+
+  const previewText = useMemo(
+    () =>
+      formatDisplayPreferencesPreview(prefs, intlLocale, {
+        week: t("preferences.preview.label_week"),
+        currency: t("preferences.preview.label_currency"),
+        ui: t("preferences.preview.label_ui"),
+      }),
+    [intlLocale, prefs, t],
+  );
+
+  function scheduleAutosave(nextSnapshot: DisplayPreferences): void {
+    if (!hydratedRef.current) return;
+    latestPrefsRef.current = nextSnapshot;
+
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(() => {
+      autosaveTimerRef.current = null;
+      void persistSnapshotRef.current(latestPrefsRef.current);
+    }, AUTOSAVE_DEBOUNCE_MS);
+  }
+
+  function updateField<K extends keyof DisplayPreferences>(
+    key: K,
+    value: DisplayPreferences[K],
+  ): void {
+    setPrefs((p) => {
+      let next = mergeDisplayPreferences({ ...p, [key]: value }, preferenceBase);
+
+      if (key === "interface_language_code") {
+        const picked = pickInterfaceLanguageAgainstCatalog(
+          typeof value === "string" ? value : String(value ?? ""),
+          languageOptions,
+          preferenceBase.interface_language_code,
+        );
+        next = mergeDisplayPreferences({ ...next, interface_language_code: picked }, preferenceBase);
+        applyUiLocaleInBrowser(next.interface_language_code);
+        writeDisplayPreferencesToLocalStorage(next);
+        queueMicrotask(() => {
+          router.refresh();
+        });
+      }
+
+      scheduleAutosave(next);
+      return next;
+    });
   }
 
   return (
@@ -129,17 +209,45 @@ export function SettingsFsViewClient({
           <div className="auth-card-icon">
             <i className="fa-solid fa-sliders fa-xl" aria-hidden="true" />
           </div>
-          <h1>Iestatījumi</h1>
-          <p className="auth-subtitle">
-            Noklusējuma valūta, datumu un laiku parādīšana, laika josla un
-            kalendāra nedēļas sākums. Vērtības tiek saglabātas tavā kontā un
-            dublētas pārlūkā ērtai ielādei.
-          </p>
+          <h1>{t("settings.page_heading")}</h1>
+          <p className="auth-subtitle">{t("settings.page_intro")}</p>
 
-          <form id="settings-form" noValidate onSubmit={onSubmit}>
-            <p className="form-section-label">Valūta</p>
+          <form
+            id="settings-form"
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+            }}
+          >
+            <p className="form-section-label">{t("settings.section_language")}</p>
             <div className="form-group">
-              <label htmlFor="set-currency">Noklusējuma valūta</label>
+              <label htmlFor="set-ui-lang">{t("settings.label_language_default")}</label>
+              <select
+                id="set-ui-lang"
+                name="interface_language_code"
+                className="form-select"
+                value={prefs.interface_language_code}
+                disabled={!hydrated}
+                onChange={(e) => updateField("interface_language_code", e.target.value)}
+              >
+                {languageOptions.map((opt) => (
+                  <option key={opt.code} value={opt.code}>
+                    {opt.label} ({opt.code})
+                  </option>
+                ))}
+              </select>
+              <p className="form-hint form-hint--settings-under-select">
+                {t("settings.hint_document_lang")}{" "}
+                <code lang="en" className="admin-inline-code">
+                  lang
+                </code>
+                {t("settings.hint_document_lang_suffix")}
+              </p>
+            </div>
+
+            <p className="form-section-label form-section-label--spaced">{t("settings.section_currency")}</p>
+            <div className="form-group">
+              <label htmlFor="set-currency">{t("admin.forms.section_currency")}</label>
               <select
                 id="set-currency"
                 name="currency"
@@ -150,21 +258,19 @@ export function SettingsFsViewClient({
                   updateField("currency", e.target.value as DisplayPreferences["currency"])
                 }
               >
-                <option value="EUR">EUR (€)</option>
-                <option value="USD">USD ($)</option>
-                <option value="GBP">GBP (£)</option>
-                <option value="SEK">SEK (kr)</option>
-                <option value="PLN">PLN (zł)</option>
-                <option value="CHF">CHF (Fr)</option>
+                <option value="EUR">{t("settings.currency_eur_label")}</option>
+                <option value="USD">{t("settings.currency_usd_label")}</option>
+                <option value="GBP">{t("settings.currency_gbp_label")}</option>
+                <option value="SEK">{t("settings.currency_sek_label")}</option>
+                <option value="PLN">{t("settings.currency_pln_label")}</option>
+                <option value="CHF">{t("settings.currency_chf_label")}</option>
               </select>
             </div>
 
-            <p className="form-section-label form-section-label--spaced">
-              Datuma formāts
-            </p>
+            <p className="form-section-label form-section-label--spaced">{t("admin.forms.section_date")}</p>
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="set-date-order">Komponentu secība</label>
+                <label htmlFor="set-date-order">{t("admin.forms.label_date_order")}</label>
                 <select
                   id="set-date-order"
                   name="date_order"
@@ -178,13 +284,13 @@ export function SettingsFsViewClient({
                     )
                   }
                 >
-                  <option value="dmy">07.06.2024</option>
-                  <option value="ymd">2024.06.07</option>
-                  <option value="mdy">06.07.2024</option>
+                  <option value="dmy">{t("settings.option_date_order_dmy")}</option>
+                  <option value="ymd">{t("settings.option_date_order_ymd")}</option>
+                  <option value="mdy">{t("settings.option_date_order_mdy")}</option>
                 </select>
               </div>
               <div className="form-group">
-                <label htmlFor="set-date-sep">Datuma atdalītājs</label>
+                <label htmlFor="set-date-sep">{t("admin.forms.label_date_sep")}</label>
                 <select
                   id="set-date-sep"
                   name="date_sep"
@@ -195,19 +301,17 @@ export function SettingsFsViewClient({
                     updateField("date_sep", e.target.value as DisplayPreferences["date_sep"])
                   }
                 >
-                  <option value=".">Punkts (.) - 07.06.2024</option>
-                  <option value="-">Defise (-) - 07-06-2024</option>
-                  <option value="/">Slīpsvītra (/) - 07/06/2024</option>
+                  <option value=".">{t("settings.option_date_sep_dot")}</option>
+                  <option value="-">{t("settings.option_date_sep_dash")}</option>
+                  <option value="/">{t("settings.option_date_sep_slash")}</option>
                 </select>
               </div>
             </div>
 
-            <p className="form-section-label form-section-label--spaced">
-              Laika formāts
-            </p>
+            <p className="form-section-label form-section-label--spaced">{t("admin.forms.section_time")}</p>
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="set-time-format">Formāts</label>
+                <label htmlFor="set-time-format">{t("admin.forms.label_time_fmt")}</label>
                 <select
                   id="set-time-format"
                   name="time_format"
@@ -221,12 +325,12 @@ export function SettingsFsViewClient({
                     )
                   }
                 >
-                  <option value="24">24 stundas (piem., 14:30)</option>
-                  <option value="12">12 stundas (piem., 2:30 pēcpusdiena)</option>
+                  <option value="24">{t("settings.option_time_24")}</option>
+                  <option value="12">{t("settings.option_time_12")}</option>
                 </select>
               </div>
               <div className="form-group">
-                <label htmlFor="set-time-sep">Laika atdalītājs</label>
+                <label htmlFor="set-time-sep">{t("admin.forms.label_time_sep_field")}</label>
                 <select
                   id="set-time-sep"
                   name="time_sep"
@@ -237,20 +341,18 @@ export function SettingsFsViewClient({
                     updateField("time_sep", e.target.value as DisplayPreferences["time_sep"])
                   }
                 >
-                  <option value=":">Divkrops (:)</option>
-                  <option value=".">Punkts (.)</option>
+                  <option value=":">{t("settings.option_clock_sep_colon")}</option>
+                  <option value=".">{t("settings.option_clock_sep_dot")}</option>
                 </select>
                 <p className="form-hint form-hint--settings-under-select">
-                  Stundas un minūtes starpā.
+                  {t("settings.hint_hours_minutes_sep")}
                 </p>
               </div>
             </div>
 
-            <p className="form-section-label form-section-label--spaced">
-              Laika zona un nedēļa
-            </p>
+            <p className="form-section-label form-section-label--spaced">{t("admin.forms.section_tz")}</p>
             <div className="form-group">
-              <label htmlFor="set-tz">Laika zona</label>
+              <label htmlFor="set-tz">{t("admin.forms.label_timezone")}</label>
               <select
                 id="set-tz"
                 name="timezone"
@@ -259,21 +361,21 @@ export function SettingsFsViewClient({
                 disabled={!hydrated}
                 onChange={(e) => updateField("timezone", e.target.value)}
               >
-                <option value="Europe/Riga">Eiropa/Rīga</option>
-                <option value="Europe/Tallinn">Eiropa/Tallina</option>
-                <option value="Europe/Vilnius">Eiropa/Viļņa</option>
-                <option value="Europe/Helsinki">Eiropa/Helsinki</option>
-                <option value="Europe/Warsaw">Eiropa/Varšava</option>
-                <option value="Europe/Berlin">Eiropa/Berlīne</option>
-                <option value="Europe/Paris">Eiropa/Parīze</option>
-                <option value="Europe/London">Eiropa/Londona</option>
-                <option value="UTC">UTC</option>
-                <option value="America/New_York">Amerika/New_York</option>
+                <option value="Europe/Riga">{t("settings.tz_europe_riga")}</option>
+                <option value="Europe/Tallinn">{t("settings.tz_europe_tallinn")}</option>
+                <option value="Europe/Vilnius">{t("settings.tz_europe_vilnius")}</option>
+                <option value="Europe/Helsinki">{t("settings.tz_europe_helsinki")}</option>
+                <option value="Europe/Warsaw">{t("settings.tz_europe_warsaw")}</option>
+                <option value="Europe/Berlin">{t("settings.tz_europe_berlin")}</option>
+                <option value="Europe/Paris">{t("settings.tz_europe_paris")}</option>
+                <option value="Europe/London">{t("settings.tz_europe_london")}</option>
+                <option value="UTC">{t("settings.tz_utc")}</option>
+                <option value="America/New_York">{t("settings.tz_america_new_york")}</option>
               </select>
             </div>
 
             <div className="form-group">
-              <label htmlFor="set-week-start">Kalendārā nedēļa sākas ar</label>
+              <label htmlFor="set-week-start">{t("admin.forms.label_week_start")}</label>
               <select
                 id="set-week-start"
                 name="week_start"
@@ -287,8 +389,8 @@ export function SettingsFsViewClient({
                   )
                 }
               >
-                <option value="monday">Pirmdienu</option>
-                <option value="sunday">Svētdienu</option>
+                <option value="monday">{t("admin.forms.week_mon")}</option>
+                <option value="sunday">{t("admin.forms.week_sun")}</option>
               </select>
             </div>
 
@@ -297,33 +399,22 @@ export function SettingsFsViewClient({
               id="settings-preview"
               aria-live="polite"
             >
-              <strong>Piemērs:</strong>{" "}
+              <strong>{t("settings.preview_label")}</strong>{" "}
               <span id="settings-preview-body">{previewText}</span>
-            </div>
-
-            <div className="auth-submit-wrap">
-              <button
-                type="submit"
-                className="btn btn-primary btn-block"
-                disabled={!hydrated}
-              >
-                <i className="fa-solid fa-floppy-disk" aria-hidden="true" />{" "}
-                Saglabāt iestatījumus
-              </button>
             </div>
           </form>
 
           <p className="auth-footer">
-            <Link href="/dashboard">Atpakaļ uz paneli</Link>
+            <Link href="/dashboard">{t("settings.link_dashboard")}</Link>
           </p>
         </div>
       </div>
 
       <footer className="landing-footer">
-        <p>&copy; {year} SubTrack. Visi tiesības aizsargātas.</p>
+        <SiteStandardCopyrightNotice />
       </footer>
 
-      <div className="toast-container" id="toast-container" />
+      <div className="toast-container toast-container--auth-pages" id="toast-container" />
     </>
   );
 }

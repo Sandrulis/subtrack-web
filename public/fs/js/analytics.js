@@ -46,7 +46,7 @@ function renderCategoryPie(catKeys, byCat) {
         if (wrap) wrap.classList.add('hidden');
         if (emptyEl) {
             emptyEl.classList.remove('hidden');
-            emptyEl.textContent = 'Nav datu diagrammai.';
+            emptyEl.textContent = FsT('fs.analytics.pie_empty');
         }
         return;
     }
@@ -167,14 +167,18 @@ function renderAnalytics() {
     var catHost = document.getElementById('analytics-by-category');
     if (catHost) {
         if (!catKeys.length) {
-            catHost.innerHTML = '<p class="analytics-empty">Nav datu.</p>';
+            catHost.innerHTML =
+                '<p class="analytics-empty">' + escHtml(FsT('fs.analytics.cat_empty')) + '</p>';
         } else {
             catHost.innerHTML = catKeys.map(function (key) {
                 var amt = byCat[key];
                 var pct = maxCat > 0 ? Math.round((amt / maxCat) * 100) : 0;
                 return '<div class="analytics-cat-row">' +
                     '<div class="analytics-cat-label"><span class="analytics-cat-name">' + escHtml(categoryLabel(key)) + '</span>' +
-                    '<span class="analytics-cat-amount">€' + amt.toFixed(2) + '/mēn.</span></div>' +
+                    '<span class="analytics-cat-amount">€' +
+                    amt.toFixed(2) +
+                    escHtml(FsT('fs.analytics.per_month_abbr')) +
+                    '</span></div>' +
                     '<div class="analytics-cat-bar"><div class="analytics-cat-bar-fill" style="width:' + pct + '%"></div></div>' +
                     '</div>';
             }).join('');
@@ -202,7 +206,10 @@ function renderAnalytics() {
 
     var upcomingNote = document.getElementById('analytics-upcoming-note');
     if (upcomingNote) {
-        upcomingNote.textContent = 'Nākamo 30 dienu laikā (' + upcomingHorizon.length + ' maksājumi)';
+        var ut = FsT('fs.analytics.upcoming_note');
+        upcomingNote.textContent = ut
+            ? ut.replace(/\{count\}/g, String(upcomingHorizon.length))
+            : '';
     }
 
     var futureAll = subscriptions
@@ -214,7 +221,7 @@ function renderAnalytics() {
     var elNextAmount = document.getElementById('analytics-next-amount');
     if (futureAll.length === 0) {
         if (elNextDate) elNextDate.textContent = '-';
-        if (elNextName) elNextName.textContent = 'Nav gaidāmo';
+        if (elNextName) elNextName.textContent = FsT('fs.analytics.next_none');
         if (elNextAmount) elNextAmount.textContent = '';
     } else {
         var nx = futureAll[0];

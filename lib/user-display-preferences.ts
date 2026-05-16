@@ -3,9 +3,13 @@
  * Atbilst FS prototipa laukiem settings formā.
  */
 
+import { isValidPreferredLanguageCode } from "@/lib/html-lang";
+
 export const DISPLAY_PREFS_STORAGE_KEY = "subtrack_fs_user_prefs";
 
 export type DisplayPreferences = {
+  /** `public.languages.code` - saskarnes valoda (kopā ar `<html lang>` un sīkdatni `subtrack_ui_locale`). */
+  interface_language_code: string;
   currency: "EUR" | "USD" | "GBP" | "SEK" | "PLN" | "CHF";
   date_order: "dmy" | "ymd" | "mdy";
   date_sep: "." | "-" | "/";
@@ -16,6 +20,7 @@ export type DisplayPreferences = {
 };
 
 export const DISPLAY_PREFERENCES_DEFAULTS: DisplayPreferences = {
+  interface_language_code: "lv",
   currency: "EUR",
   date_order: "dmy",
   date_sep: ".",
@@ -84,6 +89,12 @@ export function sanitizeDisplayPreferencesPartial(
   const o = raw as Record<string, unknown>;
   const out: Partial<DisplayPreferences> = {};
 
+  if (typeof o.interface_language_code === "string") {
+    const trimmed = o.interface_language_code.trim().toLowerCase();
+    if (isValidPreferredLanguageCode(trimmed)) {
+      out.interface_language_code = trimmed;
+    }
+  }
   if (typeof o.currency === "string" && ALLOWED_CURRENCY.has(o.currency as DisplayPreferences["currency"])) {
     out.currency = o.currency as DisplayPreferences["currency"];
   }
@@ -114,34 +125,40 @@ export function sanitizeDisplayPreferencesPartial(
   return out;
 }
 
-/** Pilns objekts: noklusējumi + derīgās partial vērtības. */
+/** Pilns objekts: `base` noklusējumi + derīgās partial vērtības. */
 export function mergeDisplayPreferences(
   partial: Partial<DisplayPreferences> | null | undefined,
+  base: DisplayPreferences = DISPLAY_PREFERENCES_DEFAULTS,
 ): DisplayPreferences {
   return {
-    ...DISPLAY_PREFERENCES_DEFAULTS,
+    ...base,
     ...sanitizeDisplayPreferencesPartial(partial ?? {}),
   };
 }
 
 /**
- * Kombinē: noklusējumi <- localStorage <- db.
- * DB slānis uzvar, ja tas satur vismaz vienu derīgu lauku.
+ * Kombinē: noklusējumi <- DB partial <- localStorage partial (atklātie LS lauki uzvar).
+ * Ja DB satur vismaz vienu derīgu lauku, tas dod pamatu; tad LS pārklāj tikai savus laukus
+ * (piemēram `interface_language_code` uzreiz pēc izvēles pirms Supabase saglabāšanas).
  */
 export function mergeDisplayPreferencesFromSources(
   localRaw: unknown,
   dbRaw: unknown,
+  base: DisplayPreferences = DISPLAY_PREFERENCES_DEFAULTS,
 ): DisplayPreferences {
   const fromLocal = sanitizeDisplayPreferencesPartial(localRaw);
   const fromDb = sanitizeDisplayPreferencesPartial(dbRaw);
   const dbHasAny = Object.keys(fromDb).length > 0;
   if (dbHasAny) {
-    return mergeDisplayPreferences({
-      ...mergeDisplayPreferences(fromLocal),
-      ...fromDb,
-    });
+    return mergeDisplayPreferences(
+      {
+        ...fromDb,
+        ...fromLocal,
+      },
+      base,
+    );
   }
-  return mergeDisplayPreferences(fromLocal);
+  return mergeDisplayPreferences(fromLocal, base);
 }
 
 export function readDisplayPreferencesFromLocalStorage(): Partial<DisplayPreferences> {
@@ -169,8 +186,46 @@ function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
 }
 
-/** Piemēra teksts iestatījumu formai (fiksēts datums kā FS prototipā). */
-export function formatDisplayPreferencesPreview(prefs: DisplayPreferences): string {
+function formatPreviewTimeTwelveHour(
+  intlLocale: string,
+  timeSep: DisplayPreferences["time_sep"],
+): string {
+  const d = new Date(Date.UTC(2026, 4, 16, 14, 30));
+  const formatted = new Intl.DateTimeFormat(intlLocale, {
+    hour: "numeric",
+    minute: "2-digit",
+    hourCycle: "h12",
+    timeZone: "UTC",
+  }).format(d);
+  return timeSep === ":" ? formatted : formatted.replace(/:/g, timeSep);
+}
+
+function formatPreviewWeekdayName(
+  weekStart: DisplayPreferences["week_start"],
+  intlLocale: string,
+): string {
+  const utcMidnight =
+    weekStart === "sunday"
+      ? new Date(Date.UTC(2026, 4, 17))
+      : new Date(Date.UTC(2026, 4, 18));
+  return new Intl.DateTimeFormat(intlLocale, {
+    weekday: "long",
+    timeZone: "UTC",
+  }).format(utcMidnight);
+}
+
+export type DisplayPreferencesPreviewLabels = {
+  week: string;
+  currency: string;
+  ui: string;
+};
+
+/** Piemēra teksts: fiksēts datums; laiks / 12h / nedēļas diena pēc `intlLocale`; etiķetes no tulkošanām. */
+export function formatDisplayPreferencesPreview(
+  prefs: DisplayPreferences,
+  intlLocale: string,
+  labels: DisplayPreferencesPreviewLabels,
+): string {
   const y = 2026;
   const mo = 5;
   const d = 16;
@@ -189,13 +244,10 @@ export function formatDisplayPreferencesPreview(prefs: DisplayPreferences): stri
     datePart = `${dStr}${sep}${mStr}${sep}${yStr}`;
   }
 
-  const tSep = prefs.time_sep;
-  let timePart = "";
-  if (prefs.time_format === "12") {
-    timePart = `2${tSep}30 pēcpusdiena`;
-  } else {
-    timePart = `${pad2(h)}${tSep}${pad2(mi)}`;
-  }
+  const timePart =
+    prefs.time_format === "24"
+      ? `${pad2(h)}${prefs.time_sep}${pad2(mi)}`
+      : formatPreviewTimeTwelveHour(intlLocale, prefs.time_sep);
 
   const curSymbols: Record<DisplayPreferences["currency"], string> = {
     EUR: "€",
@@ -207,7 +259,7 @@ export function formatDisplayPreferencesPreview(prefs: DisplayPreferences): stri
   };
   const cs = curSymbols[prefs.currency] ?? prefs.currency;
 
-  const weekLabel = prefs.week_start === "sunday" ? "Svētdiena" : "Pirmdiena";
-
-  return `${datePart} · ${timePart} · ${prefs.timezone.replace(/\//g, " / ")} · Nedēļa: ${weekLabel} · Valūtas simbols: ${cs}`;
+  const weekLabel = formatPreviewWeekdayName(prefs.week_start, intlLocale);
+  const dot = "\u00b7";
+  return `${datePart} ${dot} ${timePart} ${dot} ${prefs.timezone.replace(/\//g, " / ")} ${dot} ${labels.week}: ${weekLabel} ${dot} ${labels.currency}: ${cs} ${dot} ${labels.ui}: ${prefs.interface_language_code}`;
 }

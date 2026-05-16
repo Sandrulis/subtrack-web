@@ -1,13 +1,16 @@
 "use client";
 
+import { useEffect } from "react";
 import { NavDash } from "@/components/nav-dash";
-import { FsScripts } from "@/components/fs/load-fs-scripts";
+import { SiteStandardCopyrightNotice } from "@/components/site-standard-copyright-notice";
+import {
+  ensureAuthedNotifyScriptsLoaded,
+  loadScriptOnce,
+} from "@/components/fs/load-fs-scripts";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
+import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 
-const ANALYTICS_SCRIPTS = [
-  "/fs/js/subscriptions-data.js",
-  "/fs/js/subscriptions-helpers.js",
-  "/fs/js/dash-alerts.js",
+const ANALYTICS_TAIL_SCRIPTS = [
   "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js",
   "https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js",
   "/fs/js/analytics.js",
@@ -18,7 +21,26 @@ export function AnalyticsFsView({
 }: {
   userDisplay?: NavUserDisplay | null;
 }) {
-  const year = new Date().getFullYear();
+  const { t } = useSubtrackIntl();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await ensureAuthedNotifyScriptsLoaded();
+        if (cancelled) return;
+        for (const src of ANALYTICS_TAIL_SCRIPTS) {
+          if (cancelled) break;
+          await loadScriptOnce(src);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <>
@@ -27,30 +49,28 @@ export function AnalyticsFsView({
         <main className="main-content">
           <div className="page-header">
             <div>
-              <h1 className="page-title">Analītika</h1>
-              <p className="page-subtitle">
-                Kopsavilkums un izdevumi pēc kategorijas (demo dati)
-              </p>
+              <h1 className="page-title">{t("nav.analytics")}</h1>
+              <p className="page-subtitle">{t("fs.analytics.page_subtitle")}</p>
             </div>
           </div>
 
           <div className="analytics-grid">
             <div className="stat-card analytics-card">
-              <div className="stat-label">Kopējā mēneša summa</div>
+              <div className="stat-label">{t("landing.mock.stat_total_label")}</div>
               <div className="stat-value" id="analytics-monthly-total">
                 €0.00
               </div>
-              <div className="stat-note">visi aktīvie ieraksti</div>
+              <div className="stat-note">{t("fs.analytics.stat_monthly_note_demo")}</div>
             </div>
             <div className="stat-card analytics-card">
-              <div className="stat-label">Aptuvenais gada apjoms</div>
+              <div className="stat-label">{t("fs.analytics.stat_yearly_estimate")}</div>
               <div className="stat-value" id="analytics-yearly-total">
                 €0.00
               </div>
-              <div className="stat-note">12 × mēneša kopsumma</div>
+              <div className="stat-note">{t("fs.analytics.stat_yearly_note")}</div>
             </div>
             <div className="stat-card analytics-card">
-              <div className="stat-label">Nākamais maksājums</div>
+              <div className="stat-label">{t("landing.mock.next_pay_label")}</div>
               <div className="analytics-next-row">
                 <div>
                   <div
@@ -70,7 +90,7 @@ export function AnalyticsFsView({
               </div>
             </div>
             <div className="stat-card analytics-card">
-              <div className="stat-label">Gaidāmie 30 dienās</div>
+              <div className="stat-label">{t("fs.analytics.stat_upcoming_window")}</div>
               <div className="stat-value" id="analytics-upcoming-total">
                 €0.00
               </div>
@@ -79,38 +99,32 @@ export function AnalyticsFsView({
               </div>
             </div>
             <div className="stat-card analytics-card analytics-card--cat-list">
-              <div className="stat-label">Izdevumi pēc kategorijas</div>
-              <p className="analytics-cat-hint">
-                Mēneša ekvivalenti (ieskaitot papildu pozīcijas)
-              </p>
+              <div className="stat-label">{t("fs.analytics.section_by_category")}</div>
+              <p className="analytics-cat-hint">{t("fs.analytics.hint_monthly_equivalents")}</p>
               <div id="analytics-by-category" className="analytics-by-category" />
             </div>
             <div className="stat-card analytics-card analytics-card--cat-chart">
-              <div className="stat-label">Sadalījums pa kategorijām</div>
+              <div className="stat-label">{t("fs.analytics.section_category_split")}</div>
               <p className="analytics-cat-hint analytics-cat-hint--muted">
-                Vizuāls kopsavilkums (tie paši dati)
+                {t("fs.analytics.hint_visual_split")}
               </p>
               <div className="analytics-pie-wrap" id="analytics-pie-wrap">
                 <canvas
                   id="analytics-category-pie"
-                  aria-label="Izdevumu sadalījums pa kategorijām"
+                  aria-label={t("fs.analytics.pie_chart_aria")}
                 />
               </div>
               <p className="analytics-pie-empty hidden" id="analytics-pie-empty">
-                Nav datu diagrammai.
+                {t("fs.analytics.pie_empty")}
               </p>
             </div>
           </div>
         </main>
 
         <footer className="landing-footer">
-          <p>
-            &copy; {year} SubTrack. Visi tiesības aizsargātas.
-          </p>
+          <SiteStandardCopyrightNotice />
         </footer>
       </div>
-
-      <FsScripts srcs={ANALYTICS_SCRIPTS} />
     </>
   );
 }

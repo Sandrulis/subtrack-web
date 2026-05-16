@@ -58,6 +58,57 @@ a:hover { text-decoration: underline; }
 .hidden { display: none !important; }
 
 /* =============================================
+   Hover tooltips (SubtrackTooltip – pointer devices only)
+   ============================================= */
+.subtrack-tooltip-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+}
+
+.subtrack-tooltip-wrap--fill {
+    display: block;
+    width: 100%;
+}
+
+.subtrack-tooltip-bubble {
+    position: fixed;
+    box-sizing: border-box;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    background: #111827;
+    color: #ffffff;
+    font-size: 12px;
+    line-height: 1.35;
+    font-weight: 500;
+    text-align: center;
+    width: max-content;
+    max-width: min(280px, 94vw);
+    word-break: normal;
+    overflow-wrap: break-word;
+    white-space: normal;
+    transform: translate(-50%, calc(-100% - 8px));
+    box-shadow: var(--shadow);
+    z-index: 10050;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.12s ease, visibility 0.12s ease;
+}
+
+.subtrack-tooltip-bubble.is-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+@media (hover: none), (pointer: coarse) {
+    .subtrack-tooltip-bubble {
+        display: none !important;
+    }
+}
+
+/* =============================================
    Auth pages (login, signup, forgot)
    ============================================= */
 .auth-page {
@@ -107,6 +158,29 @@ a:hover { text-decoration: underline; }
 
 .auth-card--settings {
     max-width: 560px;
+}
+
+.settings-autosave-status {
+    margin: -12px 0 24px;
+    min-height: 1.35em;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--text-muted);
+}
+
+.settings-autosave-status.is-pending,
+.settings-autosave-status.is-saving {
+    color: var(--text-light);
+}
+
+.settings-autosave-status.is-saving {
+    color: var(--primary-dark);
+}
+
+.settings-autosave-status.is-error {
+    color: var(--danger);
+    font-weight: 600;
 }
 
 /*
@@ -443,6 +517,10 @@ a:hover { text-decoration: underline; }
     margin-bottom: 7px;
 }
 
+.password-strength-label--very_weak {
+    color: #b91c1c;
+}
+
 .password-strength-label--weak {
     color: var(--danger);
 }
@@ -469,6 +547,10 @@ a:hover { text-decoration: underline; }
     height: 4px;
     border-radius: 2px;
     background: var(--border-light);
+}
+
+.password-strength-bar--very_weak.is-filled {
+    background: #b91c1c;
 }
 
 .password-strength-bar--weak.is-filled {
@@ -2096,6 +2178,11 @@ a.dash-nav-link--cta.is-active .dash-icon {
     position: relative;
 }
 
+/* Pilnekrāna fons ar blur – tikai mobilajā skatā, kad panelis atvērts (sk. @media). */
+.dash-notify-menu-backdrop {
+    display: none;
+}
+
 .dash-notify-btn {
     position: relative;
     width: 42px;
@@ -2163,6 +2250,42 @@ a.dash-nav-link--cta.is-active .dash-icon {
     color: var(--text);
 }
 
+.dash-notify-today {
+    padding: 0 16px 10px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.dash-notify-today-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.dash-notify-today-ok {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: var(--brand-primary, #0d9488);
+    transition: background .15s ease, opacity .15s ease;
+}
+
+.dash-notify-today-ok:hover:not(:disabled) {
+    filter: brightness(1.06);
+}
+
+.dash-notify-today-ok:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 .dash-notify-section {
     padding: 6px 0 2px;
 }
@@ -2178,6 +2301,14 @@ a.dash-nav-link--cta.is-active .dash-icon {
     letter-spacing: 0.06em;
     color: var(--text-light);
     padding: 4px 16px 8px;
+}
+
+/* Šodienas rinda: tās pašas rakstzīmes kā citiem sadaļu virsrakstiem, bet bez dubultās malas padding (to dod .dash-notify-today). */
+.dash-notify-today-row .dash-notify-section-title.dash-notify-today-title {
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+    padding: 6px 0 4px;
 }
 
 .dash-notify-list {
@@ -2490,6 +2621,8 @@ a.dash-nav-link--cta.is-active .dash-icon {
         border: none;
         border-radius: 0;
         background: rgba(15, 23, 42, 0.38);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
     }
@@ -2523,6 +2656,14 @@ a.dash-nav-link--cta.is-active .dash-icon {
     .dash-user-dropdown-icon {
         width: 20px;
         height: 20px;
+    }
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+    .dash-user-wrap.dash-user-menu-is-open .dash-user-menu-backdrop,
+    .dash-notify-menu-backdrop:not(.hidden) {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
     }
 }
 
@@ -3941,6 +4082,30 @@ button.dash-exit {
     margin-bottom: 24px;
 }
 
+.admin-page-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.admin-page-title-row .admin-page-title {
+    flex: 1 1 auto;
+    min-width: min(100%, 12rem);
+    margin-bottom: 0;
+}
+
+.admin-page-title-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+}
+
+.admin-page-head .admin-page-lead {
+    margin-top: 8px;
+}
+
 .admin-page-title {
     font-size: 26px;
     font-weight: 800;
@@ -3974,6 +4139,546 @@ button.dash-exit {
     background: var(--danger-light);
     border-color: rgba(239, 68, 68, 0.35);
     color: var(--danger);
+}
+
+.admin-alert--warning {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #92400e;
+}
+
+.admin-alert--success {
+    background: rgba(0, 163, 141, 0.09);
+    border-color: rgba(0, 163, 141, 0.32);
+    color: var(--primary-dark);
+}
+
+.admin-lang-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Valodu administrācijas pogas - plakāns, bez smagnētām ēnām */
+.admin-lang-stack .btn.admin-lang-btn-soft,
+.admin-lang-stack .btn.admin-lang-add-btn {
+    border-radius: 7px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+        box-shadow 0.15s ease, opacity 0.15s ease, transform 0.12s ease;
+    box-shadow: none;
+}
+
+.admin-lang-stack .btn.admin-lang-add-btn:active,
+.admin-lang-stack .btn.admin-lang-btn-soft:active {
+    transform: translateY(1px);
+}
+
+.admin-lang-stack .btn-primary.admin-lang-add-btn:not(:disabled) {
+    border: none;
+    background: var(--primary);
+}
+
+.admin-lang-stack .btn-primary.admin-lang-add-btn:not(:disabled):hover {
+    background: var(--primary-dark);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
+}
+
+.admin-lang-stack .btn-outline.admin-lang-btn-soft:not(:disabled) {
+    background: var(--bg-white);
+    border: 1px solid var(--border-light);
+    color: var(--text);
+    backdrop-filter: none;
+}
+
+.admin-lang-stack .btn-outline.admin-lang-btn-soft:not(:disabled):hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    box-shadow: none;
+}
+
+.admin-lang-stack .btn-danger.admin-lang-btn-soft:not(:disabled) {
+    border: none;
+    background: var(--danger);
+    box-shadow: none;
+}
+
+.admin-lang-stack .btn-danger.admin-lang-btn-soft:not(:disabled):hover {
+    background: #dc2626;
+    box-shadow: none;
+}
+
+.admin-lang-stack .btn-sm.admin-lang-add-btn:not(:disabled),
+.admin-lang-stack .btn-sm.admin-lang-btn-soft:not(:disabled) {
+    padding: 9px 16px;
+    font-size: 13px;
+}
+
+.admin-lang-stack .btn.admin-lang-add-btn:focus-visible,
+.admin-lang-stack .btn.admin-lang-btn-soft:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.admin-lang-stack .btn-danger.admin-lang-btn-soft:focus-visible {
+    outline-color: rgb(185 28 28);
+}
+
+.admin-lang-stack .btn:disabled {
+    opacity: 0.53;
+}
+
+.admin-lang-card {
+    padding: 20px;
+    border-radius: var(--radius);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: var(--bg-white);
+    box-shadow: var(--shadow-sm);
+}
+
+.admin-lang-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+}
+
+.admin-lang-new-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.admin-lang-new-row {
+    display: grid;
+    grid-template-columns:
+        minmax(6.5rem, 0.9fr)
+        minmax(180px, 2.2fr)
+        auto;
+    align-items: flex-end;
+    gap: 12px 16px;
+}
+
+@media (max-width: 640px) {
+    .admin-lang-new-row {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .admin-lang-add-btn {
+        width: 100%;
+    }
+}
+
+.admin-lang-new-hints {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    max-width: 56rem;
+}
+
+.admin-lang-new-row .form-group,
+.admin-lang-edit-row .form-group {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.admin-lang-edit-row {
+    display: grid;
+    grid-template-columns:
+        minmax(6.5rem, 1fr)
+        minmax(200px, 2.8fr)
+        auto;
+    align-items: flex-end;
+    gap: 12px 16px;
+}
+
+.admin-lang-edit-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.admin-lang-edit--inline {
+    padding: 14px 0 6px;
+}
+
+@media (max-width: 640px) {
+    .admin-lang-edit-row {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-lang-edit-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+}
+
+.admin-btn-icon {
+    display: block;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+/* Kompaktas kvadrātveida darbību pogas (pastelis, ikona vienā krāsā kā atsaucē) */
+.admin-lang-stack .admin-icon-btn {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    margin: 0;
+    padding: 0;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    line-height: 0;
+    flex-shrink: 0;
+    font: inherit;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+        opacity 0.15s ease, transform 0.1s ease;
+    box-shadow: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.admin-lang-stack .admin-icon-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.admin-lang-stack .admin-icon-btn:active:not(:disabled) {
+    transform: scale(0.96);
+}
+
+.admin-lang-stack .admin-icon-btn--edit {
+    background: #e8f4ea;
+    border-color: #b7dcbf;
+    color: #3d5244;
+}
+
+.admin-lang-stack .admin-icon-btn--edit:hover:not(:disabled) {
+    background: #daf0de;
+    border-color: #9ccbaa;
+}
+
+.admin-lang-stack .admin-icon-btn--save {
+    background: #e8f4ea;
+    border-color: #b7dcbf;
+    color: #166534;
+}
+
+.admin-lang-stack .admin-icon-btn--save:hover:not(:disabled) {
+    background: #daf0de;
+    border-color: #9ccbaa;
+}
+
+.admin-lang-stack .admin-icon-btn--delete {
+    background: #fcebec;
+    border-color: #eec8ca;
+    color: #b91c1c;
+}
+
+.admin-lang-stack .admin-icon-btn--delete:hover:not(:disabled) {
+    background: #fad8db;
+    border-color: #e4a8ad;
+}
+
+.admin-lang-stack .admin-icon-btn--neutral {
+    background: #f7f3eb;
+    border-color: #e4dbd0;
+    color: #4b5563;
+}
+
+.admin-lang-stack .admin-icon-btn--neutral:hover:not(:disabled) {
+    background: #efe9df;
+    border-color: #d4c9b9;
+}
+
+.admin-lang-stack .admin-icon-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.admin-lang-stack .admin-icon-btn--delete:focus-visible {
+    outline-color: #b91c1c;
+}
+
+.admin-actions-cell {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 6px;
+    justify-content: flex-end;
+    align-items: center;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.admin-table.admin-table--languages {
+    table-layout: fixed;
+}
+
+.admin-table.admin-table--languages col.admin-table-col-code {
+    width: 6.75rem;
+}
+
+.admin-table.admin-table--languages col.admin-table-col-datetime {
+    width: 11rem;
+}
+
+.admin-table.admin-table--languages col.admin-table-col-default {
+    width: 3.25rem;
+}
+
+.admin-table.admin-table--languages col.admin-table-col-actions {
+    width: 5.75rem;
+}
+
+.admin-table.admin-table--languages th,
+.admin-table.admin-table--languages td {
+    vertical-align: middle;
+}
+
+.admin-table.admin-table--languages .admin-table-col-datetime-head,
+.admin-table.admin-table--languages .admin-table-col-datetime-cell {
+    white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+    .admin-table.admin-table--languages col.admin-table-col-datetime {
+        display: none;
+    }
+
+    .admin-table.admin-table--languages .admin-table-col-datetime-head,
+    .admin-table.admin-table--languages .admin-table-col-datetime-cell {
+        display: none;
+    }
+}
+
+.admin-table.admin-table--languages .admin-table-col-default-head,
+.admin-table.admin-table--languages .admin-table-col-default-cell {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.admin-lang-default-star {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    margin: 0 auto;
+    color: #b45309;
+}
+
+.admin-lang-default-star.is-active {
+    cursor: default;
+}
+
+/* Admin: tulkojumi (`/admin/translations`) */
+.admin-i18n-stack .admin-i18n-new {
+    width: 100%;
+}
+
+.admin-i18n-stack .admin-i18n-key-field {
+    width: 100%;
+    max-width: none;
+}
+
+.admin-i18n-stack .admin-i18n-key-field input {
+    font-family: ui-monospace, monospace, system-ui;
+}
+
+.admin-i18n-stack .admin-i18n-code {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.admin-i18n-stack .admin-i18n-locale-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+    width: 100%;
+    max-width: none;
+}
+
+.admin-i18n-stack .admin-i18n-actions-row {
+    margin-top: 14px;
+}
+
+.admin-i18n-search {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 14px;
+}
+
+.admin-i18n-search-input {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    padding: 10px 14px;
+    font-size: 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-white);
+    color: var(--text);
+}
+
+.admin-i18n-search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 163, 141, 0.18);
+}
+
+.admin-i18n-search-scope-hint {
+    margin: -6px 0 14px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+.admin-i18n-lazy-hint {
+    margin: 0 0 10px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+.admin-i18n-lazy-sentinel {
+    height: 4px;
+    margin: 0;
+    pointer-events: none;
+}
+
+.modal.admin-i18n-modal {
+    max-width: min(720px, calc(100vw - 48px));
+    max-height: calc(100vh - 48px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal.admin-i18n-modal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.admin-i18n-modal-form .admin-i18n-edit-key--modal {
+    margin-top: 0;
+}
+
+.admin-i18n-cell-full {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.admin-table.admin-table--translations-compact {
+    min-width: 0;
+}
+
+.admin-i18n-stack .admin-i18n-locale-field textarea {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-height: 46px;
+    resize: vertical;
+    overflow-x: hidden;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-family: var(--font);
+    line-height: 1.375;
+    color: var(--text);
+    background: #fff;
+    transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+.admin-i18n-stack .admin-i18n-locale-field textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 163, 141, 0.12);
+}
+
+.admin-i18n-stack .admin-i18n-locale-field textarea::placeholder {
+    color: var(--text-light);
+}
+
+.admin-table.admin-table--translations {
+    min-width: 640px;
+    table-layout: auto;
+}
+
+.admin-table.admin-table--translations .admin-i18n-th-key {
+    min-width: 9rem;
+}
+
+.admin-table.admin-table--translations .admin-i18n-th-locale {
+    max-width: 14rem;
+    min-width: 7rem;
+    vertical-align: bottom;
+}
+
+.admin-table.admin-table--translations .admin-i18n-th-main {
+    display: block;
+    letter-spacing: 0.03em;
+    text-transform: none;
+    font-weight: 650;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.admin-table.admin-table--translations .admin-i18n-th-sub {
+    display: block;
+    margin-top: 4px;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-light);
+}
+
+.admin-table.admin-table--translations td.admin-i18n-cell-val {
+    vertical-align: top;
+    word-break: break-word;
+}
+
+.admin-i18n-edit-block {
+    margin: 8px 0;
+    padding: 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: rgba(248, 250, 252, 0.65);
+}
+
+.admin-i18n-edit-key {
+    margin: 0 0 12px;
+    font-size: 14px;
+}
+
+.admin-i18n-edit-actions {
+    margin-top: 12px;
+}
+
+.admin-lang-edit {
+    padding: 12px 0 4px;
+}
+
+.admin-lang-add-btn {
+    min-height: 38px;
+    white-space: nowrap;
 }
 
 .admin-empty {
@@ -4029,6 +4734,19 @@ button.dash-exit {
     background: rgba(0, 163, 141, 0.04);
 }
 
+.admin-table th.admin-table-col-counts,
+.admin-table td.admin-table-col-counts {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.admin-table td.admin-table-col-counts .admin-sub-counts {
+    justify-content: center;
+    max-width: none;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .admin-badge {
     display: inline-block;
     padding: 4px 10px;
@@ -4044,9 +4762,134 @@ button.dash-exit {
     color: var(--primary-dark);
 }
 
-@media (max-width: 760px) {
+.admin-user-cell {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.admin-user-avatar {
+    box-sizing: border-box;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: linear-gradient(
+        145deg,
+        var(--primary) 0%,
+        var(--primary-dark) 100%
+    );
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.admin-user-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.admin-user-name {
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.admin-user-email {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+/* Šauri (≤640px): „Reģistrēts“ / „Loma“ zem e-pasta; platākā mobilajā – pilnas kolonnas. */
+.admin-user-registered-mobile,
+.admin-user-role-mobile {
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--text-muted);
+}
+
+.admin-user-registered-mobile {
+    margin-top: 6px;
+}
+
+.admin-user-role-mobile {
+    margin-top: 4px;
+}
+
+.admin-user-meta-mobile-label {
+    font-weight: 600;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 10px;
+    flex-shrink: 0;
+}
+
+.admin-user-meta-mobile-value {
+    color: var(--text-muted);
+    min-width: 0;
+}
+
+.admin-user-meta-mobile-value > .admin-badge {
+    vertical-align: baseline;
+}
+
+.admin-sub-counts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.45;
+    max-width: 22rem;
+}
+
+.admin-sub-counts-part {
+    white-space: nowrap;
+}
+
+.admin-sub-counts-part strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.admin-sub-counts-sep {
+    color: var(--text-light);
+    font-weight: 400;
+}
+
+.admin-sub-counts-total {
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+}
+
+.admin-sub-counts--empty {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+@media (max-width: 768px) {
     .admin-body {
         flex-direction: column;
+        /* Kolonnā flex-start sarauž sidebar un admin-main līdz saturam – paliek tukša labā puse */
+        align-items: stretch;
         padding-left: 16px;
         padding-right: 16px;
     }
@@ -4120,6 +4963,74 @@ button.dash-exit {
 
     .admin-side-link-text-short {
         display: inline;
+    }
+
+    /*
+     * Lietotāju lapa mobilajā (≤768px): teksts bez globālā max-width ierobežojuma.
+     */
+    .admin-users-page .admin-page-lead {
+        max-width: none;
+    }
+
+    .admin-users-page .admin-table-wrap {
+        border-radius: 16px;
+    }
+
+    .admin-users-page .admin-alert,
+    .admin-users-page .admin-empty {
+        margin-left: 0;
+        margin-right: 0;
+    }
+}
+
+/*
+ * Ļoti šaura administrācijas lietotāju tabula: kolonnas „Loma“ / „Reģistrēts“ zem e-pasta,
+ * bez iniciāļu apļa. Platums >640px un ≤768px – kolonnas kā desktopā (horizontāla ritināšana, ja vajag).
+ */
+@media (max-width: 640px) {
+    .admin-users-page .admin-table-col-registered,
+    .admin-users-page .admin-table-col-role {
+        display: none;
+    }
+
+    .admin-users-page .admin-user-registered-mobile,
+    .admin-users-page .admin-user-role-mobile {
+        display: flex;
+    }
+
+    .admin-users-page .admin-table td:first-child {
+        vertical-align: top;
+        overflow: visible;
+    }
+
+    .admin-users-page .admin-user-cell {
+        grid-template-columns: 1fr;
+        gap: 0;
+        align-items: start;
+    }
+
+    .admin-users-page .admin-user-avatar {
+        display: none;
+    }
+
+    /* Saīsināt „Ieraksti“, lai rinda biežāk ietilpst bez horizontālās ritināšanas. */
+    .admin-users-page .admin-table-col-counts .admin-sub-counts {
+        max-width: 11rem;
+        font-size: 12px;
+        line-height: 1.4;
+        justify-content: flex-start;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .admin-users-page .admin-table-col-counts {
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .admin-users-page .admin-table th:first-child,
+    .admin-users-page .admin-table td:first-child {
+        min-width: 12rem;
     }
 }
 
@@ -4248,10 +5159,26 @@ button.dash-exit {
     .dash-notify-panel.dash-notify-panel--mob-fixed {
         position: fixed !important;
         box-sizing: border-box;
-        z-index: 195;
+        z-index: 200;
         max-width: none;
         left: auto;
         margin: 0;
+    }
+
+    .dash-notify-menu-backdrop:not(.hidden) {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 188;
+        margin: 0;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        background: rgba(15, 23, 42, 0.38);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .dash-notify-panel.dash-notify-panel--mob-fixed .dash-notify-panel-inner {

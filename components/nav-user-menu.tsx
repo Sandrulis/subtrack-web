@@ -2,12 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
+import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 
 type NavUserMenuProps = {
   userDisplay: NavUserDisplay | null | undefined;
   showDashboardInUserMenu?: boolean;
 };
+
+const SUBTRACK_NOTIFY_OPENED = "subtrack:notify-opened";
+const SUBTRACK_USER_MENU_OPENED = "subtrack:user-menu-opened";
 
 /**
  * Lietotāja izvēlne: tap/click atver aizvēr; ārpuses pieskāriens aizver.
@@ -17,7 +21,9 @@ export function NavUserMenu({
   userDisplay,
   showDashboardInUserMenu = false,
 }: NavUserMenuProps) {
-  const displayName = userDisplay?.displayName?.trim() || "Lietotājs";
+  const { t } = useSubtrackIntl();
+  const displayName =
+    userDisplay?.displayName?.trim() || t("session.user_fallback_name");
   const initials = userDisplay?.initials?.trim() || "?";
   const menuId = useId();
   const [open, setOpen] = useState(false);
@@ -48,6 +54,15 @@ export function NavUserMenu({
     };
   }, [open]);
 
+  useEffect(() => {
+    function onNotifyOpened() {
+      setOpen(false);
+    }
+    window.addEventListener(SUBTRACK_NOTIFY_OPENED, onNotifyOpened);
+    return () =>
+      window.removeEventListener(SUBTRACK_NOTIFY_OPENED, onNotifyOpened);
+  }, []);
+
   return (
     <div
       ref={wrapRef}
@@ -61,8 +76,20 @@ export function NavUserMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         aria-controls={menuId}
-        aria-label={`${displayName}: lietotāja izvēlne`}
-        onClick={() => setOpen((v) => !v)}
+        aria-label={`${displayName}: ${t("session.user_menu_aria_suffix")}`}
+        onClick={() =>
+          setOpen((v) => {
+            const next = !v;
+            if (next) {
+              try {
+                window.dispatchEvent(new CustomEvent(SUBTRACK_USER_MENU_OPENED));
+              } catch {
+                /* ignore */
+              }
+            }
+            return next;
+          })
+        }
       >
         <span className="dash-user">
           <span className="user-avatar" aria-hidden="true">
@@ -106,7 +133,7 @@ export function NavUserMenu({
               d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H9V6c0-1.66 1.34-3 3-3s3 1.34 3 3v2z"
             />
           </svg>
-          <span>Mainīt paroli</span>
+          <span>{t("session.change_password")}</span>
         </Link>
         <Link
           href="/settings"
@@ -127,7 +154,7 @@ export function NavUserMenu({
               d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.488.488 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.49-.42h-3.84c-.24 0-.43.17-.49.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.31-.07.63-.07.94s.02.63.06.93l-2.03 1.58a.49.49 0 00-.11.61l1.92 3.31c.12.23.37.31.58.21l2.39-.96c.5.39 1.03.71 1.62.93l.36 2.54c.05.24.25.43.49.43h3.83c.25 0 .44-.17.49-.41l.36-2.54c.59-.23 1.13-.56 1.62-.93l2.39.96c.22.08.47 0 .59-.22l1.92-3.31c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"
             />
           </svg>
-          <span>Iestatījumi</span>
+          <span>{t("session.settings")}</span>
         </Link>
         {showDashboardInUserMenu ? (
           <Link
@@ -149,7 +176,7 @@ export function NavUserMenu({
                 d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"
               />
             </svg>
-            <span>Panelis</span>
+            <span>{t("nav.dashboard")}</span>
           </Link>
         ) : null}
       </div>

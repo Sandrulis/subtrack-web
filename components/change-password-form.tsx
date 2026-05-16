@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { changePasswordAction } from "@/lib/auth/actions";
 import {
   PASSWORD_STRENGTH_META,
@@ -8,6 +9,7 @@ import {
 } from "@/lib/auth/password-strength";
 
 export function ChangePasswordForm() {
+  const { t } = useSubtrackIntl();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -20,6 +22,11 @@ export function ChangePasswordForm() {
     [newPassword],
   );
   const strength = PASSWORD_STRENGTH_META[strengthScore];
+  const strengthLabel = useMemo(() => {
+    const k = `auth.pass_strength.level_${Math.min(Math.max(strengthScore, 0), 4)}`;
+    const v = t(k);
+    return v !== k ? v : strength.label;
+  }, [strength.label, strengthScore, t]);
 
   const confirmMismatch =
     confirmPassword.length > 0 && newPassword !== confirmPassword;
@@ -33,7 +40,7 @@ export function ChangePasswordForm() {
   return (
     <form action={changePasswordAction} noValidate>
       <div className="form-group">
-        <label htmlFor="pwd-current">Pašreizējā parole</label>
+        <label htmlFor="pwd-current">{t("auth.change_password.password_current")}</label>
         <div className="form-password-wrap">
           <input
             type={showCurrent ? "text" : "password"}
@@ -49,7 +56,7 @@ export function ChangePasswordForm() {
             type="button"
             className="password-toggle-btn"
             onClick={() => setShowCurrent((v) => !v)}
-            aria-label={showCurrent ? "Slēpt paroli" : "Rādīt paroli"}
+            aria-label={showCurrent ? t("auth.change_password.toggle_hide") : t("auth.change_password.toggle_show")}
             aria-pressed={showCurrent}
           >
             <i
@@ -63,7 +70,7 @@ export function ChangePasswordForm() {
       </div>
 
       <div className="form-group">
-        <label htmlFor="pwd-new">Jaunā parole</label>
+        <label htmlFor="pwd-new">{t("auth.change_password.password_new")}</label>
         <div className="form-password-wrap">
           <input
             type={showNew ? "text" : "password"}
@@ -81,7 +88,7 @@ export function ChangePasswordForm() {
             type="button"
             className="password-toggle-btn"
             onClick={() => setShowNew((v) => !v)}
-            aria-label={showNew ? "Slēpt paroli" : "Rādīt paroli"}
+            aria-label={showNew ? t("auth.change_password.toggle_hide") : t("auth.change_password.toggle_show")}
             aria-pressed={showNew}
           >
             <i
@@ -97,7 +104,8 @@ export function ChangePasswordForm() {
             <div
               className={`password-strength-label password-strength-label--${strength.tone}`}
             >
-              Paroles stiprība: {strength.label}
+              {t("auth.pass_strength.label_prefix")}
+              {strengthLabel}
             </div>
             <div className="password-strength-bars" role="presentation">
               {[0, 1, 2, 3].map((i) => (
@@ -112,13 +120,13 @@ export function ChangePasswordForm() {
           </div>
         ) : (
           <p className="form-hint form-hint--below-password">
-            Vismaz 8 rakstzīmes
+            {t("auth.change_password.hint_min")}
           </p>
         )}
       </div>
 
       <div className="form-group">
-        <label htmlFor="pwd-new2">Atkārtot jauno paroli</label>
+        <label htmlFor="pwd-new2">{t("auth.change_password.password_confirm")}</label>
         <div
           className={
             confirmMismatch
@@ -143,7 +151,7 @@ export function ChangePasswordForm() {
             type="button"
             className="password-toggle-btn"
             onClick={() => setShowConfirm((v) => !v)}
-            aria-label={showConfirm ? "Slēpt paroli" : "Rādīt paroli"}
+            aria-label={showConfirm ? t("auth.change_password.toggle_hide") : t("auth.change_password.toggle_show")}
             aria-pressed={showConfirm}
           >
             <i
@@ -156,7 +164,7 @@ export function ChangePasswordForm() {
         </div>
         {confirmMismatch ? (
           <p className="form-hint form-hint--error" role="alert">
-            Paroles nesakrīt.
+            {t("auth.change_password.mismatch")}
           </p>
         ) : null}
       </div>
@@ -167,7 +175,7 @@ export function ChangePasswordForm() {
           className="btn btn-primary btn-block"
           disabled={submitDisabled}
         >
-          Saglabāt
+          {t("auth.change_password.submit")}
         </button>
       </div>
     </form>

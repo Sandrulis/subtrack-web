@@ -1,7 +1,12 @@
 import { type NextRequest } from "next/server";
+import { authRateLimitedResponse } from "@/lib/security/auth-rate-limit";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
+  const limited = authRateLimitedResponse(request);
+  if (limited) {
+    return limited;
+  }
   return await updateSession(request);
 }
 

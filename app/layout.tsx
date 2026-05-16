@@ -1,8 +1,17 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import "./globals.css";
-import { pickHtmlLang } from "@/lib/html-lang";
+import { HtmlLangBridge } from "@/components/html-lang-bridge";
+import { SubtrackIntlProvider } from "@/components/subtrack-intl-provider";
+import { getLanguagesCatalog } from "@/lib/languages-catalog";
+import {
+  resolveRootHtmlLang,
+  SUBTRACK_UI_LOCALE_COOKIE,
+} from "@/lib/html-lang";
+import { getPublicSiteTranslationsMerged } from "@/lib/site-translations-public";
+import { getSystemSiteName } from "@/lib/system-settings-public";
+import { resolveUiLocaleCodeFromRequest } from "@/lib/ui/ui-locale-from-request";
 
 const inter = Inter({
   subsets: ["latin", "latin-ext"],
@@ -10,14 +19,17 @@ const inter = Inter({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "SubTrack",
-    template: "%s | SubTrack",
-  },
-  description:
-    "Pārvaldi abonementus, rēķinus un citus periodiskos maksājumus vienuviet.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const systemName = await getSystemSiteName();
+  return {
+    title: {
+      default: systemName,
+      template: `%s | ${systemName}`,
+    },
+    description:
+      "Pārvaldi abonementus, rēķinus un citus periodiskos maksājumus vienuviet.",
+  };
+}
 
 export default async function RootLayout({
   children,
@@ -25,7 +37,20 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const h = await headers();
-  const lang = pickHtmlLang(h.get("accept-language"));
+  const cookieStore = await cookies();
+  const cookieLocale = cookieStore.get(SUBTRACK_UI_LOCALE_COOKIE)?.value ?? null;
+  const catalog = await getLanguagesCatalog();
+  const acceptLanguage = h.get("accept-language");
+  const lang = resolveRootHtmlLang(cookieLocale, acceptLanguage, catalog);
+  const uiLocaleCode = resolveUiLocaleCodeFromRequest(
+    cookieLocale,
+    acceptLanguage,
+    catalog,
+  );
+  const [dbMap, systemSiteName] = await Promise.all([
+    getPublicSiteTranslationsMerged(uiLocaleCode, catalog.defaultCode),
+    getSystemSiteName(),
+  ]);
 
   return (
     <html lang={lang} className={inter.variable}>
@@ -37,7 +62,12 @@ export default async function RootLayout({
           referrerPolicy="no-referrer"
         />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <HtmlLangBridge defaultInterfaceLanguageCode={catalog.defaultCode} />
+        <SubtrackIntlProvider locale={uiLocaleCode} systemSiteName={systemSiteName} dbMap={dbMap}>
+          {children}
+        </SubtrackIntlProvider>
+      </body>
     </html>
   );
 }

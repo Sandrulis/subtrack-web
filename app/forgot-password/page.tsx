@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import { AuthToastsHost } from "@/components/auth-toasts-host";
 import { ForgotPasswordFsView } from "@/components/fs/forgot-password-fs-view";
 import { NavLanding } from "@/components/nav-landing";
+import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
-export const metadata: Metadata = {
-  title: "Atjaunot paroli",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: await getUiPhraseForRequest("meta.title.auth.forgot_password"),
+  };
+}
 
 export default async function ForgotPasswordPage({
   searchParams,

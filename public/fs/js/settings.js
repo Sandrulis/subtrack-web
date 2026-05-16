@@ -5,6 +5,7 @@
 var SUBTRACK_PREFS_STORAGE_KEY = 'subtrack_fs_user_prefs';
 
 var SUBTRACK_PREFS_DEFAULTS = {
+    interface_language_code: 'lv',
     currency: 'EUR',
     date_order: 'dmy',
     date_sep: '.',

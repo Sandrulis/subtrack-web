@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
+import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import { AuthedNotifyBootstrap } from "@/components/authed-notify-bootstrap";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { NavSessionActions } from "@/components/nav-session-actions";
 
@@ -12,20 +16,22 @@ type NavLandingProps = {
 };
 
 export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
+  const { t, systemSiteName } = useSubtrackIntl();
   return (
     <>
+    <AuthedNotifyBootstrap enabled={Boolean(userDisplay)} />
     <header className="dash-topbar">
       <div className="dash-topbar-shell">
         <div className="dash-topbar-inner">
           <div className="dash-topbar-left">
             <Link href="/" className="dash-brand">
-              <span className="dash-brand-text">SubTrack</span>
+              <span className="dash-brand-text">{systemSiteName}</span>
             </Link>
             <span className="dash-topbar-rule" aria-hidden="true" />
             <nav
               className="dash-nav-links"
               aria-label={
-                userDisplay ? "Galvenā navigācija" : "Sākumlapas sadaļas"
+                userDisplay ? t("nav.primary") : t("nav.primary_landing")
               }
             >
               {userDisplay ? (
@@ -44,7 +50,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                         d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"
                       />
                     </svg>
-                    <span className="dash-nav-link-text">Panelis</span>
+                    <span className="dash-nav-link-text">{t("nav.dashboard")}</span>
                   </Link>
                   <Link href="/analytics" className="dash-nav-link">
                     <svg
@@ -60,7 +66,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                         d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8h8c0 4.41-3.59 8-8 8z"
                       />
                     </svg>
-                    <span className="dash-nav-link-text">Analītika</span>
+                    <span className="dash-nav-link-text">{t("nav.analytics")}</span>
                   </Link>
                   {userDisplay.isAdmin ? (
                     <Link href="/admin" className="dash-nav-link">
@@ -78,7 +84,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                         />
                       </svg>
                       <span className="dash-nav-link-text">
-                        Administrācija
+                        {t("nav.admin")}
                       </span>
                     </Link>
                   ) : null}
@@ -103,7 +109,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                         d="M4 11h7V4H4v7zm0 9h7v-7H4v7zm9 0h7v-7h-7v7zm0-11h7V4h-7v7z"
                       />
                     </svg>
-                    <span className="dash-nav-link-text">Iespējas</span>
+                    <span className="dash-nav-link-text">{t("nav.features")}</span>
                   </Link>
                   <Link
                     href="/#demo"
@@ -123,7 +129,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                         d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8h8c0 4.41-3.59 8-8 8z"
                       />
                     </svg>
-                    <span className="dash-nav-link-text">Demonstrācija</span>
+                    <span className="dash-nav-link-text">{t("nav.demo")}</span>
                   </Link>
                   <Link
                     href="/#faq"
@@ -143,7 +149,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                         d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-6h2v6zm0-8h-2V7h2v2z"
                       />
                     </svg>
-                    <span className="dash-nav-link-text">FAQ</span>
+                    <span className="dash-nav-link-text">{t("nav.faq_nav")}</span>
                   </Link>
                 </>
               )}
@@ -177,7 +183,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                       d="M11 7L9.41 8.59 11 10H5v4h6l-1.59 1.59L11 17l5-5-5-5zm8 14h-8v-2h8V6h-8V4h8a2 2 0 012 2v12a2 2 0 01-2 2z"
                     />
                   </svg>
-                  <span className="dash-nav-link-text">Ieiet</span>
+                  <span className="dash-nav-link-text">{t("nav.login")}</span>
                 </Link>
                 <Link
                   href="/signup"
@@ -200,7 +206,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                       d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3V9H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
                     />
                   </svg>
-                  <span className="dash-nav-link-text">Reģistrēties</span>
+                  <span className="dash-nav-link-text">{t("nav.signup")}</span>
                 </Link>
               </div>
             )}

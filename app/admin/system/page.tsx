@@ -1,22 +1,44 @@
 import type { Metadata } from "next";
+import { AdminSystemIntro } from "@/components/admin/admin-intros";
+import { AdminSystemPanel } from "@/components/admin/admin-system-panel";
+import {
+  DISPLAY_PREFERENCES_DEFAULTS,
+  mergeDisplayPreferences,
+  sanitizeDisplayPreferencesPartial,
+} from "@/lib/user-display-preferences";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
-export const metadata: Metadata = {
-  title: "Sistēmas iestatījumi",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: await getUiPhraseForRequest("meta.title.admin.system"),
+  };
+}
 
-export default function AdminSystemPage() {
+export default async function AdminSystemPage() {
+  const supabase = await createServerSupabaseClient();
+
+  const { data, error } = await supabase
+    .from("system_settings")
+    .select("system_name, default_display_preferences")
+    .eq("id", 1)
+    .maybeSingle();
+
+  const partial = sanitizeDisplayPreferencesPartial(data?.default_display_preferences);
+  const initialDefaults = mergeDisplayPreferences(partial, DISPLAY_PREFERENCES_DEFAULTS);
+  const initialSystemName =
+    typeof data?.system_name === "string" && data.system_name.trim()
+      ? data.system_name.trim()
+      : "SubTrack";
+
   return (
     <div className="admin-page">
-      <div className="admin-page-head">
-        <h1 className="admin-page-title">Sistēmas iestatījumi</h1>
-        <p className="admin-page-lead">
-          Globālie parametri (SMTP, apkopes režīms, u.tml.). Šī sadaļa ir
-          sagatavošanas stadijā — datu saglabāšana un API tiks pieslēgti vēlāk.
-        </p>
-      </div>
-      <div className="admin-placeholder-card">
-        <p>Drīzumā šeit būs konfigurācijas forma un servera vērtību lasīšana.</p>
-      </div>
+      <AdminSystemIntro />
+      <AdminSystemPanel
+        loadError={error?.message ?? null}
+        initialSystemName={initialSystemName}
+        initialDefaults={initialDefaults}
+      />
     </div>
   );
 }

@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { signUpAction, signupEmailExistsAction } from "@/lib/auth/actions";
 import {
   PASSWORD_STRENGTH_META,
   scorePassword,
 } from "@/lib/auth/password-strength";
 
-/** Vienkārša, praktiska e-pasta formāta pārbaude (bez pilnas RFC). */
+/** Vienkārša e-pasta formāta pārbaude (bez pilnas RFC). */
 function isValidEmail(value: string): boolean {
   const e = value.trim();
   if (!e) return false;
@@ -24,6 +25,7 @@ function useDebounced<T>(value: T, ms: number): T {
 }
 
 export function SignupForm() {
+  const { t } = useSubtrackIntl();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -40,6 +42,11 @@ export function SignupForm() {
 
   const strengthScore = useMemo(() => scorePassword(password), [password]);
   const strength = PASSWORD_STRENGTH_META[strengthScore];
+  const strengthLabel = useMemo(() => {
+    const k = `auth.pass_strength.level_${Math.min(Math.max(strengthScore, 0), 4)}`;
+    const v = t(k);
+    return v !== k ? v : strength.label;
+  }, [strengthScore, strength.label, t]);
 
   const confirmMismatch =
     passwordConfirm.length > 0 && password !== passwordConfirm;
@@ -114,12 +121,12 @@ export function SignupForm() {
     <form action={signUpAction} noValidate>
       <div className="form-row">
         <div className="form-group">
-          <label htmlFor="first_name">Vārds</label>
+          <label htmlFor="first_name">{t("auth.field.first_name")}</label>
           <input
             type="text"
             id="first_name"
             name="first_name"
-            placeholder="Jānis"
+            placeholder={t("auth.place.first_name")}
             autoComplete="given-name"
             required
             value={firstName}
@@ -127,12 +134,12 @@ export function SignupForm() {
           />
         </div>
         <div className="form-group">
-          <label htmlFor="last_name">Uzvārds</label>
+          <label htmlFor="last_name">{t("auth.field.last_name")}</label>
           <input
             type="text"
             id="last_name"
             name="last_name"
-            placeholder="Bērziņš"
+            placeholder={t("auth.place.last_name")}
             autoComplete="family-name"
             required
             value={lastName}
@@ -142,12 +149,12 @@ export function SignupForm() {
       </div>
 
       <div className="form-group">
-        <label htmlFor="email">E-pasts</label>
+        <label htmlFor="email">{t("auth.field.email")}</label>
         <input
           type="email"
           id="email"
           name="email"
-          placeholder="jusu@epasts.lv"
+          placeholder={t("auth.login.email_placeholder")}
           autoComplete="email"
           required
           value={email}
@@ -168,7 +175,7 @@ export function SignupForm() {
             className="form-hint form-hint--email-format"
             role="alert"
           >
-            Ievadi derīgu e-pasta adresi (piemēram, janis@epasts.lv).
+            {t("auth.validation.email_hint")}
           </p>
         ) : emailTaken ? (
           <p
@@ -176,19 +183,19 @@ export function SignupForm() {
             className="form-hint form-hint--error"
             role="alert"
           >
-            Šāds e-pasts jau ir sistēmā.
+            {t("auth.signup.email_taken")}
           </p>
         ) : null}
       </div>
 
       <div className="form-group">
-        <label htmlFor="password">Parole</label>
+        <label htmlFor="password">{t("auth.field.password")}</label>
         <div className="form-password-wrap">
           <input
             type="password"
             id="password"
             name="password"
-            placeholder="●●●●●●●●"
+            placeholder={t("auth.login.password_placeholder")}
             autoComplete="new-password"
             required
             minLength={8}
@@ -200,7 +207,7 @@ export function SignupForm() {
             type="button"
             className="password-toggle-btn js-password-toggle"
             data-password-for="password"
-            aria-label="Rādīt paroli"
+            aria-label={t("auth.aria.toggle_password")}
             aria-pressed="false"
           >
             <i className="fa-regular fa-eye" aria-hidden="true" />
@@ -211,7 +218,8 @@ export function SignupForm() {
             <div
               className={`password-strength-label password-strength-label--${strength.tone}`}
             >
-              Paroles stiprība: {strength.label}
+              {t("auth.pass_strength.label_prefix")}
+              {strengthLabel}
             </div>
             <div className="password-strength-bars" role="presentation">
               {[0, 1, 2, 3].map((i) => (
@@ -226,13 +234,13 @@ export function SignupForm() {
           </div>
         ) : (
           <p className="form-hint form-hint--below-password">
-            Vismaz 8 rakstzīmes
+            {t("auth.signup.min_password")}
           </p>
         )}
       </div>
 
       <div className="form-group">
-        <label htmlFor="password_confirm">Apstiprināt paroli</label>
+        <label htmlFor="password_confirm">{t("auth.signup.confirm_password")}</label>
         <div
           className={
             confirmMismatch
@@ -244,7 +252,7 @@ export function SignupForm() {
             type="password"
             id="password_confirm"
             name="password_confirm"
-            placeholder="●●●●●●●●"
+            placeholder={t("auth.login.password_placeholder")}
             autoComplete="new-password"
             required
             minLength={8}
@@ -257,7 +265,7 @@ export function SignupForm() {
             type="button"
             className="password-toggle-btn js-password-toggle"
             data-password-for="password_confirm"
-            aria-label="Rādīt paroli"
+            aria-label={t("auth.aria.toggle_password")}
             aria-pressed="false"
           >
             <i className="fa-regular fa-eye" aria-hidden="true" />
@@ -265,7 +273,7 @@ export function SignupForm() {
         </div>
         {confirmMismatch ? (
           <p className="form-hint form-hint--error" role="alert">
-            Paroles nesakrīt.
+            {t("auth.signup.password_mismatch")}
           </p>
         ) : null}
       </div>
@@ -276,14 +284,15 @@ export function SignupForm() {
           className="btn btn-primary btn-block"
           disabled={submitDisabled}
         >
-          Izveidot kontu
+          {t("auth.signup.submit")}
         </button>
       </div>
 
       <p className="auth-legal-note">
-        Reģistrējoties, jūs piekrītat mūsu{" "}
-        <a href="#">lietošanas noteikumiem</a> un{" "}
-        <a href="#">privātuma politikai</a>.
+        {t("auth.signup.legal_intro")}
+        <a href="#">{t("auth.signup.legal_terms")}</a>
+        {t("auth.signup.legal_and")}
+        <a href="#">{t("auth.signup.legal_privacy")}</a>
       </p>
     </form>
   );

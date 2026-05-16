@@ -9,13 +9,13 @@ export function scorePassword(pw: string): number {
   return Math.min(s, 4);
 }
 
-export type PasswordStrengthTone = "weak" | "medium" | "strong" | "strongest";
+export type PasswordStrengthTone = "very_weak" | "weak" | "medium" | "strong" | "strongest";
 
 export const PASSWORD_STRENGTH_META: {
   label: string;
   tone: PasswordStrengthTone;
 }[] = [
-  { label: "Ļoti vāja", tone: "weak" },
+  { label: "Ļoti vāja", tone: "very_weak" },
   { label: "Vāja", tone: "weak" },
   { label: "Vidēja", tone: "medium" },
   { label: "Stipra", tone: "strong" },

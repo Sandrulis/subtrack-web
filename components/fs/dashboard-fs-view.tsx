@@ -1,27 +1,42 @@
 "use client";
 
+import { useEffect } from "react";
 import { NavDash } from "@/components/nav-dash";
-import { FsScripts } from "@/components/fs/load-fs-scripts";
+import { SiteStandardCopyrightNotice } from "@/components/site-standard-copyright-notice";
+import {
+  ensureAuthedNotifyScriptsLoaded,
+  loadScriptOnce,
+} from "@/components/fs/load-fs-scripts";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import {
   FA_ICONS_MORE,
   FA_ICONS_PREVIEW,
   FS_COLOR_DOTS,
 } from "@/lib/fs-icons";
-
-const DASH_SCRIPTS = [
-  "/fs/js/subscriptions-data.js",
-  "/fs/js/subscriptions-helpers.js",
-  "/fs/js/dash-alerts.js",
-  "/fs/js/dashboard.js",
-] as const;
+import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 
 export function DashboardFsView({
   userDisplay,
 }: {
   userDisplay?: NavUserDisplay | null;
 }) {
-  const year = new Date().getFullYear();
+  const { t } = useSubtrackIntl();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await ensureAuthedNotifyScriptsLoaded();
+        if (cancelled) return;
+        await loadScriptOnce("/fs/js/dashboard.js");
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <>
@@ -38,23 +53,20 @@ export function DashboardFsView({
                         type="button"
                         className="pay-cal-nav"
                         id="cal-prev"
-                        aria-label="Iepriekšējais mēnesis"
+                        aria-label={t("fs.dashboard.aria_calendar_prev_month")}
                       >
                         <i className="fa-solid fa-chevron-left" aria-hidden="true" />
                       </button>
                       <h2 className="pay-calendar-title" id="pay-calendar-title">
-                        Kalendārs
+                        &nbsp;
                       </h2>
                       <button
                         type="button"
                         className="pay-cal-nav"
                         id="cal-next"
-                        aria-label="Nākamais mēnesis"
+                        aria-label={t("fs.dashboard.aria_calendar_next_month")}
                       >
-                        <i
-                          className="fa-solid fa-chevron-right"
-                          aria-hidden="true"
-                        />
+                        <i className="fa-solid fa-chevron-right" aria-hidden="true" />
                       </button>
                     </div>
                     <div
@@ -68,13 +80,13 @@ export function DashboardFsView({
                         className="pay-cal-legend-i pay-cal-legend-i--due"
                         aria-hidden="true"
                       />
-                      gaidāms maksājums
+                      {t("landing.mock.legend_due")}
                       <span className="pay-calendar-hint-sep">·</span>
                       <span
                         className="pay-cal-legend-i pay-cal-legend-i--overdue"
                         aria-hidden="true"
                       />
-                      kavēts
+                      {t("landing.mock.legend_overdue")}
                     </p>
                   </div>
                 </div>
@@ -84,51 +96,46 @@ export function DashboardFsView({
                 <div className="dashboard-overview-head-col">
                   <div className="page-header">
                     <div>
-                      <h1 className="page-title">Abonamenti</h1>
-                      <p className="page-subtitle">
-                        Pārvaldiet savus ikmēneša abonementus
-                      </p>
+                      <h1 className="page-title">{t("landing.mock.subscriptions_title")}</h1>
+                      <p className="page-subtitle">{t("landing.mock.subscriptions_subtitle")}</p>
                     </div>
                     <button
                       type="button"
                       className="btn btn-primary"
                       onClick={() => window.openAddModal?.()}
                     >
-                      <i className="fa-solid fa-plus" /> Pievienot
+                      <i className="fa-solid fa-plus" /> {t("landing.mock.btn_add")}
                     </button>
                   </div>
                 </div>
 
                 <div className="dashboard-overview-stats-row">
                   <div className="stat-card">
-                    <div className="stat-label">Kopējā mēneša summa</div>
+                    <div className="stat-label">{t("landing.mock.stat_total_label")}</div>
                     <div className="stat-value" id="stat-total">
                       €0.00
                     </div>
-                    <div className="stat-note">par mēnesi</div>
+                    <div className="stat-note">{t("landing.mock.stat_total_note")}</div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-label">Aktīvie abonamenti</div>
+                    <div className="stat-label">{t("landing.mock.stat_active_label")}</div>
                     <div className="stat-value" id="stat-count">
                       0
                     </div>
-                    <div className="stat-note">kopā</div>
+                    <div className="stat-note">{t("landing.mock.stat_active_note")}</div>
                   </div>
                 </div>
 
                 <div className="dashboard-overview-next-slot dashboard-next-pay-slot">
                   <div className="stat-card stat-card--next-pay">
-                    <div className="stat-label">Nākamais maksājums</div>
+                    <div className="stat-label">{t("landing.mock.next_pay_label")}</div>
                     <div className="stat-next-body">
                       <div className="stat-next-text">
-                        <div
-                          className="stat-value stat-value--next"
-                          id="stat-next"
-                        >
+                        <div className="stat-value stat-value--next" id="stat-next">
                           -
                         </div>
                         <div className="stat-next-name" id="stat-next-name">
-                          nav abonementa
+                          {t("fs.dashboard.empty_no_subscriptions")}
                         </div>
                       </div>
                       <div className="stat-next-amount" id="stat-next-amount" />
@@ -140,7 +147,7 @@ export function DashboardFsView({
           </div>
 
           <div className="section-header">
-            <h2 className="section-heading">Jūsu abonamenti</h2>
+            <h2 className="section-heading">{t("landing.mock.subscription_list_heading")}</h2>
           </div>
 
           <div id="sub-list" className="sub-list" />
@@ -154,29 +161,22 @@ export function DashboardFsView({
               <div className="empty-state-icon-wrap" aria-hidden="true">
                 <i className="fa-solid fa-calendar-days empty-state-main-icon" />
               </div>
-              <h3>Vēl nav ierakstu</h3>
-              <p className="empty-state-lead">
-                Šeit redzēsiet savus abonementus un citus regulāros maksājumus.
-                Kalendārs un kopsavilkuma kartītes atjaunosies automātiski, kad būs vismaz viens ieraksts.
-              </p>
-              <p className="empty-state-secondary">
-                Sāciet ar pogu „Pievienot“ augšējā labajā stūrī – tas prasa tikai nosaukumu, summu un nākamo maksājuma datumu.
-              </p>
+              <h3>{t("fs.dashboard.empty_title")}</h3>
+              <p className="empty-state-lead">{t("fs.dashboard.empty_lead")}</p>
+              <p className="empty-state-secondary">{t("fs.dashboard.empty_secondary")}</p>
               <button
                 type="button"
                 className="btn btn-primary"
                 onClick={() => window.openAddModal?.()}
               >
-                <i className="fa-solid fa-plus" /> Pievienot pirmo ierakstu
+                <i className="fa-solid fa-plus" /> {t("fs.dashboard.empty_cta")}
               </button>
             </div>
           </div>
         </main>
 
         <footer className="landing-footer">
-          <p>
-            &copy; {year} SubTrack. Visi tiesības aizsargātas.
-          </p>
+          <SiteStandardCopyrightNotice />
         </footer>
       </div>
 
@@ -187,42 +187,42 @@ export function DashboardFsView({
       >
         <div className="modal modal--wide" id="modal-main">
           <div className="modal-header">
-            <h2 id="modal-title">Pievienot abonementu</h2>
+            <h2 id="modal-title">{t("fs.dashboard.modal_add_title")}</h2>
             <button
               type="button"
               className="modal-close"
               onClick={() => window.closeModal?.()}
-              aria-label="Aizvērt"
-              data-tooltip="Aizvērt"
+              aria-label={t("fs.dashboard.aria_modal_close")}
+              data-tooltip={t("fs.dashboard.aria_modal_close")}
             >
               <i className="fa-solid fa-xmark" />
             </button>
           </div>
           <div className="modal-body">
             <div className="form-group">
-              <label htmlFor="sub-name">Nosaukums</label>
+              <label htmlFor="sub-name">{t("fs.dashboard.label_name")}</label>
               <input
                 type="text"
                 id="sub-name"
-                placeholder="piem. Netflix, Spotify..."
+                placeholder={t("fs.dashboard.placeholder_sub_name")}
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="sub-category">Kategorija</label>
+              <label htmlFor="sub-category">{t("fs.dashboard.label_category")}</label>
               <select id="sub-category" className="form-select">
-                <option value="subscription">Abonements</option>
-                <option value="bill">Rēķins</option>
-                <option value="credit">Kredīts</option>
-                <option value="leasing">Līzings</option>
-                <option value="insurance">Apdrošināšana</option>
-                <option value="other">Citi maksājumi</option>
+                <option value="subscription">{t("landing.mock.pill_subscription")}</option>
+                <option value="bill">{t("landing.mock.pill_bill")}</option>
+                <option value="credit">{t("landing.mock.pill_credit")}</option>
+                <option value="leasing">{t("landing.mock.pill_leasing")}</option>
+                <option value="insurance">{t("landing.mock.pill_insurance")}</option>
+                <option value="other">{t("landing.mock.pill_other")}</option>
               </select>
             </div>
 
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="sub-amount">Summa (€)</label>
+                <label htmlFor="sub-amount">{t("fs.dashboard.label_amount_eur")}</label>
                 <input
                   type="number"
                   id="sub-amount"
@@ -232,35 +232,30 @@ export function DashboardFsView({
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="sub-period">Periods</label>
+                <label htmlFor="sub-period">{t("fs.dashboard.label_billing_period")}</label>
                 <select id="sub-period" className="form-select">
-                  <option value="monthly">Mēnesī</option>
-                  <option value="yearly">Gadā</option>
-                  <option value="weekly">Nedēļā</option>
+                  <option value="monthly">{t("fs.dashboard.select_period.monthly")}</option>
+                  <option value="yearly">{t("fs.dashboard.select_period.yearly")}</option>
+                  <option value="weekly">{t("fs.dashboard.select_period.weekly")}</option>
                 </select>
               </div>
             </div>
 
             <div className="form-group">
-              <label htmlFor="sub-date">Nākamais maksājums</label>
+              <label htmlFor="sub-date">{t("landing.mock.next_pay_label")}</label>
               <input type="date" id="sub-date" />
             </div>
 
             <div className="form-group">
-              <label>Ikona</label>
+              <label>{t("fs.dashboard.label_icon")}</label>
               <div className="icon-picker-block" id="icon-picker">
                 <div
                   className="icon-picker-row icon-picker-row--preview"
                   role="group"
-                  aria-label="Ikona"
+                  aria-label={t("fs.dashboard.label_icon")}
                 >
                   {FA_ICONS_PREVIEW.map((ic) => (
-                    <button
-                      key={ic}
-                      type="button"
-                      className="icon-opt"
-                      data-icon={ic}
-                    >
+                    <button key={ic} type="button" className="icon-opt" data-icon={ic}>
                       <i className={ic} aria-hidden="true" />
                     </button>
                   ))}
@@ -276,25 +271,23 @@ export function DashboardFsView({
                         aria-expanded="false"
                         aria-controls="icon-picker-more"
                       >
-                        Parādīt visas
+                        {t("fs.dashboard.icon_show_all")}
                       </button>
                       <span className="icon-picker-more-hint">
-                        vēl {FA_ICONS_MORE.length}
+                        {t("fs.dashboard.icon_more_count").replace(
+                          "{count}",
+                          String(FA_ICONS_MORE.length),
+                        )}
                       </span>
                     </div>
                     <div
-                       className="icon-picker-row icon-picker-row--more hidden"
-                       id="icon-picker-more"
-                       role="group"
-                       aria-label="Papildu ikonas"
-                     >
+                      className="icon-picker-row icon-picker-row--more hidden"
+                      id="icon-picker-more"
+                      role="group"
+                      aria-label={t("fs.dashboard.aria_icon_more")}
+                    >
                       {FA_ICONS_MORE.map((ic) => (
-                        <button
-                          key={ic}
-                          type="button"
-                          className="icon-opt"
-                          data-icon={ic}
-                        >
+                        <button key={ic} type="button" className="icon-opt" data-icon={ic}>
                           <i className={ic} aria-hidden="true" />
                         </button>
                       ))}
@@ -305,7 +298,7 @@ export function DashboardFsView({
             </div>
 
             <div className="form-group">
-              <label>Krāsa</label>
+              <label>{t("fs.dashboard.label_color")}</label>
               <div className="color-picker-row" id="color-picker">
                 {FS_COLOR_DOTS.map((c) => (
                   <div
@@ -319,12 +312,8 @@ export function DashboardFsView({
             </div>
 
             <div className="form-group">
-              <label htmlFor="sub-note">Piezīme (neobligāti)</label>
-              <input
-                type="text"
-                id="sub-note"
-                placeholder="piem. Ģimenes plāns"
-              />
+              <label htmlFor="sub-note">{t("fs.dashboard.label_note_optional")}</label>
+              <input type="text" id="sub-note" placeholder={t("fs.dashboard.placeholder_note")} />
             </div>
 
             <div className="modal-advanced" id="modal-advanced">
@@ -336,70 +325,50 @@ export function DashboardFsView({
                 aria-expanded="false"
                 aria-controls="modal-advanced-panel"
               >
-                <span>Papildu opcijas</span>
-                <i
-                  className="fa-solid fa-chevron-down modal-advanced-chevron"
-                  aria-hidden="true"
-                />
+                <span>{t("fs.dashboard.advanced_toggle")}</span>
+                <i className="fa-solid fa-chevron-down modal-advanced-chevron" aria-hidden="true" />
               </button>
-              <div
-                className="modal-advanced-panel hidden"
-                id="modal-advanced-panel"
-              >
+              <div className="modal-advanced-panel hidden" id="modal-advanced-panel">
                 <p className="form-section-label">
-                  Kredīts / atmaksas termiņš{" "}
-                  <span className="form-optional">(neobligāti)</span>
+                  {t("fs.dashboard.advanced_section_credit")}
+                  <> </>
+                  <span className="form-optional">{t("fs.dashboard.optional_paren")}</span>
                 </p>
-                <p className="form-hint form-hint--tight">
-                  Norādot sākumu un beigas, sarakstā parādīsies progress josla līdz
-                  termiņa beigām (piemēram, ātrais kredīts).
-                </p>
+                <p className="form-hint form-hint--tight">{t("fs.dashboard.advanced_hint_credit")}</p>
                 <div className="form-row">
                   <div className="form-group">
-                    <label htmlFor="sub-term-start">Termiņš no</label>
+                    <label htmlFor="sub-term-start">{t("fs.dashboard.term_start")}</label>
                     <input type="date" id="sub-term-start" />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="sub-term-end">Termiņš līdz</label>
+                    <label htmlFor="sub-term-end">{t("fs.dashboard.term_end")}</label>
                     <input type="date" id="sub-term-end" />
                   </div>
                 </div>
 
                 <p className="form-section-label form-section-label--spaced">
-                  Papildu pozīcijas ar termiņu{" "}
-                  <span className="form-optional">(neobligāti)</span>
+                  {t("fs.dashboard.advanced_section_devices")}
+                  <> </>
+                  <span className="form-optional">{t("fs.dashboard.optional_paren")}</span>
                 </p>
-                <p className="form-hint form-hint--tight">
-                  Piemēram, viedpulkstenis, modēms, iekārtas apdrošināšana vai
-                  cits papildu abonements - katrai savs termiņš un papildu summa
-                  mēnesī (kopējā maksa saskaita demo režīmā).
-                </p>
+                <p className="form-hint form-hint--tight">{t("fs.dashboard.advanced_hint_devices")}</p>
                 <div id="sub-devices-container" className="sub-devices-container" />
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm modal-device-add"
                   onClick={() => window.addDeviceRow?.()}
                 >
-                  <i className="fa-solid fa-plus" /> Pievienot pozīciju
+                  <i className="fa-solid fa-plus" /> {t("fs.dashboard.advanced_add_device")}
                 </button>
               </div>
             </div>
           </div>
           <div className="modal-footer">
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => window.closeModal?.()}
-            >
-              Atcelt
+            <button type="button" className="btn btn-ghost" onClick={() => window.closeModal?.()}>
+              {t("fs.dashboard.btn_cancel")}
             </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              id="modal-save-btn"
-              onClick={() => window.saveSubscription?.()}
-            >
-              Saglabāt
+            <button type="button" className="btn btn-primary" id="modal-save-btn" onClick={() => window.saveSubscription?.()}>
+              {t("fs.dashboard.modal_save")}
             </button>
           </div>
         </div>
@@ -415,33 +384,21 @@ export function DashboardFsView({
             <div className="delete-icon">
               <i className="fa-solid fa-trash-can" />
             </div>
-            <h3>Dzēst abonementu?</h3>
-            <p id="delete-confirm-name">
-              Vai tiešām vēlaties dzēst šo abonementu? Šo darbību nevar atcelt.
-            </p>
+            <h3>{t("fs.dashboard.delete_modal_heading")}</h3>
+            <p id="delete-confirm-name">&nbsp;</p>
           </div>
           <div className="modal-footer">
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => window.closeDeleteModal?.()}
-            >
-              Atcelt
+            <button type="button" className="btn btn-ghost" onClick={() => window.closeDeleteModal?.()}>
+              {t("fs.dashboard.btn_cancel")}
             </button>
-            <button
-              type="button"
-              className="btn btn-danger"
-              onClick={() => window.confirmDelete?.()}
-            >
-              Dzēst
+            <button type="button" className="btn btn-danger" onClick={() => window.confirmDelete?.()}>
+              {t("fs.dashboard.btn_delete")}
             </button>
           </div>
         </div>
       </div>
 
       <div className="toast-container" id="toast-container" />
-
-      <FsScripts srcs={DASH_SCRIPTS} />
     </>
   );
 }
