@@ -1,0 +1,45 @@
+@import "../styles/subtrack.css";
+
+/*
+ * Login: noņem pārlūka noklusējuma button izskatu un nostiprina sociālo pogu krāsas.
+ * (Safari/Chrome dažkārt rāda pelēku "native" pogu pat ar mūsu klasēm.)
+ */
+.auth-page .auth-card--login button.btn-social-google {
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: #ffffff;
+    background-image: none;
+    color: #1e293b;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.auth-page .auth-card--login button.btn-social-google:hover {
+    background-color: #f8fafc;
+    border-color: rgba(15, 23, 42, 0.18);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+}
+
+.auth-page .auth-card--login button.btn-social-apple {
+    -webkit-appearance: none;
+    appearance: none;
+    color: #fafafa;
+    background-color: #27272a;
+    background-image: linear-gradient(180deg, #3f3f46 0%, #18181b 100%);
+    border: 1px solid rgba(15, 23, 42, 0.45);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+}
+
+.auth-page .auth-card--login button.btn-social-apple:hover {
+    background-color: #3f3f46;
+    background-image: linear-gradient(180deg, #52525b 0%, #27272a 100%);
+    border-color: rgba(15, 23, 42, 0.55);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-page .auth-card--login button.btn-social-google:hover,
+    .auth-page .auth-card--login button.btn-social-apple:hover {
+        transform: none;
+    }
+}
