@@ -3,10 +3,11 @@
    ============================================= */
 
 function notifyOverdueDays(dateStr) {
-    if (!dateStr) return 0;
+    var dIso = normalizeSubscriptionDateIso(dateStr);
+    if (!dIso) return 0;
     var today = new Date();
     today.setHours(0, 0, 0, 0);
-    var d = new Date(dateStr + 'T00:00:00');
+    var d = new Date(dIso + 'T00:00:00');
     return Math.max(0, Math.round((today - d) / 86400000));
 }
 
@@ -16,74 +17,59 @@ function todayISOLocal() {
     return toISODateLocal(today);
 }
 
-/** Šodienas termiņš pēc kalendāra datuma (ne „overdue“ virknē – tikai tieši šī diena). */
-function markDueTodayPaymentsPaid() {
+/**
+ * Atzīmēt kā samaksātu no paziņojumiem (šodien vai kavēts – termiņš ≤ šodienai).
+ * Tas pats API kā panelī.
+ */
+function markNotifyItemPaid(rawId) {
     if (typeof subscriptions === 'undefined') return;
     if (typeof advanceNextDueAfterPayment !== 'function') return;
 
-    var iso = todayISOLocal();
-    var dueToday = subscriptions.filter(function (s) {
-        return s.date === iso;
+    var s = subscriptions.find(function (x) {
+        return String(x.id) === String(rawId);
     });
-    if (!dueToday.length) return;
+    if (!s) return;
+    var paidOnIso = normalizeSubscriptionDateIso(s.date);
+    if (!paidOnIso) return;
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var due = new Date(paidOnIso + 'T00:00:00');
+    due.setHours(0, 0, 0, 0);
+    if (due > today) return;
 
-    var patches = dueToday.map(function (s) {
-        var period = s.period || 'monthly';
-        return {
-            id: s.id,
-            nextDate: advanceNextDueAfterPayment(s.date, period),
-        };
-    });
+    var period = s.period || 'monthly';
+    var newDate = advanceNextDueAfterPayment(s.date, period);
 
-    Promise.all(
-        patches.map(function (p) {
-            return fetch(apiSubscriptionUrl(p.id), {
-                method: 'PATCH',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ date: p.nextDate }),
-            }).then(parseApiJson);
-        }),
-    )
-        .then(function (results) {
-            results.forEach(function (data, i) {
-                if (data && data.subscription) {
-                    mergeSubscriptionFromApi(data.subscription);
-                } else {
-                    dueToday[i].date = patches[i].nextDate;
-                }
-            });
-
-            var toastMsg;
-            if (dueToday.length === 1) {
-                var sid = String(dueToday[0].id);
-                var after = subscriptions.find(function (x) {
-                    return String(x.id) === sid;
-                });
-                var nextLabel = after ? formatDate(after.date) : '';
-                toastMsg = FsT('fs.dashboard.notify_paid_today_single').replace(
-                    /\{date\}/g,
-                    nextLabel,
-                );
-                if (!toastMsg) {
-                    toastMsg =
-                        'Maksājums atzīmēts. Nākamais termiņš: ' + nextLabel + '.';
-                }
+    fetch(apiSubscriptionUrl(s.id), {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: newDate }),
+    })
+        .then(parseApiJson)
+        .then(function (data) {
+            if (data.subscription && data.subscription.date) {
+                mergeSubscriptionFromApi(data.subscription);
             } else {
-                toastMsg = FsT('fs.dashboard.notify_paid_today_multi').replace(
-                    /\{count\}/g,
-                    String(dueToday.length),
-                );
-                if (!toastMsg) {
-                    toastMsg =
-                        dueToday.length + ' šodienas maksājumi atzīmēti kā samaksāti.';
-                }
+                s.date = normalizeSubscriptionDateIso(newDate) || newDate;
             }
-
+            if (paidOnIso && typeof subtrackAddPaidCalendarDay === 'function') {
+                subtrackAddPaidCalendarDay(paidOnIso);
+            }
+            return subtrackSyncSubscriptionsFromApi();
+        })
+        .then(function () {
+            var after = subscriptions.find(function (x) {
+                return String(x.id) === String(rawId);
+            });
+            var shownDate = after && after.date ? after.date : newDate;
+            var raw = FsT('fs.dashboard.toast_marked_paid');
             if (typeof showToast === 'function') {
-                showToast(toastMsg, 'success');
+                showToast(
+                    raw ? raw.replace(/\{date\}/g, formatDate(shownDate)) : '',
+                    'success',
+                );
             }
-
             if (typeof renderList === 'function') {
                 renderList();
             }
@@ -99,30 +85,8 @@ function markDueTodayPaymentsPaid() {
         });
 }
 
-function refreshTodayNotifyRow() {
-    var sec = document.getElementById('dash-notify-today-section');
-    var btn = document.getElementById('dash-notify-today-paid-btn');
-    if (!sec || !btn) return;
-
-    if (typeof subscriptions === 'undefined') {
-        sec.classList.add('hidden');
-        btn.classList.add('hidden');
-        btn.disabled = true;
-        return;
-    }
-
-    var iso = todayISOLocal();
-    var n = subscriptions.filter(function (s) { return s.date === iso; }).length;
-
-    if (n > 0) {
-        sec.classList.remove('hidden');
-        btn.classList.remove('hidden');
-        btn.disabled = false;
-    } else {
-        sec.classList.add('hidden');
-        btn.classList.add('hidden');
-        btn.disabled = true;
-    }
+function markNotifyTodayItemPaid(rawId) {
+    markNotifyItemPaid(rawId);
 }
 
 function buildNotifyItemRow(s, isOverdue) {
@@ -134,12 +98,60 @@ function buildNotifyItemRow(s, isOverdue) {
         var overdueLabel =
             typeof formatOverdueLabel === 'function' ? formatOverdueLabel(od) : String(od) + ' dienas kavējumā';
         sub = '<span class="dash-notify-item-late">' + escHtml(overdueLabel) + '</span>';
+        var ariaOk = FsT('fs.dashboard.aria_mark_paid');
+        return (
+            '<div class="dash-notify-item dash-notify-item--overdue">' +
+            '<div class="dash-notify-item-overdue-inner">' +
+            '<div class="dash-notify-item-main">' +
+            '<span class="dash-notify-item-name">' +
+            escHtml(s.name) +
+            '</span>' +
+            '<span class="dash-notify-item-meta">' +
+            meta +
+            '</span>' +
+            sub +
+            '</div>' +
+            '<button type="button" class="dash-notify-today-ok dash-notify-mark-paid-ok" data-subscription-id="' +
+            escAttr(String(s.id)) +
+            '" aria-label="' +
+            escAttr(ariaOk) +
+            '">' +
+            '<i class="fa-solid fa-check" aria-hidden="true"></i>' +
+            '</button>' +
+            '</div></div>'
+        );
     }
-    return '<div class="dash-notify-item' + (isOverdue ? ' dash-notify-item--overdue' : '') + '">' +
+    return (
+        '<div class="dash-notify-item">' +
+        '<div class="dash-notify-item-main">' +
+        '<span class="dash-notify-item-name">' +
+        escHtml(s.name) +
+        '</span>' +
+        '<span class="dash-notify-item-meta">' +
+        meta +
+        '</span>' +
+        (sub ? sub : '') +
+        '</div></div>'
+    );
+}
+
+function buildNotifyTodayItemRow(s) {
+    var pay = subscriptionMonthlyTotal(s);
+    var meta = escHtml(formatDate(s.date)) + ' · €' + pay.toFixed(2);
+    var aria = FsT('fs.dashboard.aria_mark_paid');
+    return '<div class="dash-notify-item">' +
+        '<div class="dash-notify-item-today-inner">' +
         '<div class="dash-notify-item-main">' +
         '<span class="dash-notify-item-name">' + escHtml(s.name) + '</span>' +
         '<span class="dash-notify-item-meta">' + meta + '</span>' +
-        (sub ? sub : '') +
+        '</div>' +
+        '<button type="button" class="dash-notify-today-ok dash-notify-mark-paid-ok" data-subscription-id="' +
+        escAttr(String(s.id)) +
+        '" aria-label="' +
+        escAttr(aria) +
+        '">' +
+        '<i class="fa-solid fa-check" aria-hidden="true"></i>' +
+        '</button>' +
         '</div></div>';
 }
 
@@ -232,6 +244,8 @@ function refreshDashNotifications() {
 
     var badge = document.getElementById('dash-notify-badge');
     var icon = document.getElementById('dash-notify-icon');
+    var secT = document.getElementById('dash-notify-today-section');
+    var listT = document.getElementById('dash-notify-today-list');
     var secO = document.getElementById('dash-notify-overdue-section');
     var secU = document.getElementById('dash-notify-upcoming-section');
     var listO = document.getElementById('dash-notify-overdue-list');
@@ -257,6 +271,10 @@ function refreshDashNotifications() {
             badge.classList.add('hidden');
         }
         setBellSolid(false);
+        if (secT) {
+            secT.classList.add('hidden');
+            if (listT) listT.innerHTML = '';
+        }
         if (secO) {
             secO.classList.add('hidden');
             if (listO) listO.innerHTML = '';
@@ -268,7 +286,6 @@ function refreshDashNotifications() {
         if (emptyEl) {
             emptyEl.classList.remove('hidden');
         }
-        refreshTodayNotifyRow();
         syncDashNotifyPanelMobPlacement();
         return;
     }
@@ -276,26 +293,45 @@ function refreshDashNotifications() {
     var today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    /** Gaidāmie maksājumi: tikai nākamās 7 kalendāra dienas (šodiena ieskaitot līdz dienai today+6). */
+    var isoToday = todayISOLocal();
+
+    /** Gaidāmie maksājumi: tikai nākamās 7 dienas, izņemot šodienu (šodiena tikai sadaļā „Šodien…“). */
     var upcomingHorizonEnd = new Date(today);
     upcomingHorizonEnd.setDate(upcomingHorizonEnd.getDate() + 7);
 
     var overdue = subscriptions.filter(function (s) {
-        if (!s.date) return false;
-        return new Date(s.date + 'T00:00:00') < today;
+        var dIso = normalizeSubscriptionDateIso(s.date);
+        if (!dIso) return false;
+        return new Date(dIso + 'T00:00:00') < today;
     }).sort(function (a, b) {
-        return new Date(a.date + 'T00:00:00') - new Date(b.date + 'T00:00:00');
+        return (
+            new Date(normalizeSubscriptionDateIso(a.date) + 'T00:00:00') -
+            new Date(normalizeSubscriptionDateIso(b.date) + 'T00:00:00')
+        );
+    });
+
+    var dueToday = subscriptions.filter(function (s) {
+        return normalizeSubscriptionDateIso(s.date) === isoToday;
+    }).sort(function (a, b) {
+        return (
+            new Date(normalizeSubscriptionDateIso(a.date) + 'T00:00:00') -
+            new Date(normalizeSubscriptionDateIso(b.date) + 'T00:00:00')
+        );
     });
 
     var upcoming = subscriptions.filter(function (s) {
-        if (!s.date) return false;
-        var d = new Date(s.date + 'T00:00:00');
-        return d >= today && d < upcomingHorizonEnd;
+        var dIso = normalizeSubscriptionDateIso(s.date);
+        if (!dIso) return false;
+        var d = new Date(dIso + 'T00:00:00');
+        return d > today && d < upcomingHorizonEnd;
     }).sort(function (a, b) {
-        return new Date(a.date + 'T00:00:00') - new Date(b.date + 'T00:00:00');
+        return (
+            new Date(normalizeSubscriptionDateIso(a.date) + 'T00:00:00') -
+            new Date(normalizeSubscriptionDateIso(b.date) + 'T00:00:00')
+        );
     });
 
-    var count = overdue.length + upcoming.length;
+    var count = overdue.length + dueToday.length + upcoming.length;
 
     if (badge) {
         if (count > 0) {
@@ -307,6 +343,16 @@ function refreshDashNotifications() {
     }
 
     setBellSolid(count > 0);
+
+    if (listT && secT) {
+        if (dueToday.length === 0) {
+            secT.classList.add('hidden');
+            listT.innerHTML = '';
+        } else {
+            secT.classList.remove('hidden');
+            listT.innerHTML = dueToday.map(function (s) { return buildNotifyTodayItemRow(s); }).join('');
+        }
+    }
 
     if (listO && secO) {
         if (overdue.length === 0) {
@@ -328,7 +374,7 @@ function refreshDashNotifications() {
         }
     }
 
-    var showEmpty = overdue.length === 0 && upcoming.length === 0;
+    var showEmpty = overdue.length === 0 && dueToday.length === 0 && upcoming.length === 0;
     if (emptyEl) {
         if (showEmpty) {
             emptyEl.classList.remove('hidden');
@@ -336,8 +382,6 @@ function refreshDashNotifications() {
             emptyEl.classList.add('hidden');
         }
     }
-
-    refreshTodayNotifyRow();
 
     syncDashNotifyPanelMobPlacement();
 }
@@ -404,13 +448,12 @@ function initDashNotifications() {
                 return;
             }
 
-            if (t.closest('#dash-notify-today-paid-btn')) {
-                var paidBtn = document.getElementById('dash-notify-today-paid-btn');
-                if (!paidBtn) return;
+            var paidItem = t.closest('.dash-notify-mark-paid-ok');
+            if (paidItem && paidItem.getAttribute('data-subscription-id')) {
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
-                markDueTodayPaymentsPaid();
+                markNotifyItemPaid(paidItem.getAttribute('data-subscription-id'));
                 return;
             }
 

@@ -43,3 +43,101 @@
         transform: none;
     }
 }
+
+/*
+ * Integrācijas slēdzis un admin integrācijas forma - šeit (`globals.css`), nevis `subtrack.css`,
+ * lai Turbopack + `@tailwindcss/postcss` apstrādē nevajadzētu skalāru importu gar failu kā `subtrack`,
+ * kur vietās redzējām apgalvojumu „Missing opening {” uz noteiktas rindiņas (~4485).
+ */
+.admin-integration-switch-field {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 7px;
+}
+
+.admin-integration-switch-caption {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    line-height: 1.25;
+}
+
+.admin-switch {
+    position: relative;
+    flex-shrink: 0;
+    width: 46px;
+    height: 28px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    outline: none;
+}
+
+.admin-switch:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.admin-switch-track {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: #cbd5e1;
+    transition: background-color 0.18s ease;
+}
+
+.admin-switch.is-on .admin-switch-track {
+    background: var(--primary);
+}
+
+.admin-switch-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+    transition: transform 0.18s ease;
+}
+
+.admin-switch.is-on .admin-switch-thumb {
+    transform: translateX(18px);
+}
+
+.admin-switch:focus-visible .admin-switch-track {
+    box-shadow: 0 0 0 3px rgba(0, 163, 141, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-switch .admin-switch-track,
+    .admin-switch .admin-switch-thumb {
+        transition: none;
+    }
+}
+
+.admin-integration-enabled-cell {
+    vertical-align: middle;
+}
+
+.admin-integration-edit-ro-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-muted);
+}
+
+.admin-integration-edit-key-ro {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}

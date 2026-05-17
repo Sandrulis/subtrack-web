@@ -5,7 +5,15 @@ import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { LoginSocialButtons } from "@/components/login-social-buttons";
 import { signInWithPasswordAction } from "@/lib/auth/actions";
 
-export function AuthLoginFlow({ nextPath }: { nextPath: string }) {
+export function AuthLoginFlow({
+  nextPath,
+  oauthGoogleEnabled,
+  oauthAppleEnabled,
+}: {
+  nextPath: string;
+  oauthGoogleEnabled: boolean;
+  oauthAppleEnabled: boolean;
+}) {
   const { t } = useSubtrackIntl();
 
   return (
@@ -63,7 +71,11 @@ export function AuthLoginFlow({ nextPath }: { nextPath: string }) {
         </div>
       </form>
 
-      <LoginSocialButtons />
+      <LoginSocialButtons
+        googleEnabled={oauthGoogleEnabled}
+        appleEnabled={oauthAppleEnabled}
+        nextPath={nextPath}
+      />
 
       <p className="auth-footer">
         {t("auth.login.no_account")}{" "}

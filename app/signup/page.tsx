@@ -4,6 +4,7 @@ import { AuthToastsHost } from "@/components/auth-toasts-host";
 import { FsScripts } from "@/components/fs/load-fs-scripts";
 import { NavLanding } from "@/components/nav-landing";
 import { SiteStandardCopyrightNotice } from "@/components/site-standard-copyright-notice";
+import { getLoginSocialIntegrationFlags } from "@/lib/integrations/login-social-flags";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
 const SIGNUP_SCRIPTS = ["/fs/js/signup.js"] as const;
@@ -21,12 +22,18 @@ export default async function SignupPage({
 }) {
   const sp = await searchParams;
 
+  const { googleEnabled: oauthGoogleEnabled, appleEnabled: oauthAppleEnabled } =
+    await getLoginSocialIntegrationFlags();
+
   return (
     <div className="auth-page">
       <NavLanding active="signup" />
       <AuthToastsHost urlError={sp.error}>
         <div className="auth-page-inner">
-          <AuthSignupCard />
+          <AuthSignupCard
+            oauthGoogleEnabled={oauthGoogleEnabled}
+            oauthAppleEnabled={oauthAppleEnabled}
+          />
         </div>
 
         <footer className="landing-footer">

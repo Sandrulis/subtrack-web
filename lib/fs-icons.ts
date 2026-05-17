@@ -1,5 +1,4 @@
 /** Font Awesome 6 free solid ikonu saraksts (kā FS dashboard.php). */
-export const ICON_PREVIEW_COUNT = 18;
 
 export const FA_ICONS_ALL: string[] = [
   "fa-solid fa-film",
@@ -105,9 +104,6 @@ export const FA_ICONS_ALL: string[] = [
   "fa-solid fa-clipboard",
   "fa-solid fa-note-sticky",
 ];
-
-export const FA_ICONS_PREVIEW = FA_ICONS_ALL.slice(0, ICON_PREVIEW_COUNT);
-export const FA_ICONS_MORE = FA_ICONS_ALL.slice(ICON_PREVIEW_COUNT);
 
 export const FS_COLOR_DOTS = [
   "#0d9488",

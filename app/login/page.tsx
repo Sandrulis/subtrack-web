@@ -4,6 +4,7 @@ import { AuthToastsHost } from "@/components/auth-toasts-host";
 import { FsScripts } from "@/components/fs/load-fs-scripts";
 import { NavLanding } from "@/components/nav-landing";
 import { SiteStandardCopyrightNotice } from "@/components/site-standard-copyright-notice";
+import { getLoginSocialIntegrationFlags } from "@/lib/integrations/login-social-flags";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
 const LOGIN_PAGE_SCRIPTS = ["/fs/js/signup.js"] as const;
@@ -25,12 +26,19 @@ export default async function LoginPage({
       ? sp.next
       : "/dashboard";
 
+  const { googleEnabled: oauthGoogleEnabled, appleEnabled: oauthAppleEnabled } =
+    await getLoginSocialIntegrationFlags();
+
   return (
     <div className="auth-page">
       <NavLanding active="login" />
       <AuthToastsHost urlError={sp.error} urlMessage={sp.message}>
         <div className="auth-page-inner">
-          <AuthLoginFlow nextPath={next} />
+          <AuthLoginFlow
+            nextPath={next}
+            oauthGoogleEnabled={oauthGoogleEnabled}
+            oauthAppleEnabled={oauthAppleEnabled}
+          />
         </div>
 
         <footer className="landing-footer">

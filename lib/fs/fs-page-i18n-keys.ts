@@ -51,6 +51,11 @@ export const FS_DASHBOARD_DEMO_EXTRA_KEYS = [
   "fs.dashboard.toast_deleted",
   "fs.dashboard.icon_show_all",
   "fs.dashboard.icon_show_less",
+  "fs.dashboard.icon_library_count",
+  "fs.dashboard.icon_search_label",
+  "fs.dashboard.icon_search_placeholder",
+  "fs.dashboard.icon_search_aria",
+  "fs.dashboard.icon_no_matches",
   "fs.dashboard.months_remaining",
   "fs.dashboard.period_monthly",
   "fs.dashboard.period_yearly",
@@ -72,17 +77,17 @@ export const FS_DASHBOARD_DEMO_EXTRA_KEYS = [
   "fs.dashboard.btn_delete",
   "fs.dashboard.toast_api_save_failed",
   "fs.dashboard.toast_api_delete_failed",
-  "fs.dashboard.notify_paid_today_single",
-  "fs.dashboard.notify_paid_today_multi",
+  "fs.dashboard.cal_toggle_all_payments_label",
+  "fs.dashboard.cal_toggle_all_payments_hint",
 ] as const;
 
-/** Tikai augšējās joslas paziņojumi (`dash-alerts.js` + `formatOverdueLabel`), ja nav pilnā paneļa bootstrap. */
+/** Tikai augšējās joslas paziņojumi (`dash-alerts.js` + `formatOverdueLabel`), ja nav pilnā paneļa bootstrap. Ietver arī „atzīmēt samaksāts” un toast tekstu vienam maksājumam. */
 export const FS_NOTIFY_BAR_KEYS = [
   "fs.dashboard.overdue_one",
   "fs.dashboard.overdue_other",
   "fs.dashboard.toast_api_save_failed",
-  "fs.dashboard.notify_paid_today_single",
-  "fs.dashboard.notify_paid_today_multi",
+  "fs.dashboard.aria_mark_paid",
+  "fs.dashboard.toast_marked_paid",
 ] as const;
 
 export function fsNotifyBarPhraseKeys(): string[] {

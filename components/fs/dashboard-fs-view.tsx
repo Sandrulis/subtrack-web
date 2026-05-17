@@ -8,13 +8,15 @@ import {
   loadScriptOnce,
 } from "@/components/fs/load-fs-scripts";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
-import {
-  FA_ICONS_MORE,
-  FA_ICONS_PREVIEW,
-  FS_COLOR_DOTS,
-} from "@/lib/fs-icons";
+import { getFsIconPickerSearchBootstrap } from "@/lib/fs-icon-picker-search";
+import { FA_ICONS_ALL, FS_COLOR_DOTS } from "@/lib/fs-icons";
 import type { SubscriptionClient } from "@/lib/subscriptions/subscription-client";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import { SubtrackTooltip } from "@/components/subtrack-tooltip";
+
+const SUBTRACK_ICON_SEARCH_BOOTSTRAP = JSON.stringify({
+  icons: getFsIconPickerSearchBootstrap(),
+}).replace(/</g, "\\u003c");
 
 export function DashboardFsView({
   userDisplay,
@@ -24,6 +26,11 @@ export function DashboardFsView({
   initialSubscriptions: SubscriptionClient[];
 }) {
   const { t } = useSubtrackIntl();
+  const calPaidToggleLabel = t("fs.dashboard.cal_toggle_all_payments_label");
+  const calPaidToggleHint = t("fs.dashboard.cal_toggle_all_payments_hint");
+  const calPaidToggleTitle = [calPaidToggleLabel, calPaidToggleHint]
+    .filter((s) => typeof s === "string" && s.trim().length > 0)
+    .join(" – ");
 
   useEffect(() => {
     let cancelled = false;
@@ -48,10 +55,14 @@ export function DashboardFsView({
       <script
         id="subtrack-subs-bootstrap-json"
         type="application/json"
-        // eslint-disable-next-line react/no-danger -- Supabase JSON bootstrap pirms FS skriptiem
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(initialSubscriptions).replace(/</g, "\\u003c"),
         }}
+      />
+      <script
+        id="subtrack-icon-search-bootstrap"
+        type="application/json"
+        dangerouslySetInnerHTML={{ __html: SUBTRACK_ICON_SEARCH_BOOTSTRAP }}
       />
       <div className="app-layout app-layout-stacked">
         <NavDash active="dashboard" userDisplay={userDisplay} />
@@ -88,19 +99,42 @@ export function DashboardFsView({
                       role="region"
                       aria-labelledby="pay-calendar-title"
                     />
-                    <p className="pay-calendar-hint">
-                      <span
-                        className="pay-cal-legend-i pay-cal-legend-i--due"
-                        aria-hidden="true"
-                      />
-                      {t("landing.mock.legend_due")}
-                      <span className="pay-calendar-hint-sep">·</span>
-                      <span
-                        className="pay-cal-legend-i pay-cal-legend-i--overdue"
-                        aria-hidden="true"
-                      />
-                      {t("landing.mock.legend_overdue")}
-                    </p>
+                    <div className="pay-calendar-footer">
+                      <p className="pay-calendar-hint">
+                        <span
+                          className="pay-cal-legend-i pay-cal-legend-i--due"
+                          aria-hidden="true"
+                        />
+                        {t("landing.mock.legend_due")}
+                        <span className="pay-calendar-hint-sep">·</span>
+                        <span
+                          className="pay-cal-legend-i pay-cal-legend-i--overdue"
+                          aria-hidden="true"
+                        />
+                        {t("landing.mock.legend_overdue")}
+                        <span className="pay-calendar-hint-sep">·</span>
+                        <span
+                          className="pay-cal-legend-i pay-cal-legend-i--paid-past"
+                          aria-hidden="true"
+                        />
+                        {t("fs.dashboard.legend_paid_marked")}
+                      </p>
+                      <div className="pay-calendar-toggle-row">
+                        <SubtrackTooltip label={calPaidToggleTitle}>
+                          <button
+                            type="button"
+                            role="switch"
+                            className="admin-switch"
+                            id="pay-cal-include-paid-switch"
+                            aria-label={calPaidToggleTitle}
+                            aria-checked={false}
+                          >
+                            <span className="admin-switch-track" aria-hidden="true" />
+                            <span className="admin-switch-thumb" aria-hidden="true" />
+                          </button>
+                        </SubtrackTooltip>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -267,51 +301,60 @@ export function DashboardFsView({
             <div className="form-group">
               <label>{t("fs.dashboard.label_icon")}</label>
               <div className="icon-picker-block" id="icon-picker">
-                <div
-                  className="icon-picker-row icon-picker-row--preview"
-                  role="group"
-                  aria-label={t("fs.dashboard.label_icon")}
-                >
-                  {FA_ICONS_PREVIEW.map((ic) => (
-                    <button key={ic} type="button" className="icon-opt" data-icon={ic}>
-                      <i className={ic} aria-hidden="true" />
-                    </button>
-                  ))}
+                <div id="icon-picker-hints-shell" className="icon-picker-hints-shell">
+                  <div
+                    className="icon-picker-row icon-picker-row--hints"
+                    id="icon-picker-hints"
+                    role="group"
+                    aria-label={t("fs.dashboard.label_icon")}
+                  />
+                  <p id="icon-picker-no-match-msg" className="form-hint form-hint--tight hidden" />
                 </div>
-                {FA_ICONS_MORE.length > 0 ? (
-                  <>
-                    <div className="icon-picker-toolbar">
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm icon-picker-toggle"
-                        id="icon-picker-toggle"
-                        onClick={() => window.toggleIconPickerExpand?.()}
-                        aria-expanded="false"
-                        aria-controls="icon-picker-more"
-                      >
-                        {t("fs.dashboard.icon_show_all")}
-                      </button>
-                      <span className="icon-picker-more-hint">
-                        {t("fs.dashboard.icon_more_count").replace(
-                          "{count}",
-                          String(FA_ICONS_MORE.length),
-                        )}
-                      </span>
-                    </div>
-                    <div
-                      className="icon-picker-row icon-picker-row--more hidden"
-                      id="icon-picker-more"
-                      role="group"
-                      aria-label={t("fs.dashboard.aria_icon_more")}
-                    >
-                      {FA_ICONS_MORE.map((ic) => (
-                        <button key={ic} type="button" className="icon-opt" data-icon={ic}>
-                          <i className={ic} aria-hidden="true" />
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                ) : null}
+                <div className="icon-picker-toolbar">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm icon-picker-toggle"
+                    id="icon-picker-toggle"
+                    onClick={() => window.toggleIconPickerExpand?.()}
+                    aria-expanded="false"
+                    aria-controls="icon-picker-expanded"
+                  >
+                    {t("fs.dashboard.icon_show_all")}
+                  </button>
+                  <span className="icon-picker-more-hint" id="icon-picker-library-hint">
+                    {t("fs.dashboard.icon_library_count").replace(
+                      "{count}",
+                      String(FA_ICONS_ALL.length),
+                    )}
+                  </span>
+                </div>
+                <div id="icon-picker-expanded" className="icon-picker-expanded hidden">
+                  <div className="form-group icon-picker-search-field">
+                    <label htmlFor="icon-picker-q" className="icon-search-label">
+                      {t("fs.dashboard.icon_search_label")}
+                    </label>
+                    <input
+                      type="search"
+                      id="icon-picker-q"
+                      className="form-input"
+                      autoComplete="off"
+                      aria-label={t("fs.dashboard.icon_search_aria")}
+                      placeholder={t("fs.dashboard.icon_search_placeholder")}
+                      spellCheck={false}
+                    />
+                  </div>
+                  <p
+                    id="icon-picker-expanded-empty"
+                    className="form-hint form-hint--tight hidden"
+                    role="status"
+                  />
+                  <div
+                    id="icon-picker-more"
+                    className="icon-picker-row icon-picker-row--expanded"
+                    role="group"
+                    aria-label={t("fs.dashboard.aria_icon_more")}
+                  />
+                </div>
               </div>
             </div>
 

@@ -117,19 +117,13 @@ export function NavSessionActions({
               className="dash-notify-today hidden"
               id="dash-notify-today-section"
             >
-              <div className="dash-notify-today-row">
-                <h3 className="dash-notify-section-title dash-notify-today-title">
-                  {t("session.notify_today_title")}
-                </h3>
-                <button
-                  type="button"
-                  className="dash-notify-today-ok hidden"
-                  id="dash-notify-today-paid-btn"
-                  aria-label={t("session.notify_today_mark_paid_aria")}
-                >
-                  <i className="fa-solid fa-check" aria-hidden="true" />
-                </button>
-              </div>
+              <h3 className="dash-notify-section-title dash-notify-today-heading">
+                {t("session.notify_today_title")}
+              </h3>
+              <div
+                className="dash-notify-list"
+                id="dash-notify-today-list"
+              />
             </div>
             <div
               className="dash-notify-section hidden"

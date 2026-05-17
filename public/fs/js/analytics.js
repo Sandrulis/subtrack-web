@@ -237,7 +237,10 @@ function renderAnalytics() {
 }
 
 function fsBootAnalytics() {
-    if (typeof subtrackReloadSubscriptionsFromBootstrap === 'function') {
+    var skip =
+        typeof window !== 'undefined' &&
+        window.__subtrackSubsApiSyncedOnce;
+    if (!skip && typeof subtrackReloadSubscriptionsFromBootstrap === 'function') {
         subtrackReloadSubscriptionsFromBootstrap();
     }
     subtrackSyncSubscriptionsFromApi().then(function () {

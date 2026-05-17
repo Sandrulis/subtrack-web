@@ -3,6 +3,20 @@
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import type { ReactNode } from "react";
 
+export function AdminIntegrationsIntro() {
+  const { t } = useSubtrackIntl();
+  return (
+    <div className="admin-page-head">
+      <h1 className="admin-page-title">{t("admin.integrations.heading")}</h1>
+      <p className="admin-page-lead">
+        {t("admin.integrations.lead_before_code")}{" "}
+        <code className="admin-inline-code">public.integrations</code>
+        {t("admin.integrations.lead_after_code")}
+      </p>
+    </div>
+  );
+}
+
 export function AdminSystemIntro() {
   const { t } = useSubtrackIntl();
   return (

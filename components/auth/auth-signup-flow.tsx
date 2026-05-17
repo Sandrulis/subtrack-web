@@ -5,7 +5,13 @@ import { LoginSocialButtons } from "@/components/login-social-buttons";
 import { SignupForm } from "@/components/signup-form";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 
-export function AuthSignupCard() {
+export function AuthSignupCard({
+  oauthGoogleEnabled,
+  oauthAppleEnabled,
+}: {
+  oauthGoogleEnabled: boolean;
+  oauthAppleEnabled: boolean;
+}) {
   const { t } = useSubtrackIntl();
 
   return (
@@ -15,7 +21,10 @@ export function AuthSignupCard() {
 
       <SignupForm />
 
-      <LoginSocialButtons />
+      <LoginSocialButtons
+        googleEnabled={oauthGoogleEnabled}
+        appleEnabled={oauthAppleEnabled}
+      />
 
       <p className="auth-footer">
         {t("auth.signup.has_account")}{" "}

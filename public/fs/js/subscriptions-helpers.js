@@ -67,7 +67,9 @@ function subscriptionMonthlyTotal(s) {
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    var d = new Date(dateStr + 'T00:00:00');
+    var iso = normalizeSubscriptionDateIso(dateStr);
+    if (!iso) return '-';
+    var d = new Date(iso + 'T00:00:00');
     if (isNaN(d.getTime())) return '-';
     try {
         return new Intl.DateTimeFormat(fsIntlLocale(), { day: 'numeric', month: 'long' }).format(d);
@@ -97,9 +99,126 @@ function toISODateLocal(d) {
     return y + '-' + m + '-' + day;
 }
 
+/** Vienots YYYY-MM-DD kalendāram / salīdzinājumiem (DB reizēm atgriež ar laika daļu). */
+function normalizeSubscriptionDateIso(dateStr) {
+    if (dateStr == null || dateStr === '') return '';
+    var s = String(dateStr).trim();
+    var m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (m) return m[1];
+    var d = new Date(s);
+    if (isNaN(d.getTime())) return '';
+    return toISODateLocal(d);
+}
+
+/** Nekas no sessionStorage: pēc veiksmīgas GET sinhronizācijas neielādēt SSR bootstrap, kas dzēstu svaigus PATCH datus. */
+function subtrackMarkSubsSyncedFromApi() {
+    if (typeof window !== 'undefined') {
+        window.__subtrackSubsApiSyncedOnce = true;
+    }
+}
+
+/** Atkārtoti nolasa `#subtrack-subs-bootstrap-json` (klienta navigācija starp /dashboard un /analytics). */
+function subtrackReloadSubscriptionsFromBootstrap() {
+    var el = document.getElementById('subtrack-subs-bootstrap-json');
+    if (!el || !el.textContent) return;
+    try {
+        var parsed = JSON.parse(el.textContent.trim());
+        if (Array.isArray(parsed)) {
+            subscriptions = parsed.map(function (item) {
+                if (!item || typeof item !== 'object') return item;
+                var o = Object.assign({}, item);
+                if (o.date) o.date = normalizeSubscriptionDateIso(o.date);
+                return o;
+            });
+        }
+    } catch (ignore) {}
+}
+
+(function subtrackHydrateSubscriptionsFromDom() {
+    subtrackReloadSubscriptionsFromBootstrap();
+})();
+
+/**
+ * Kalendārs: dienas, kurās panelī / zvanā atzīmēts „samaksāts”, lai šūna paliek redzama pēc termiņa pārcelšanas.
+ * localStorage – izdzīvo pārlādē; objekts { "YYYY-MM-DD": skaits }.
+ */
+var SUBTRACK_CAL_PAID_LS_KEY = 'subtrack_cal_paid_marked_v1';
+
+function subtrackReadPaidCalendarCounts() {
+    if (typeof localStorage === 'undefined') return {};
+    try {
+        var raw = localStorage.getItem(SUBTRACK_CAL_PAID_LS_KEY);
+        if (!raw) return {};
+        var o = JSON.parse(raw);
+        if (!o || typeof o !== 'object' || Array.isArray(o)) return {};
+        return o;
+    } catch (e) {
+        return {};
+    }
+}
+
+function subtrackWritePaidCalendarCounts(obj) {
+    if (typeof localStorage === 'undefined') return;
+    try {
+        localStorage.setItem(SUBTRACK_CAL_PAID_LS_KEY, JSON.stringify(obj));
+    } catch (e) {}
+}
+
+function subtrackAddPaidCalendarDay(isoDay) {
+    var iso = normalizeSubscriptionDateIso(isoDay);
+    if (!iso) return;
+    var map = subtrackReadPaidCalendarCounts();
+    var prev = parseInt(map[iso], 10) || 0;
+    map[iso] = prev + 1;
+    subtrackWritePaidCalendarCounts(map);
+}
+
+function subtrackPaidCalendarDayMapForMonth(y, m) {
+    var map = subtrackReadPaidCalendarCounts();
+    var out = {};
+    Object.keys(map).forEach(function (iso) {
+        var n = parseInt(map[iso], 10) || 0;
+        if (n < 1) return;
+        var parts = iso.split('-');
+        if (parts.length !== 3) return;
+        var yy = parseInt(parts[0], 10);
+        var mo = parseInt(parts[1], 10) - 1;
+        if (yy === y && mo === m) {
+            out[iso] = n;
+        }
+    });
+    return out;
+}
+
+/** Kalendāra slēdzis: vai rādīt arī dienas „atzīmēts samaksāts” (localStorage). */
+var SUBTRACK_CAL_INCLUDE_PAID_KEY = 'subtrack_cal_include_paid_marks';
+
+function subtrackCalendarIncludePaidMarks() {
+    if (typeof localStorage === 'undefined') return true;
+    try {
+        var v = localStorage.getItem(SUBTRACK_CAL_INCLUDE_PAID_KEY);
+        /* Nav ieraksta: noklusējums kā „ieslēgts” – rādīt arī veiktās / atzīmētās dienas. */
+        if (v === null || v === '') return true;
+        return v === '1';
+    } catch (e) {
+        return true;
+    }
+}
+
+function subtrackSetCalendarIncludePaidMarks(show) {
+    if (typeof localStorage === 'undefined') return;
+    try {
+        localStorage.setItem(SUBTRACK_CAL_INCLUDE_PAID_KEY, show ? '1' : '0');
+    } catch (e) {}
+}
+
 /** Nākamais termiņš pēc „samaksāts“ (neejam uz pagātni salīdzinājumā ar šodienu). */
 function advanceNextDueAfterPayment(dateStr, period) {
-    var next = addOneBillingPeriod(new Date(dateStr + 'T00:00:00'), period);
+    var iso = normalizeSubscriptionDateIso(dateStr);
+    if (!iso) {
+        return toISODateLocal(new Date());
+    }
+    var next = addOneBillingPeriod(new Date(iso + 'T00:00:00'), period);
     var today = new Date();
     today.setHours(0, 0, 0, 0);
     var guard = 0;
@@ -174,6 +293,14 @@ function escHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
+function escAttr(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/'/g, '&#39;');
+}
+
 /** REST: viena abonementa URL (session cookie). */
 function apiSubscriptionUrl(id) {
     return '/api/subscriptions/' + encodeURIComponent(String(id));
@@ -201,7 +328,13 @@ function subtrackSyncSubscriptionsFromApi() {
         .then(parseApiJson)
         .then(function (data) {
             if (data && Array.isArray(data.subscriptions)) {
-                subscriptions = data.subscriptions;
+                subscriptions = data.subscriptions.map(function (item) {
+                    if (!item || typeof item !== 'object') return item;
+                    var o = Object.assign({}, item);
+                    if (o.date) o.date = normalizeSubscriptionDateIso(o.date);
+                    return o;
+                });
+                subtrackMarkSubsSyncedFromApi();
             }
         })
         .catch(function () {
@@ -225,7 +358,7 @@ function mergeSubscriptionFromApi(sub) {
         category: sub.category,
         amount: typeof sub.amount === 'number' ? sub.amount : parseFloat(sub.amount),
         period: sub.period,
-        date: sub.date,
+        date: normalizeSubscriptionDateIso(sub.date),
         icon: sub.icon || 'fa-solid fa-box',
         color: sub.color || '#0d9488',
         note: sub.note || '',

@@ -16,12 +16,16 @@ function continueDashboardBoot() {
     setDefaultDate();
     renderList();
     initCalendarNav();
+    initPayCalIncludePaidToggle();
     initIconPicker();
     initColorPicker();
 }
 
 function fsBootDashboard() {
-    if (typeof subtrackReloadSubscriptionsFromBootstrap === 'function') {
+    var skip =
+        typeof window !== 'undefined' &&
+        window.__subtrackSubsApiSyncedOnce;
+    if (!skip && typeof subtrackReloadSubscriptionsFromBootstrap === 'function') {
         subtrackReloadSubscriptionsFromBootstrap();
     }
     subtrackSyncSubscriptionsFromApi().then(function () {
@@ -70,11 +74,12 @@ function pad2Cal(n) {
 function getPaymentsByDateInMonth(y, m) {
     var map = {};
     subscriptions.forEach(function (s) {
-        if (!s.date) return;
-        var d = new Date(s.date + 'T00:00:00');
+        var dayIso = normalizeSubscriptionDateIso(s.date);
+        if (!dayIso) return;
+        var d = new Date(dayIso + 'T00:00:00');
         if (isNaN(d.getTime())) return;
         if (d.getFullYear() !== y || d.getMonth() !== m) return;
-        var key = s.date;
+        var key = dayIso;
         if (!map[key]) map[key] = [];
         map[key].push(s);
     });
@@ -111,6 +116,32 @@ function initCalendarNav() {
     }
 }
 
+function initPayCalIncludePaidToggle() {
+    var btn = document.getElementById('pay-cal-include-paid-switch');
+    if (!btn || btn.dataset.subtrackBound === '1') return;
+    btn.dataset.subtrackBound = '1';
+    function syncUi() {
+        var on =
+            typeof subtrackCalendarIncludePaidMarks === 'function' &&
+            subtrackCalendarIncludePaidMarks();
+        btn.setAttribute('aria-checked', on ? 'true' : 'false');
+        if (on) {
+            btn.classList.add('is-on');
+        } else {
+            btn.classList.remove('is-on');
+        }
+    }
+    syncUi();
+    btn.addEventListener('click', function () {
+        var nextOn = !subtrackCalendarIncludePaidMarks();
+        if (typeof subtrackSetCalendarIncludePaidMarks === 'function') {
+            subtrackSetCalendarIncludePaidMarks(nextOn);
+        }
+        syncUi();
+        renderPaymentCalendar();
+    });
+}
+
 /** Nedēļas dienu galvenes: pirmdiena–svētdiena (kalendārs sākas ar pirmdienu). */
 function calendarWeekdayHeaders(locale) {
     var lc = String(locale || '').toLowerCase();
@@ -140,6 +171,16 @@ function renderPaymentCalendar() {
     var y = calendarView.y;
     var m = calendarView.m;
     var payMap = getPaymentsByDateInMonth(y, m);
+    var includePaidMarks =
+        typeof subtrackCalendarIncludePaidMarks === 'function' &&
+        subtrackCalendarIncludePaidMarks();
+    var paidPastMap = {};
+    if (
+        includePaidMarks &&
+        typeof subtrackPaidCalendarDayMapForMonth === 'function'
+    ) {
+        paidPastMap = subtrackPaidCalendarDayMapForMonth(y, m);
+    }
 
     var titleEl = document.getElementById('pay-calendar-title');
     var locale = typeof fsIntlLocale === 'function' ? fsIntlLocale() : 'lv-LV';
@@ -181,12 +222,23 @@ function renderPaymentCalendar() {
         }
 
         var list = payMap[iso];
+        var paidMarkCount = paidPastMap[iso] ? paidPastMap[iso] : 0;
+        var showPaidOnDue =
+            includePaidMarks && paidMarkCount > 0 && list && list.length > 0;
+        var showPaidPastOnly =
+            includePaidMarks && paidMarkCount > 0 && (!list || !list.length);
+
         var attrs = '';
         if (list && list.length) {
             classes.push('pay-cal-cell--due');
+            if (showPaidOnDue) {
+                classes.push('pay-cal-cell--due-with-paid');
+            }
             var anyOverdue = false;
             for (var li = 0; li < list.length; li++) {
-                var ds = new Date(list[li].date + 'T00:00:00');
+                var diso = normalizeSubscriptionDateIso(list[li].date);
+                if (!diso) continue;
+                var ds = new Date(diso + 'T00:00:00');
                 ds.setHours(0, 0, 0, 0);
                 if (ds < today) {
                     anyOverdue = true;
@@ -201,10 +253,53 @@ function renderPaymentCalendar() {
                 var sj = list[tj];
                 tipParts.push(sj.name + ' – €' + subscriptionMonthlyTotal(sj).toFixed(2));
             }
+            if (showPaidOnDue) {
+                var tipPaidDue =
+                    typeof FsT === 'function' ? FsT('fs.dashboard.cal_tooltip_paid_day') : '';
+                if (tipPaidDue) {
+                    tipParts.push(
+                        tipPaidDue + (paidMarkCount > 1 ? ' (' + paidMarkCount + ')' : ''),
+                    );
+                }
+            }
             attrs = ' data-tooltip="' + escAttr(tipParts.join('; ')) + '" tabindex="0"';
+        } else if (showPaidPastOnly) {
+            classes.push('pay-cal-cell--paid-past');
+            var tipPaid =
+                typeof FsT === 'function' ? FsT('fs.dashboard.cal_tooltip_paid_day') : '';
+            var tipPaidN = tipPaid;
+            if (tipPaid && paidMarkCount > 1) {
+                tipPaidN = tipPaid + ' (' + paidMarkCount + ')';
+            }
+            if (tipPaidN) {
+                attrs = ' data-tooltip="' + escAttr(tipPaidN) + '" tabindex="0"';
+            }
         }
 
-        html += '<div class="' + classes.join(' ') + '"' + attrs + '>' + day + '</div>';
+        var dayInner = '<span class="pay-cal-cell-num">' + day + '</span>';
+        if (list && list.length > 1) {
+            dayInner += '<span class="pay-cal-cell-more" aria-hidden="true">+' + list.length + '</span>';
+        }
+        if (showPaidOnDue) {
+            if (paidMarkCount > 1) {
+                dayInner +=
+                    '<span class="pay-cal-cell-paid-done-count" aria-hidden="true">+' +
+                    paidMarkCount +
+                    '</span>';
+            } else {
+                dayInner +=
+                    '<span class="pay-cal-cell-paid-done" aria-hidden="true">' +
+                    '<i class="fa-solid fa-check"></i></span>';
+            }
+        } else if (showPaidPastOnly && paidMarkCount > 1) {
+            dayInner += '<span class="pay-cal-cell-more" aria-hidden="true">+' + paidMarkCount + '</span>';
+        } else if (showPaidPastOnly && paidMarkCount === 1) {
+            dayInner +=
+                '<span class="pay-cal-cell-paid-flag" aria-hidden="true">' +
+                '<i class="fa-solid fa-check"></i></span>';
+        }
+
+        html += '<div class="' + classes.join(' ') + '"' + attrs + '>' + dayInner + '</div>';
     }
 
     html += '</div>';
@@ -584,6 +679,7 @@ function markPaid(id) {
     });
     if (idx === -1) return;
     var s = subscriptions[idx];
+    var paidOnIso = normalizeSubscriptionDateIso(s.date);
     var period = s.period || 'monthly';
     var newDate = advanceNextDueAfterPayment(s.date, period);
 
@@ -598,10 +694,18 @@ function markPaid(id) {
             var shownDate = newDate;
             if (data.subscription && data.subscription.date) {
                 mergeSubscriptionFromApi(data.subscription);
-                shownDate = data.subscription.date;
+                shownDate = normalizeSubscriptionDateIso(data.subscription.date) || newDate;
             } else {
-                s.date = newDate;
+                s.date = normalizeSubscriptionDateIso(newDate) || newDate;
             }
+            if (paidOnIso && typeof subtrackAddPaidCalendarDay === 'function') {
+                subtrackAddPaidCalendarDay(paidOnIso);
+            }
+            return subtrackSyncSubscriptionsFromApi().then(function () {
+                return shownDate;
+            });
+        })
+        .then(function (shownDate) {
             var raw = FsT('fs.dashboard.toast_marked_paid');
             showToast(raw ? raw.replace(/\{date\}/g, formatDate(shownDate)) : 'Maksājums.', 'success');
             renderList(id);
@@ -669,6 +773,11 @@ function openAddModal() {
     selectIcon('fa-solid fa-film');
     selectColor('#0d9488');
     document.getElementById('modal-overlay').classList.add('open');
+    requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+            renderIconPickerHints();
+        });
+    });
     setTimeout(function() { document.getElementById('sub-name').focus(); }, 100);
 }
 
@@ -703,6 +812,11 @@ function openEditModal(id) {
     selectIcon(s.icon || 'fa-solid fa-film');
     selectColor(s.color || '#0d9488');
     document.getElementById('modal-overlay').classList.add('open');
+    requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+            renderIconPickerHints();
+        });
+    });
     setTimeout(function() { document.getElementById('sub-name').focus(); }, 100);
 }
 
@@ -903,44 +1017,294 @@ function confirmDelete() {
         });
 }
 
-/* ---- Icon picker ---- */
-function initIconPicker() {
-    document.querySelectorAll('.icon-opt').forEach(function(btn) {
-        if (btn.dataset.subtrackBound === '1') return;
-        btn.dataset.subtrackBound = '1';
-        btn.addEventListener('click', function() {
-            selectIcon(btn.dataset.icon);
+/* ---- Icon picker (hintu rinda + „Parādīt visas“ ar meklēšanu) ---- */
+var fsIconSearchRows = null;
+
+function normalizeForSearchIco(str) {
+    return String(str || '')
+        .normalize('NFD')
+        .replace(/\p{M}+/gu, '')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function fsIconHaystackMatches(hayNorm, queryNorm) {
+    if (!queryNorm || !queryNorm.length) return true;
+    var parts = queryNorm.split(/\s+/).filter(Boolean);
+    for (var pi = 0; pi < parts.length; pi++) {
+        if (hayNorm.indexOf(parts[pi]) === -1) return false;
+    }
+    return true;
+}
+
+function fsIconHintSortKey(row, queryNorm) {
+    if (!queryNorm) return 1e10;
+    var parts = queryNorm.split(/\s+/).filter(Boolean);
+    if (!parts.length) return 1e10;
+    var ix = row.h.indexOf(parts[0]);
+    return ix === -1 ? 1e10 + (row.h.charCodeAt(0) || 0) : ix;
+}
+
+function loadFsIconSearchBootstrap() {
+    if (fsIconSearchRows !== null) return;
+    fsIconSearchRows = [];
+    var el = document.getElementById('subtrack-icon-search-bootstrap');
+    if (!el || !el.textContent) return;
+    try {
+        var parsed = JSON.parse(el.textContent);
+        if (parsed && Array.isArray(parsed.icons)) {
+            fsIconSearchRows = parsed.icons;
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+/** Maksimālais ikonu skaits vienā hintu rindā pēc `#icon-picker-hints-shell` platuma (~36 px + gap 6). */
+function fsIconMaxSlotsForShellWidth(px) {
+    var w = Number(px);
+    if (!isFinite(w) || w <= 0) return 14;
+    var btn = 36;
+    var gap = 6;
+    var fudge = 6;
+    var n = Math.floor((w - fudge + gap) / (btn + gap));
+    if (n < 1) return 1;
+    if (n > 240) return 240;
+    return n;
+}
+
+function fsIconHintsShellInnerWidthPx() {
+    var shell = document.getElementById('icon-picker-hints-shell');
+    if (shell && shell.clientWidth > 0) return shell.clientWidth;
+    var block = document.getElementById('icon-picker');
+    if (block && block.clientWidth > 0) return block.clientWidth;
+    var modalMain = document.getElementById('modal-main');
+    if (modalMain && modalMain.clientWidth > 0) {
+        var mw = modalMain.clientWidth;
+        var bodyPadGuess = Math.min(mw - 44, mw * 0.92);
+        if (bodyPadGuess > 80) return bodyPadGuess;
+    }
+    return 400;
+}
+
+function fsIconFullOrderClsFromBootstrap() {
+    var out = [];
+    if (!fsIconSearchRows || !fsIconSearchRows.length) return out;
+    for (var i = 0; i < fsIconSearchRows.length; i++) {
+        out.push(fsIconSearchRows[i].cls);
+    }
+    return out;
+}
+
+/** Pasūtījums kā paplašinātā režģī: vai nu pilnais katalogs, vai filtrs (arī tukšiem filtram – saknes secība). */
+function fsIconCandidateClassesForHints(nameQueryNorm) {
+    var fullOrder = fsIconFullOrderClsFromBootstrap();
+
+    if (!nameQueryNorm) return fullOrder;
+
+    var matched = [];
+    for (var r = 0; r < fsIconSearchRows.length; r++) {
+        var rw = fsIconSearchRows[r];
+        if (fsIconHaystackMatches(rw.h, nameQueryNorm)) matched.push(rw);
+    }
+    if (!matched.length) return fullOrder;
+
+    matched.sort(function (a, b) {
+        var ka = fsIconHintSortKey(a, nameQueryNorm);
+        var kb = fsIconHintSortKey(b, nameQueryNorm);
+        if (ka !== kb) return ka - kb;
+        return a.cls.localeCompare(b.cls);
+    });
+
+    var list = [];
+    for (var mj = 0; mj < matched.length; mj++) list.push(matched[mj].cls);
+    return list;
+}
+
+var fsIconHintsRoBound = false;
+function initHintsShellResizeObserve() {
+    if (fsIconHintsRoBound || typeof ResizeObserver === 'undefined') return;
+    var shell = document.getElementById('icon-picker-hints-shell');
+    if (!shell) return;
+    fsIconHintsRoBound = true;
+    var deb = false;
+    var ro = new ResizeObserver(function () {
+        if (deb) return;
+        deb = true;
+        requestAnimationFrame(function () {
+            deb = false;
+            renderIconPickerHints();
         });
     });
+    ro.observe(shell);
+}
+
+function fsIconBtnsHtml(classesList) {
+    var sb = '';
+    for (var ii = 0; ii < classesList.length; ii++) {
+        var ic = classesList[ii];
+        sb += '<button type="button" class="icon-opt" data-icon="' + escAttr(ic) + '"><i class="' + escAttr(ic) + '" aria-hidden="true"></i></button>';
+    }
+    return sb;
+}
+
+function syncIconPickerHintMessage(showMsg, msgText) {
+    var msgHint = document.getElementById('icon-picker-no-match-msg');
+    if (!msgHint) return;
+    if (!showMsg || !msgText) {
+        msgHint.textContent = '';
+        msgHint.classList.add('hidden');
+        return;
+    }
+    msgHint.textContent = msgText;
+    msgHint.classList.remove('hidden');
+}
+
+function renderIconPickerHints() {
+    loadFsIconSearchBootstrap();
+    var host = document.getElementById('icon-picker-hints');
+    if (!host || fsIconSearchRows === null) return;
+
+    var nameEl = document.getElementById('sub-name');
+    var raw = nameEl ? nameEl.value : '';
+    var q = normalizeForSearchIco(raw);
+
+    var candidates = fsIconCandidateClassesForHints(q);
+    var wPx = fsIconHintsShellInnerWidthPx();
+    var maxN = fsIconMaxSlotsForShellWidth(wPx);
+    if (maxN <= 0) maxN = 1;
+    var trimmed = [];
+    var hi;
+    var cap = Math.min(candidates.length, maxN);
+    for (hi = 0; hi < cap; hi++) trimmed.push(candidates[hi]);
+
+    host.innerHTML = fsIconBtnsHtml(trimmed);
+    syncIconPickerHintMessage(false);
+    selectIcon(selectedIcon);
+}
+
+function renderIconPickerExpanded() {
+    loadFsIconSearchBootstrap();
+    var more = document.getElementById('icon-picker-more');
+    if (!more || fsIconSearchRows === null) return;
+
+    var qInput = document.getElementById('icon-picker-q');
+    var qs = normalizeForSearchIco(qInput ? qInput.value : '');
+    var rowsCls = [];
+
+    var ri;
+    if (!qs) {
+        for (ri = 0; ri < fsIconSearchRows.length; ri++) rowsCls.push(fsIconSearchRows[ri].cls);
+    } else {
+        for (ri = 0; ri < fsIconSearchRows.length; ri++) {
+            var rr = fsIconSearchRows[ri];
+            if (fsIconHaystackMatches(rr.h, qs)) rowsCls.push(rr.cls);
+        }
+        if (!rowsCls.length) {
+            for (ri = 0; ri < fsIconSearchRows.length; ri++) rowsCls.push(fsIconSearchRows[ri].cls);
+        }
+    }
+
+    more.innerHTML = fsIconBtnsHtml(rowsCls);
+
+    var expandedEmpty = document.getElementById('icon-picker-expanded-empty');
+    if (expandedEmpty) {
+        expandedEmpty.textContent = '';
+        expandedEmpty.classList.add('hidden');
+    }
+    selectIcon(selectedIcon);
+}
+
+function bindIconPickerNameInputOnce() {
+    var nameEl = document.getElementById('sub-name');
+    if (!nameEl || nameEl.dataset.subtrackIconHint === '1') return;
+    nameEl.dataset.subtrackIconHint = '1';
+    nameEl.addEventListener('input', function () {
+        renderIconPickerHints();
+    });
+}
+
+function bindIconPickerSearchInputOnce() {
+    var iq = document.getElementById('icon-picker-q');
+    if (!iq || iq.dataset.subtrackIconSearch === '1') return;
+    iq.dataset.subtrackIconSearch = '1';
+    iq.addEventListener('input', function () {
+        if (isIconPickerExpanded()) renderIconPickerExpanded();
+    });
+}
+
+function isIconPickerExpanded() {
+    var ex = document.getElementById('icon-picker-expanded');
+    return !!(ex && !ex.classList.contains('hidden'));
+}
+
+function initIconPickerSearchDelegate() {
+    var host = document.getElementById('icon-picker');
+    if (!host || host.dataset.subtrackIcoDl === '1') return;
+    host.dataset.subtrackIcoDl = '1';
+    host.addEventListener('click', function (ev) {
+        var btn = ev.target.closest('.icon-opt');
+        if (!btn || !host.contains(btn)) return;
+        var ic = btn.getAttribute('data-icon');
+        if (ic) selectIcon(ic);
+    });
+}
+
+function initIconPicker() {
+    loadFsIconSearchBootstrap();
+    initIconPickerSearchDelegate();
+    bindIconPickerNameInputOnce();
+    bindIconPickerSearchInputOnce();
+    initHintsShellResizeObserve();
+    renderIconPickerHints();
 }
 
 function selectIcon(iconClass) {
     selectedIcon = iconClass;
-    document.querySelectorAll('.icon-opt').forEach(function(btn) {
-        btn.classList.toggle('selected', btn.dataset.icon === iconClass);
+    document.querySelectorAll('#icon-picker .icon-opt').forEach(function (btn) {
+        btn.classList.toggle('selected', btn.getAttribute('data-icon') === iconClass);
     });
 }
 
 function collapseIconPicker() {
-    var more = document.getElementById('icon-picker-more');
+    var expandWrap = document.getElementById('icon-picker-expanded');
+    var iq = document.getElementById('icon-picker-q');
     var btn = document.getElementById('icon-picker-toggle');
-    if (more) {
-        more.classList.add('hidden');
-    }
+    if (expandWrap) expandWrap.classList.add('hidden');
+    if (iq) iq.value = '';
+    var more = document.getElementById('icon-picker-more');
+    if (more) more.innerHTML = '';
     if (btn) {
         btn.setAttribute('aria-expanded', 'false');
         btn.textContent = FsT('fs.dashboard.icon_show_all');
     }
+    var emptyEx = document.getElementById('icon-picker-expanded-empty');
+    if (emptyEx) emptyEx.classList.add('hidden');
+    renderIconPickerHints();
 }
 
 function toggleIconPickerExpand() {
-    var more = document.getElementById('icon-picker-more');
+    var expandWrap = document.getElementById('icon-picker-expanded');
     var btn = document.getElementById('icon-picker-toggle');
-    if (!more || !btn) return;
-    more.classList.toggle('hidden');
-    var expanded = !more.classList.contains('hidden');
-    btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    btn.textContent = expanded ? FsT('fs.dashboard.icon_show_less') : FsT('fs.dashboard.icon_show_all');
+    if (!expandWrap || !btn) return;
+
+    var willExpand = expandWrap.classList.contains('hidden');
+
+    if (willExpand) {
+        expandWrap.classList.remove('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+        btn.textContent = FsT('fs.dashboard.icon_show_less');
+        renderIconPickerExpanded();
+        var iq = document.getElementById('icon-picker-q');
+        if (iq) {
+            setTimeout(function () {
+                iq.focus();
+            }, 80);
+        }
+    } else {
+        collapseIconPicker();
+    }
 }
 
 /* ---- Papildu opcijas (kredīta termiņš, papildu pozīcijas) modālī ---- */
