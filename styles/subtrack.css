@@ -804,6 +804,28 @@ a:hover { text-decoration: underline; }
     color: #fff;
 }
 
+@keyframes btn-spinner-rotate {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.btn-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.38);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: btn-spinner-rotate 0.65s linear infinite;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.btn-primary .btn-spinner.hidden {
+    display: none;
+}
+
 .btn-outline {
     background: transparent;
     color: var(--primary);
@@ -853,6 +875,12 @@ a:hover { text-decoration: underline; }
     background: var(--bg);
     color: var(--text);
     text-decoration: none;
+}
+
+.btn-ghost:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 .btn-block { width: 100%; }
@@ -2250,6 +2278,39 @@ a.dash-nav-link--cta.is-active .dash-icon {
     color: var(--text);
 }
 
+.dash-notify-empty {
+    padding: 20px 18px 22px;
+    text-align: center;
+}
+
+.dash-notify-empty.hidden {
+    display: none !important;
+}
+
+.dash-notify-empty-icon {
+    margin: 0 auto 12px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(13, 148, 136, 0.12);
+    color: var(--brand-primary, #0d9488);
+}
+
+.dash-notify-empty-icon svg {
+    opacity: 0.92;
+}
+
+.dash-notify-empty-lead {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--text);
+}
+
 .dash-notify-today {
     padding: 0 16px 10px;
     border-bottom: 1px solid var(--border-light);
@@ -2768,7 +2829,7 @@ button.dash-exit {
    Dashboard: kalendārs kreisajā kolonnā; labajā — virsraksts + statkartītes + nākamais maksājums
    ============================================= */
 .dashboard-overview {
-    margin-bottom: 32px;
+    margin-bottom: 15px;
 }
 
 .dashboard-overview-main {
@@ -3142,6 +3203,14 @@ button.dash-exit {
     margin-top: 14px;
 }
 
+.section-header.section-header--subscriptions-list {
+    margin-bottom: 15px;
+}
+
+.section-header.section-header--subscriptions-list + .sub-list {
+    margin-top: 0;
+}
+
 .section-heading {
     font-size: 17px;
     font-weight: 700;
@@ -3494,7 +3563,9 @@ button.dash-exit {
 }
 
 .empty-state--dashboard {
-    padding: 28px 16px 56px;
+    padding: 0 0 48px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .empty-state-card {
@@ -3505,6 +3576,14 @@ button.dash-exit {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow-sm);
+}
+
+.empty-state--dashboard .empty-state-card {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 44px 28px 46px;
+    box-sizing: border-box;
 }
 
 .empty-state-icon-wrap {
@@ -3539,20 +3618,14 @@ button.dash-exit {
     font-size: 15px;
     line-height: 1.55;
     color: var(--text-muted);
-    margin-bottom: 10px;
-    max-width: 460px;
+    margin-bottom: 0;
+    max-width: 42rem;
     margin-left: auto;
     margin-right: auto;
 }
 
-.empty-state--dashboard .empty-state-secondary {
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--text-light);
-    margin-bottom: 26px;
-    max-width: 440px;
-    margin-left: auto;
-    margin-right: auto;
+.empty-state--dashboard .empty-state-cta-wrap {
+    margin-top: 20px;
 }
 
 .empty-state h3 {
@@ -3652,6 +3725,12 @@ button.dash-exit {
 }
 
 .modal-close:hover { background: var(--border); color: var(--text); }
+
+.modal-close:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
 
 .modal-body {
     padding: 22px 24px;

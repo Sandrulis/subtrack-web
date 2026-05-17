@@ -174,6 +174,72 @@ function escHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
+/** REST: viena abonementa URL (session cookie). */
+function apiSubscriptionUrl(id) {
+    return '/api/subscriptions/' + encodeURIComponent(String(id));
+}
+
+function parseApiJson(res) {
+    return res.json().then(function (data) {
+        if (!res.ok) {
+            var msg = data && data.message ? String(data.message) : 'HTTP ' + res.status;
+            throw new Error(msg);
+        }
+        return data;
+    });
+}
+
+/**
+ * Iegūst abonementu sarakstu no API (saskaņo ar DB pēc klienta navigācijas vai keša).
+ * Kļūdas gadījumā klusa iziešana – paliek `subscriptions` no bootstrap.
+ */
+function subtrackSyncSubscriptionsFromApi() {
+    if (typeof fetch === 'undefined' || typeof subscriptions === 'undefined') {
+        return Promise.resolve();
+    }
+    return fetch('/api/subscriptions', { credentials: 'same-origin' })
+        .then(parseApiJson)
+        .then(function (data) {
+            if (data && Array.isArray(data.subscriptions)) {
+                subscriptions = data.subscriptions;
+            }
+        })
+        .catch(function () {
+            /* saglabāt bootstrap datus */
+        });
+}
+
+/**
+ * Apvieno API atbildes `subscription` ar globālo `subscriptions` masīvu.
+ * (`dash-alerts.js` var izsaukt pirms `dashboard.js` ielādes.)
+ */
+function mergeSubscriptionFromApi(sub) {
+    if (!sub || sub.id == null || typeof subscriptions === 'undefined') return;
+    var sid = String(sub.id);
+    var idx = subscriptions.findIndex(function (x) {
+        return String(x.id) === sid;
+    });
+    var row = {
+        id: sid,
+        name: sub.name,
+        category: sub.category,
+        amount: typeof sub.amount === 'number' ? sub.amount : parseFloat(sub.amount),
+        period: sub.period,
+        date: sub.date,
+        icon: sub.icon || 'fa-solid fa-box',
+        color: sub.color || '#0d9488',
+        note: sub.note || '',
+        termStart: sub.termStart || '',
+        termEnd: sub.termEnd || '',
+        devices: Array.isArray(sub.devices) ? sub.devices : [],
+    };
+    if (idx === -1) {
+        subscriptions.push(row);
+    } else {
+        subscriptions[idx] = row;
+    }
+}
+
 /** Toast ziņojumi (lapā nepieciešams elements #toast-container). */
 function showToast(msg, type) {
     var container = document.getElementById('toast-container');

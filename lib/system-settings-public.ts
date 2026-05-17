@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
+import { cache } from "react";
 import {
   DISPLAY_PREFERENCES_DEFAULTS,
   mergeDisplayPreferences,
@@ -61,7 +62,8 @@ export async function getPublicSystemSettings(): Promise<PublicSystemSettings> {
   })();
 }
 
-export async function getSystemSiteName(): Promise<string> {
+/** Viens izsaukums uz pieprasījumu (`generateMetadata` + layout). */
+export const getSystemSiteName = cache(async (): Promise<string> => {
   const s = await getPublicSystemSettings();
   return s.systemName;
-}
+});

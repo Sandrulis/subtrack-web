@@ -27,25 +27,76 @@ function markDueTodayPaymentsPaid() {
     });
     if (!dueToday.length) return;
 
-    dueToday.forEach(function (s) {
+    var patches = dueToday.map(function (s) {
         var period = s.period || 'monthly';
-        s.date = advanceNextDueAfterPayment(s.date, period);
+        return {
+            id: s.id,
+            nextDate: advanceNextDueAfterPayment(s.date, period),
+        };
     });
 
-    var toastMsg = dueToday.length === 1
-        ? 'Maksājums atzīmēts. Nākamais termiņš: ' + formatDate(dueToday[0].date) + '.'
-        : dueToday.length + ' šodienas maksājumi atzīmēti kā samaksāti.';
-    if (typeof showToast === 'function') {
-        showToast(toastMsg, 'success');
-    }
+    Promise.all(
+        patches.map(function (p) {
+            return fetch(apiSubscriptionUrl(p.id), {
+                method: 'PATCH',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: p.nextDate }),
+            }).then(parseApiJson);
+        }),
+    )
+        .then(function (results) {
+            results.forEach(function (data, i) {
+                if (data && data.subscription) {
+                    mergeSubscriptionFromApi(data.subscription);
+                } else {
+                    dueToday[i].date = patches[i].nextDate;
+                }
+            });
 
-    if (typeof renderList === 'function') {
-        renderList();
-    }
-    if (typeof renderAnalytics === 'function') {
-        renderAnalytics();
-    }
-    refreshDashNotifications();
+            var toastMsg;
+            if (dueToday.length === 1) {
+                var sid = String(dueToday[0].id);
+                var after = subscriptions.find(function (x) {
+                    return String(x.id) === sid;
+                });
+                var nextLabel = after ? formatDate(after.date) : '';
+                toastMsg = FsT('fs.dashboard.notify_paid_today_single').replace(
+                    /\{date\}/g,
+                    nextLabel,
+                );
+                if (!toastMsg) {
+                    toastMsg =
+                        'Maksājums atzīmēts. Nākamais termiņš: ' + nextLabel + '.';
+                }
+            } else {
+                toastMsg = FsT('fs.dashboard.notify_paid_today_multi').replace(
+                    /\{count\}/g,
+                    String(dueToday.length),
+                );
+                if (!toastMsg) {
+                    toastMsg =
+                        dueToday.length + ' šodienas maksājumi atzīmēti kā samaksāti.';
+                }
+            }
+
+            if (typeof showToast === 'function') {
+                showToast(toastMsg, 'success');
+            }
+
+            if (typeof renderList === 'function') {
+                renderList();
+            }
+            if (typeof renderAnalytics === 'function') {
+                renderAnalytics();
+            }
+            refreshDashNotifications();
+        })
+        .catch(function () {
+            if (typeof showToast === 'function') {
+                showToast(FsT('fs.dashboard.toast_api_save_failed'), 'error');
+            }
+        });
 }
 
 function refreshTodayNotifyRow() {
@@ -177,7 +228,7 @@ function syncDashNotifyPanelMobPlacement() {
 
 function refreshDashNotifications() {
     var panel = document.getElementById('dash-notify-panel');
-    if (!panel || typeof subscriptions === 'undefined') return;
+    if (!panel) return;
 
     var badge = document.getElementById('dash-notify-badge');
     var icon = document.getElementById('dash-notify-icon');
@@ -185,9 +236,49 @@ function refreshDashNotifications() {
     var secU = document.getElementById('dash-notify-upcoming-section');
     var listO = document.getElementById('dash-notify-overdue-list');
     var listU = document.getElementById('dash-notify-upcoming-list');
+    var emptyEl = document.getElementById('dash-notify-empty');
+
+    function setBellSolid(active) {
+        if (!icon) return;
+        var solid = icon.querySelector('.dash-notify-bell--solid');
+        var regular = icon.querySelector('.dash-notify-bell--regular');
+        if (!solid || !regular) return;
+        if (active) {
+            solid.classList.remove('hidden');
+            regular.classList.add('hidden');
+        } else {
+            solid.classList.add('hidden');
+            regular.classList.remove('hidden');
+        }
+    }
+
+    if (typeof subscriptions === 'undefined') {
+        if (badge) {
+            badge.classList.add('hidden');
+        }
+        setBellSolid(false);
+        if (secO) {
+            secO.classList.add('hidden');
+            if (listO) listO.innerHTML = '';
+        }
+        if (secU) {
+            secU.classList.add('hidden');
+            if (listU) listU.innerHTML = '';
+        }
+        if (emptyEl) {
+            emptyEl.classList.remove('hidden');
+        }
+        refreshTodayNotifyRow();
+        syncDashNotifyPanelMobPlacement();
+        return;
+    }
 
     var today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    /** Gaidāmie maksājumi: tikai nākamās 7 kalendāra dienas (šodiena ieskaitot līdz dienai today+6). */
+    var upcomingHorizonEnd = new Date(today);
+    upcomingHorizonEnd.setDate(upcomingHorizonEnd.getDate() + 7);
 
     var overdue = subscriptions.filter(function (s) {
         if (!s.date) return false;
@@ -198,7 +289,8 @@ function refreshDashNotifications() {
 
     var upcoming = subscriptions.filter(function (s) {
         if (!s.date) return false;
-        return new Date(s.date + 'T00:00:00') >= today;
+        var d = new Date(s.date + 'T00:00:00');
+        return d >= today && d < upcomingHorizonEnd;
     }).sort(function (a, b) {
         return new Date(a.date + 'T00:00:00') - new Date(b.date + 'T00:00:00');
     });
@@ -214,19 +306,7 @@ function refreshDashNotifications() {
         }
     }
 
-    if (icon) {
-        var solid = icon.querySelector('.dash-notify-bell--solid');
-        var regular = icon.querySelector('.dash-notify-bell--regular');
-        if (solid && regular) {
-            if (count > 0) {
-                solid.classList.remove('hidden');
-                regular.classList.add('hidden');
-            } else {
-                solid.classList.add('hidden');
-                regular.classList.remove('hidden');
-            }
-        }
-    }
+    setBellSolid(count > 0);
 
     if (listO && secO) {
         if (overdue.length === 0) {
@@ -245,6 +325,15 @@ function refreshDashNotifications() {
         } else {
             secU.classList.remove('hidden');
             listU.innerHTML = upcoming.map(function (s) { return buildNotifyItemRow(s, false); }).join('');
+        }
+    }
+
+    var showEmpty = overdue.length === 0 && upcoming.length === 0;
+    if (emptyEl) {
+        if (showEmpty) {
+            emptyEl.classList.remove('hidden');
+        } else {
+            emptyEl.classList.add('hidden');
         }
     }
 

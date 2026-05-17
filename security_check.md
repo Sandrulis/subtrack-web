@@ -1,6 +1,10 @@
 # Drošības pārskats - SubTrack (subtrack-web)
 
-Datums: 2026-05-17. Atjaunināts: **`015_*.sql`** un **`016_sync_public_users_email_from_auth.sql` šajā Supabase vide jau ir palaisti** (manuāli). Apjoms: Next.js App Router frontend, Supabase Auth + Postgres (RLS), Server Actions.
+Datums: 2026-05-17.
+
+**Atkārtots pārskats (repo ~0.3.4):** veiktspējas kārtā ir **`loadAuthContext`** + **`react/cache`** RSC slānī. Tas **nemaina tiesību modeli** (saknes **`proxy`**, **`requireAdminUser`**, RLS, API **`user_id`** paliek spēkā) – tikai samazina **dubultus `getUser()` / RPC / tulkošanu** vienā dokumenta servera pieprasījumā.
+
+Atjaunināts: **`015_*.sql`** un **`016_sync_public_users_email_from_auth.sql` šajā Supabase vide jau ir palaisti** (manuāli). Apjoms: Next.js App Router frontend, Supabase Auth + Postgres (RLS), Server Actions, Route Handlers (**`/api/subscriptions`**).
 
 ---
 
@@ -8,7 +12,8 @@ Datums: 2026-05-17. Atjaunināts: **`015_*.sql`** un **`016_sync_public_users_em
 
 | Joma | Piezīme |
 |------|--------|
-| Maršruti | `middleware` + `requireAdminUser()` kā pirmais filtrs; aizargātie ceļi papildus jāpārbauda serverī, kur nepieciešams. |
+| Maršruti | Saknes **`proxy.ts`** (**M2** rate limit, tad **`updateSession`**) izsauc **`getUser()`** un novirza aizsargātās prefiksus; **`/admin/*`** layout **`requireAdminUser()`** (**`current_user_is_admin`** RPC + **`users.is_admin`** fallback). **`app/api/subscriptions/*`** piesaista darbības sesijas **`user_id`**. |
+| RSC sesija (0.3.1+) | **`lib/auth/load-auth-context.ts`**: viena **`getUser()`** + viens servera Supabase klients uz **vienu RSC pieprasījumu** starp **`getSessionUserDisplay`**, **`requireAdminUser`**, **`fetchSubscriptionsForSession`**. **Server Actions** un **Route Handlers** joprojām ar atsevišķu **`createServerSupabaseClient()`** – šis **`react/cache`** tur neattiecas. |
 | Atslēgas | Tikai `NEXT_PUBLIC_*` URL + anon key klientā; dokumentācija norāda nedot service role frontendam. |
 | Admin darbības | Server Actions izsauc `requireAdminUser()` pirms rakstīšanas. |
 | RLS un epasts | **`015`** nostiprina **`users.is_admin`** / **`email`** pret patvaļīgu **`UPDATE`**; **`016`** (trigeris **`auth.users` → `public.users.email`**) **`auth`** un **`public`** saskaņošanai. Atlikušie riski zem **Augsta un vidēja prioritātes**.
@@ -22,11 +27,11 @@ Datums: 2026-05-17. Atjaunināts: **`015_*.sql`** un **`016_sync_public_users_em
 | Situācija | Atzīme | Piezīme |
 |-----------|-------:|---------|
 | **Tagad: `015` + `016` DB** (ša dokumenta pieņēmums), **bez** garantētas **smoke** / bez pārliecības par jaunākā **`npm`** deploy (**M2–M3–L1**) | **~8,5 – 9,0 / 10** | Joprojām: enumerācijas risks, CSP **enforce**, globālais rate-limit; **`H2`** ieteikts laikus. |
-| **`015`** + **`016`** + vietējais **`middleware`** rate limit (**M2**), **`next.config.ts` galvenes** (**M3**, CSP **Report-Only**), CI **`npm run audit`** (**L1**), **`security:smoke-users-rls` OK**, **H3** admin dok. pilnībā ievērots | **~8.8 – 9.2 / 10** | Pret **~10** vēl: globālais rate-limit CDN vai edge, CSP **enforce**, periodiska **L2**. |
+| **`015`** + **`016`** + vietējais **`proxy`** rate limit (**M2**), **`next.config.ts` galvenes** (**M3**, CSP **Report-Only**), CI **`npm run audit`** (**L1**), **`security:smoke-users-rls` OK**, **H3** admin dok. pilnībā ievērots | **~8.8 – 9.2 / 10** | Pret **~10** vēl: globālais rate-limit CDN vai edge, CSP **enforce**, periodiska **L2**. |
 | Vēsturiski: DB **bez** `015_*` (tikai `001_*` **users_update_own**) | **5 / 10** | Bijusi iespējama **`is_admin` / `email` manipulācija** parasto klientu (skatīt „Vēsturiskais trūkums”). |
 | Ilgākā laikā plaši īstenoti MEDIUM / LOW uzlabojumi | **ap 9–10 / 10** | Nav absolūtas „pilnības”; jēga ir mazināt atkāpjamo virsmu un periodiski pārbaudīt (**L2**). |
 
-**Pamats kopumā:** struktūrai (middleware, Server Actions un `requireAdminUser`, bez service-role klienta pārlūkā) ir labs pamats. Šajā vidē **`015_*`** (priviliģētās kolonnas) un **`016_*`** (**`auth.users` → `public.users.email`**) **ir spēkā**. Repozitorijā arī **M2**, **M3**, **L1**, smoke (**H2**) - jāvērtē, vai viss tas ir **deploy** un automatizētā **`H2`** izpildē **OK**.
+**Pamats kopumā:** struktūrai (saknes proxy, Server Actions un `requireAdminUser`, bez service-role klienta pārlūkā) ir labs pamats. Šajā vidē **`015_*`** (priviliģētās kolonnas) un **`016_*`** (**`auth.users` → `public.users.email`**) **ir spēkā**. Repozitorijā arī **M2**, **M3**, **L1**, smoke (**H2**) - jāvērtē, vai viss tas ir **deploy** un automatizētā **`H2`** izpildē **OK**.
 
 ---
 
@@ -78,7 +83,7 @@ Darba tikai **`NODE_ENV === 'development'`**; atslēgas neizsniedz. Produkcijā 
 
 ### 7. Trūkumi augstākam vērtējumam (~9-10)
 
-Kodā jau sekots **M2** (vietējais middleware rate limit uz auth ceļiem), **M3** (galvenes + CSP **Report-Only**), **L1** (CI **`npm audit`**, Dependabot); **Secrets** praksē joprojām vadās no hosting/GitHub politikas. Pret **pilnu ~9.5–10**: globālais / edge rate limiting, CSP **enforce** bez regresijas, **L2** periodiski pēc jaunām funkcijām.
+Kodā jau sekots **M2** (vietējais proxy rate limit uz auth ceļiem), **M3** (galvenes + CSP **Report-Only**), **L1** (CI **`npm audit`**, Dependabot); **Secrets** praksē joprojām vadās no hosting/GitHub politikas. Pret **pilnu ~9.5–10**: globālais / edge rate limiting, CSP **enforce** bez regresijas, **L2** periodiski pēc jaunām funkcijām.
 
 ---
 
@@ -97,7 +102,7 @@ Kodā jau sekots **M2** (vietējais middleware rate limit uz auth ceļiem), **M3
 | # | Pasākums |
 |---|----------|
 | M1 | **`public.users.email`** nedrīkst atšķirties ilgtermiņā no **`auth.users`**; risinājums: **`SECURITY DEFINER`** / webhook / vai **`database/supabase/016_sync_public_users_email_from_auth.sql`**. Šajā **galvenajā vide `016` jau veikts**. **Jaunām vidēm** (staging, dumps) atkāroti **jāimportē** **`016_*`**; nepieciešamas tiesības **`auth.users`** trigera kontekstā. |
-| M2 | **Brute-force** un pārmērīga pieprasījumu slodze: uz **`/login`**, **`/signup`**, **`/forgot-password`**, **`/change-password`**, **`/auth/callback`**. Tipiski arī **CDN / edge** limiti. **Repo:** **`lib/security/auth-rate-limit.ts`**, sakne **`middleware.ts`**. **`signup_email_exists`**: **vēl jāvērtē**, ja paliek publiski ekspluatējams kā sign-up enumerācijas kanāls (Server Action / RPC), un jāpapildina ar Supabase līmeņa robežām. |
+| M2 | **Brute-force** un pārmērīga pieprasījumu slodze: uz **`/login`**, **`/signup`**, **`/forgot-password`**, **`/change-password`**, **`/auth/callback`**. Tipiski arī **CDN / edge** limiti. **Repo:** **`lib/security/auth-rate-limit.ts`**, sakne **`proxy.ts`**. **`signup_email_exists`**: **vēl jāvērtē**, ja paliek publiski ekspluatējams kā sign-up enumerācijas kanāls (Server Action / RPC), un jāpapildina ar Supabase līmeņa robežām. |
 | M3 | **`next.config`** lauks **`headers`** (un/vai CDN): **`X-Content-Type-Options: nosniff`**, **`Referrer-Policy: strict-origin-when-cross-origin`**, **`X-Frame-Options: DENY`**; **Content-Security-Policy** (`Report-Only` ar **`frame-ancestors`**, **`object-src`**, **`base-uri`**, **`form-action`**). Pēc sakārtošanas pāriet uz **enforce**. **Repo:** sakne **`next.config.ts`**. |
 
 ### LOW
@@ -113,7 +118,8 @@ Pēc būtiski jaunas funkcijas ar datiem (admin, subscriptions, billing u.tml.):
 
 1. **`INSERT`/`UPDATE`/`DELETE` politikas**: katram jaunajam vai mainītajam tabulas ceļam - vai **`WITH CHECK`** aizsedz arī **privileged** kolonnas līdzīgi **`015`** paraugam?
 2. **Server Actions**: vai mutācijas sākas ar **`requireAdminUser`** vai citu viennozīmīgu **server-side** autorizāciju?
-3. **Klientā**: vai nav jaunu ceļu, kas izsauc **service_role** vai rāda sensitīvos **ENV**?
+3. **Route Handlers (`app/api/*`)**: vai mutācijas/nolasīšana ir piesaistīta **`getUser()`** (vai ekvivalentam) un **`user_id` / RLS**, bez **service_role** anon klientā?
+4. **Klientā**: vai nav jaunu ceļu, kas izsauc **service_role** vai rāda sensitīvos **ENV**?
 
 ---
 
@@ -121,8 +127,9 @@ Pēc būtiski jaunas funkcijas ar datiem (admin, subscriptions, billing u.tml.):
 
 | Joma | Faili / maršruti |
 |------|------------------|
-| **M2** | `lib/security/auth-rate-limit.ts`, sakne `middleware.ts` |
+| **M2** | `lib/security/auth-rate-limit.ts`, sakne `proxy.ts` |
 | **M3** | `next.config.ts` (`headers`, CSP Report-Only) |
+| **RSC dedupe (nav jauna virsma)** | `lib/auth/load-auth-context.ts`; **`react/cache`** arī `lib/auth/user-display.ts`, `lib/auth/is-admin.ts` (RPC), `lib/ui/server-ui-phrases.ts`, `lib/languages-catalog.ts`, `lib/system-settings-public.ts` |
 | **M1 SQL** | `database/supabase/016_sync_public_users_email_from_auth.sql` (ša vide **palaista**; jaunās - atkāroti) |
 | **H2 smoke** | `scripts/security-smoke-users-rls.mjs`, **`npm run security:smoke-users-rls`**, **`supabase.env.template`** (`SECURITY_SMOKE_*`) |
 | **L1** | `.github/workflows/security-audit.yml`, `.github/dependabot.yml`, `package.json` skripts **`audit`** |
@@ -134,14 +141,15 @@ Pēc būtiski jaunas funkcijas ar datiem (admin, subscriptions, billing u.tml.):
 
 | Fails | Mērķis |
 |-------|--------|
-| `middleware.ts` | Matcher, Rate limit (**M2**), izņem statiku/`fs/` |
+| `proxy.ts` | Matcher, Rate limit (**M2**), izņem statiku/`fs/` |
 | `lib/supabase/middleware.ts` | `getUser()`, aizargātie prefiksi, `guest`-ceļu novirziešana |
-| `lib/security/auth-rate-limit.ts` | Middleware rate limit (**M2**) |
+| `lib/security/auth-rate-limit.ts` | Proxy rate limit (**M2**) |
 | `lib/supabase/server.ts` | SSR Supabase tikai anon ar sīkdatēm |
-| `lib/auth/require-admin.ts` | Admin layout guards |
+| `lib/auth/load-auth-context.ts` | Viena **`getUser()`** + klients uz RSC pieprasījumu (`cache`); **Route Handlers / Actions** šeit nepiedalās |
+| `lib/auth/require-admin.ts` | Admin layout guards (`loadAuthContext` + **`resolveSessionIsAdmin`**) |
 | `lib/auth/actions.ts`, `auth/callback` | Sesija un `next` relatīvie ceļi |
 | `lib/admin/*-actions.ts` | `requireAdminUser()` uz mutācijas |
-| `database/supabase/001*` … `016*` | RLS politikām un labojumiem |
+| `database/supabase/001*` … `021*` | RLS politikām; **`015`**/**`016`** kritiski; **`012`** publiskā **`site_translations`** SELECT |
 
 ---
 

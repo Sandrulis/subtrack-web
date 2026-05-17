@@ -13,12 +13,15 @@ import {
   FA_ICONS_PREVIEW,
   FS_COLOR_DOTS,
 } from "@/lib/fs-icons";
+import type { SubscriptionClient } from "@/lib/subscriptions/subscription-client";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 
 export function DashboardFsView({
   userDisplay,
+  initialSubscriptions,
 }: {
   userDisplay?: NavUserDisplay | null;
+  initialSubscriptions: SubscriptionClient[];
 }) {
   const { t } = useSubtrackIntl();
 
@@ -29,6 +32,8 @@ export function DashboardFsView({
         await ensureAuthedNotifyScriptsLoaded();
         if (cancelled) return;
         await loadScriptOnce("/fs/js/dashboard.js");
+        if (cancelled) return;
+        window.fsBootDashboard?.();
       } catch (e) {
         console.error(e);
       }
@@ -40,6 +45,14 @@ export function DashboardFsView({
 
   return (
     <>
+      <script
+        id="subtrack-subs-bootstrap-json"
+        type="application/json"
+        // eslint-disable-next-line react/no-danger -- Supabase JSON bootstrap pirms FS skriptiem
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(initialSubscriptions).replace(/</g, "\\u003c"),
+        }}
+      />
       <div className="app-layout app-layout-stacked">
         <NavDash active="dashboard" userDisplay={userDisplay} />
         <main className="main-content">
@@ -146,7 +159,7 @@ export function DashboardFsView({
             </div>
           </div>
 
-          <div className="section-header">
+          <div className="section-header section-header--subscriptions-list">
             <h2 className="section-heading">{t("landing.mock.subscription_list_heading")}</h2>
           </div>
 
@@ -163,14 +176,15 @@ export function DashboardFsView({
               </div>
               <h3>{t("fs.dashboard.empty_title")}</h3>
               <p className="empty-state-lead">{t("fs.dashboard.empty_lead")}</p>
-              <p className="empty-state-secondary">{t("fs.dashboard.empty_secondary")}</p>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => window.openAddModal?.()}
-              >
-                <i className="fa-solid fa-plus" /> {t("fs.dashboard.empty_cta")}
-              </button>
+              <div className="empty-state-cta-wrap">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => window.openAddModal?.()}
+                >
+                  <i className="fa-solid fa-plus" /> {t("fs.dashboard.empty_cta")}
+                </button>
+              </div>
             </div>
           </div>
         </main>
@@ -191,6 +205,7 @@ export function DashboardFsView({
             <button
               type="button"
               className="modal-close"
+              id="modal-close-btn"
               onClick={() => window.closeModal?.()}
               aria-label={t("fs.dashboard.aria_modal_close")}
               data-tooltip={t("fs.dashboard.aria_modal_close")}
@@ -221,8 +236,11 @@ export function DashboardFsView({
             </div>
 
             <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="sub-amount">{t("fs.dashboard.label_amount_eur")}</label>
+            <div className="form-group">
+              <label htmlFor="sub-amount">
+                {t("fs.dashboard.label_amount_eur")}{" "}
+                <span className="form-optional">{t("fs.dashboard.optional_paren")}</span>
+              </label>
                 <input
                   type="number"
                   id="sub-amount"
@@ -337,11 +355,17 @@ export function DashboardFsView({
                 <p className="form-hint form-hint--tight">{t("fs.dashboard.advanced_hint_credit")}</p>
                 <div className="form-row">
                   <div className="form-group">
-                    <label htmlFor="sub-term-start">{t("fs.dashboard.term_start")}</label>
+                    <label htmlFor="sub-term-start">
+                      {t("fs.dashboard.term_start")}{" "}
+                      <span className="form-optional">{t("fs.dashboard.optional_paren")}</span>
+                    </label>
                     <input type="date" id="sub-term-start" />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="sub-term-end">{t("fs.dashboard.term_end")}</label>
+                    <label htmlFor="sub-term-end">
+                      {t("fs.dashboard.term_end")}{" "}
+                      <span className="form-optional">{t("fs.dashboard.optional_paren")}</span>
+                    </label>
                     <input type="date" id="sub-term-end" />
                   </div>
                 </div>
@@ -364,11 +388,17 @@ export function DashboardFsView({
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={() => window.closeModal?.()}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              id="modal-cancel-btn"
+              onClick={() => window.closeModal?.()}
+            >
               {t("fs.dashboard.btn_cancel")}
             </button>
             <button type="button" className="btn btn-primary" id="modal-save-btn" onClick={() => window.saveSubscription?.()}>
-              {t("fs.dashboard.modal_save")}
+              <span className="btn-spinner dash-save-spinner hidden" aria-hidden="true" />
+              <span className="dash-save-label">{t("fs.dashboard.modal_save")}</span>
             </button>
           </div>
         </div>

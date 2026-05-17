@@ -4,7 +4,7 @@ import { getSupabasePublicConfig } from "@/lib/supabase/env";
 
 /**
  * Server komponentiem, Server Actions, Route Handlers.
- * Sesiju atjauno `middleware.ts` - šeit tikai lasīšana/rakstīšana ar sīkdatēm.
+ * Sesiju atjauno `proxy.ts` - šeit tikai lasīšana/rakstīšana ar sīkdatēm.
  */
 export async function createServerSupabaseClient() {
   const cfg = getSupabasePublicConfig();
@@ -27,7 +27,7 @@ export async function createServerSupabaseClient() {
             cookieStore.set(name, value, options),
           );
         } catch {
-          // Server Component: setAll var izraisīt kļūdu - sesiju atjauno middleware.
+          // Server Component: setAll var izraisīt kļūdu - sesiju atjauno proxy.
         }
       },
     },

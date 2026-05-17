@@ -161,7 +161,6 @@ export function AdminUsersView({
                     </td>
                     <td className="admin-table-col-counts">
                       <SubscriptionCountsCell
-                        t={t}
                         raw={countsByUserId?.[u.id]}
                         subsLoaded={!subscriptionsFetchError}
                       />
@@ -192,69 +191,27 @@ export function AdminUsersView({
 }
 
 function SubscriptionCountsCell(props: {
-  t: (k: string) => string;
   raw: AdminUsersCountsSerializable | undefined;
   subsLoaded: boolean;
 }) {
-  const { t, raw, subsLoaded } = props;
+  const { raw, subsLoaded } = props;
 
-  const counts = useMemo(() => {
-    if (!raw) return undefined;
-    const m = new Map<SubscriptionCategory, number>();
+  const total = useMemo(() => {
+    if (!raw) return 0;
+    let sum = 0;
     for (const cat of SUBSCRIPTION_CATEGORY_ORDER) {
       const v = raw[cat];
-      if (typeof v === "number" && v > 0) m.set(cat, v);
+      if (typeof v === "number" && v > 0) sum += v;
     }
-    return m.size ? m : undefined;
+    return sum;
   }, [raw]);
 
   if (!subsLoaded) {
     return <span className="admin-sub-counts admin-sub-counts--empty">–</span>;
   }
 
-  if (!counts || counts.size === 0) {
-    return (
-      <div className="admin-sub-counts">
-        <span className="admin-sub-counts-total">0</span>
-      </div>
-    );
-  }
-
-  let total = 0;
-  const parts: { cat: SubscriptionCategory; n: number }[] = [];
-  for (const cat of SUBSCRIPTION_CATEGORY_ORDER) {
-    const n = counts.get(cat) ?? 0;
-    if (n > 0) {
-      total += n;
-      parts.push({ cat, n });
-    }
-  }
-
-  if (parts.length === 0) {
-    return (
-      <div className="admin-sub-counts">
-        <span className="admin-sub-counts-total">0</span>
-      </div>
-    );
-  }
-
   return (
     <div className="admin-sub-counts">
-      {parts.map((p, i) => (
-        <span key={p.cat} className="admin-sub-counts-part">
-          {i > 0 ? (
-            <span aria-hidden className="admin-sub-counts-sep">
-              {" "}
-              ·{" "}
-            </span>
-          ) : null}
-          {t(`subscription.category.${p.cat}`)}: <strong>{p.n}</strong>
-        </span>
-      ))}
-      <span aria-hidden className="admin-sub-counts-sep">
-        {" "}
-        ·{" "}
-      </span>
       <span className="admin-sub-counts-total">{total}</span>
     </div>
   );

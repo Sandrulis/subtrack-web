@@ -8,6 +8,7 @@ import {
   loadScriptOnce,
 } from "@/components/fs/load-fs-scripts";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
+import type { SubscriptionClient } from "@/lib/subscriptions/subscription-client";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 
 const ANALYTICS_TAIL_SCRIPTS = [
@@ -18,8 +19,10 @@ const ANALYTICS_TAIL_SCRIPTS = [
 
 export function AnalyticsFsView({
   userDisplay,
+  initialSubscriptions,
 }: {
   userDisplay?: NavUserDisplay | null;
+  initialSubscriptions: SubscriptionClient[];
 }) {
   const { t } = useSubtrackIntl();
 
@@ -33,6 +36,8 @@ export function AnalyticsFsView({
           if (cancelled) break;
           await loadScriptOnce(src);
         }
+        if (cancelled) return;
+        window.fsBootAnalytics?.();
       } catch (e) {
         console.error(e);
       }
@@ -44,6 +49,14 @@ export function AnalyticsFsView({
 
   return (
     <>
+      <script
+        id="subtrack-subs-bootstrap-json"
+        type="application/json"
+        // eslint-disable-next-line react/no-danger -- Supabase JSON bootstrap pirms FS skriptiem
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(initialSubscriptions).replace(/</g, "\\u003c"),
+        }}
+      />
       <div className="app-layout app-layout-stacked">
         <NavDash active="analytics" userDisplay={userDisplay} />
         <main className="main-content">
@@ -56,11 +69,11 @@ export function AnalyticsFsView({
 
           <div className="analytics-grid">
             <div className="stat-card analytics-card">
-              <div className="stat-label">{t("landing.mock.stat_total_label")}</div>
+              <div className="stat-label">{t("fs.analytics.stat_monthly_total")}</div>
               <div className="stat-value" id="analytics-monthly-total">
                 €0.00
               </div>
-              <div className="stat-note">{t("fs.analytics.stat_monthly_note_demo")}</div>
+              <div className="stat-note">{t("fs.analytics.stat_monthly_note")}</div>
             </div>
             <div className="stat-card analytics-card">
               <div className="stat-label">{t("fs.analytics.stat_yearly_estimate")}</div>
@@ -70,7 +83,7 @@ export function AnalyticsFsView({
               <div className="stat-note">{t("fs.analytics.stat_yearly_note")}</div>
             </div>
             <div className="stat-card analytics-card">
-              <div className="stat-label">{t("landing.mock.next_pay_label")}</div>
+              <div className="stat-label">{t("fs.analytics.stat_next_payment")}</div>
               <div className="analytics-next-row">
                 <div>
                   <div

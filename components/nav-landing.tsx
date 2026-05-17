@@ -24,7 +24,10 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
       <div className="dash-topbar-shell">
         <div className="dash-topbar-inner">
           <div className="dash-topbar-left">
-            <Link href="/" className="dash-brand">
+            <Link
+              href={userDisplay ? "/dashboard" : "/"}
+              className="dash-brand"
+            >
               <span className="dash-brand-text">{systemSiteName}</span>
             </Link>
             <span className="dash-topbar-rule" aria-hidden="true" />
@@ -69,7 +72,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                     <span className="dash-nav-link-text">{t("nav.analytics")}</span>
                   </Link>
                   {userDisplay.isAdmin ? (
-                    <Link href="/admin" className="dash-nav-link">
+                    <Link href="/admin" prefetch={false} className="dash-nav-link">
                       <svg
                         className="dash-icon"
                         width="16"

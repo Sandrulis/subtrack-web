@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
+import { cache } from "react";
 
 export type LanguagesCatalog = {
   codes: string[];
@@ -49,10 +50,11 @@ async function fetchLanguagesCatalog(): Promise<LanguagesCatalog> {
 /**
  * Publiski lasāms valodu katalogs (anon atslēga + RLS).
  * Kešots; pēc admin izmaiņām – `revalidateTag("languages-catalog")`.
+ * `cache()` – viens izsaukums uz RSC pieprasījumu (kopā ar layout `getLanguagesCatalog`).
  */
-export async function getLanguagesCatalog(): Promise<LanguagesCatalog> {
+export const getLanguagesCatalog = cache(async (): Promise<LanguagesCatalog> => {
   return unstable_cache(fetchLanguagesCatalog, ["subtrack-languages-catalog-v1"], {
     revalidate: 3600,
     tags: ["languages-catalog"],
   })();
-}
+});

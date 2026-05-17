@@ -1,4 +1,10 @@
+import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+
+/** Viens RPC izsaukums uz vienu Supabase klienta instanci vienā servera renderī. */
+const rpcCurrentUserIsAdmin = cache(async (supabase: SupabaseClient) => {
+  return supabase.rpc("current_user_is_admin");
+});
 
 /**
  * Vai pašreizējā Supabase sesija ir administrators (public.users.is_admin > 0).
@@ -9,7 +15,7 @@ export async function resolveSessionIsAdmin(
   supabase: SupabaseClient,
   rowFallback?: { is_admin?: unknown } | null,
 ): Promise<boolean> {
-  const { data, error } = await supabase.rpc("current_user_is_admin");
+  const { data, error } = await rpcCurrentUserIsAdmin(supabase);
   if (!error && typeof data === "boolean") {
     return data;
   }

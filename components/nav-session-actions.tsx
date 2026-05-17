@@ -89,6 +89,31 @@ export function NavSessionActions({
               <span className="dash-notify-head-title">{t("session.notify_title")}</span>
             </div>
             <div
+              className="dash-notify-empty hidden"
+              id="dash-notify-empty"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="dash-notify-empty-icon" aria-hidden="true">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M18 8A6 6 0 106 8c0 7-3 9-3 9h18s-3-2-3-9"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M13.73 21a2 2 0 01-3.46 0"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </div>
+              <p className="dash-notify-empty-lead">{t("session.notify_empty_lead")}</p>
+            </div>
+            <div
               className="dash-notify-today hidden"
               id="dash-notify-today-section"
             >
@@ -107,7 +132,7 @@ export function NavSessionActions({
               </div>
             </div>
             <div
-              className="dash-notify-section"
+              className="dash-notify-section hidden"
               id="dash-notify-overdue-section"
             >
               <h3 className="dash-notify-section-title">{t("session.notify_overdue")}</h3>
@@ -117,7 +142,7 @@ export function NavSessionActions({
               />
             </div>
             <div
-              className="dash-notify-section"
+              className="dash-notify-section hidden"
               id="dash-notify-upcoming-section"
             >
               <h3 className="dash-notify-section-title">{t("session.notify_upcoming")}</h3>

@@ -1,15 +1,12 @@
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { loadAuthContext } from "@/lib/auth/load-auth-context";
 import { resolveSessionIsAdmin } from "@/lib/auth/is-admin";
 
 /**
  * Aizsargā /admin maršrutus: tikai public.users.is_admin > 0.
  */
 export async function requireAdminUser() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await loadAuthContext();
 
   if (!user) {
     redirect("/");

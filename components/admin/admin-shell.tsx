@@ -97,6 +97,7 @@ export function AdminShell({
                 <Link
                   key={item.key}
                   href={item.href}
+                  prefetch={false}
                   className={
                     "admin-side-link" +
                     (navActive === item.key ? " is-active" : "")

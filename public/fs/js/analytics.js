@@ -1,5 +1,5 @@
 /* =============================================
-   SubTrack - Analītikas lapa (demo dati no subscriptions)
+   SubTrack - Analītikas lapa (abonementi no API / bootstrap)
    ============================================= */
 
 var analyticsPieChart = null;
@@ -237,11 +237,12 @@ function renderAnalytics() {
 }
 
 function fsBootAnalytics() {
-    renderAnalytics();
+    if (typeof subtrackReloadSubscriptionsFromBootstrap === 'function') {
+        subtrackReloadSubscriptionsFromBootstrap();
+    }
+    subtrackSyncSubscriptionsFromApi().then(function () {
+        renderAnalytics();
+    });
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', fsBootAnalytics);
-} else {
-    fsBootAnalytics();
-}
+window.fsBootAnalytics = fsBootAnalytics;

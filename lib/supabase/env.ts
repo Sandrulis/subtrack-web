@@ -1,7 +1,7 @@
 /**
- * Publiskās Supabase vides mainīgie (droši klientam / middleware).
+ * Publiskās Supabase vides mainīgie (droši klientam / proxy).
  * Bez tām auth sesijas nedarbojas - projektu var palaist arī bez .env (tikai UI),
- * bet middleware izlaidīs Supabase apstrādi.
+ * bet proxy izlaidīs Supabase apstrādi.
  */
 export function getSupabasePublicConfig():
   | { url: string; anonKey: string }

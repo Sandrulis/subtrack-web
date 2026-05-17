@@ -116,6 +116,7 @@ export function NavUserMenu({
       >
         <Link
           href="/change-password"
+          prefetch={false}
           className="dash-user-dropdown-item"
           role="menuitem"
           onClick={() => setOpen(false)}
@@ -137,6 +138,7 @@ export function NavUserMenu({
         </Link>
         <Link
           href="/settings"
+          prefetch={false}
           className="dash-user-dropdown-item"
           role="menuitem"
           onClick={() => setOpen(false)}
@@ -159,6 +161,7 @@ export function NavUserMenu({
         {showDashboardInUserMenu ? (
           <Link
             href="/dashboard"
+            prefetch={false}
             className="dash-user-dropdown-item"
             role="menuitem"
             onClick={() => setOpen(false)}

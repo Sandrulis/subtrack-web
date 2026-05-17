@@ -42,8 +42,9 @@ export const FS_DASHBOARD_DEMO_EXTRA_KEYS = [
   "fs.dashboard.modal_add_submit",
   "fs.dashboard.modal_edit_title",
   "fs.dashboard.modal_save",
-  "fs.dashboard.toast_term_dates_invalid",
   "fs.dashboard.toast_term_end_after_start",
+  "fs.dashboard.toast_name_required_when_addons",
+  "fs.dashboard.list_untitled",
   "fs.dashboard.toast_saved",
   "fs.dashboard.toast_added",
   "fs.dashboard.delete_body",
@@ -62,19 +63,26 @@ export const FS_DASHBOARD_DEMO_EXTRA_KEYS = [
   "fs.dashboard.device_label_extra_amount",
   "fs.dashboard.term_start",
   "fs.dashboard.term_end",
+  "fs.dashboard.optional_paren",
   "fs.dashboard.aria_remove_device_row",
-  "fs.dashboard.toast_device_term_both_dates",
   "fs.dashboard.toast_device_name_when_term",
   "fs.dashboard.toast_device_term_order",
   "fs.dashboard.btn_cancel",
   "fs.dashboard.btn_save",
   "fs.dashboard.btn_delete",
+  "fs.dashboard.toast_api_save_failed",
+  "fs.dashboard.toast_api_delete_failed",
+  "fs.dashboard.notify_paid_today_single",
+  "fs.dashboard.notify_paid_today_multi",
 ] as const;
 
 /** Tikai augšējās joslas paziņojumi (`dash-alerts.js` + `formatOverdueLabel`), ja nav pilnā paneļa bootstrap. */
 export const FS_NOTIFY_BAR_KEYS = [
   "fs.dashboard.overdue_one",
   "fs.dashboard.overdue_other",
+  "fs.dashboard.toast_api_save_failed",
+  "fs.dashboard.notify_paid_today_single",
+  "fs.dashboard.notify_paid_today_multi",
 ] as const;
 
 export function fsNotifyBarPhraseKeys(): string[] {

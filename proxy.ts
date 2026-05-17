@@ -2,7 +2,7 @@ import { type NextRequest } from "next/server";
 import { authRateLimitedResponse } from "@/lib/security/auth-rate-limit";
 import { updateSession } from "@/lib/supabase/middleware";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const limited = authRateLimitedResponse(request);
   if (limited) {
     return limited;
@@ -15,7 +15,7 @@ export const config = {
     /*
      * Ietver visas ceļu grupas, izņemot statiku un bildes.
      * Neesam maskā: _next/static, _next/image, favicon, /fs/ (public/fs),
-     * lai JS/CSS no public neiet cauri Supabase middleware.
+     * lai JS/CSS no public neiet cauri Supabase proxy slānim.
      */
     "/((?!_next/static|_next/image|favicon.ico|fs/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],

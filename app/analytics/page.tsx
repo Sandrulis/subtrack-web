@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { FsI18nBootstrap } from "@/components/fs/fs-i18n-bootstrap";
 import { AnalyticsFsView } from "@/components/fs/analytics-fs-view";
 import { getSessionUserDisplay } from "@/lib/auth/user-display";
+import { fetchSubscriptionsForSession } from "@/lib/subscriptions/fetch-subscriptions-server";
 import { fsAnalyticsPhraseKeys } from "@/lib/fs/fs-page-i18n-keys";
 import {
   getUiPhraseForRequest,
@@ -18,6 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function AnalyticsPage() {
   const userDisplay = await getSessionUserDisplay();
+  const initialSubscriptions = await fetchSubscriptionsForSession();
   const { locale } = await resolveRequestUiLocales();
   const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
   const fsI18n = await getUiPhrasesForRequest(fsAnalyticsPhraseKeys());
@@ -25,7 +27,10 @@ export default async function AnalyticsPage() {
   return (
     <>
       <FsI18nBootstrap phrases={fsI18n} intlLocale={intlLocale} />
-      <AnalyticsFsView userDisplay={userDisplay} />
+      <AnalyticsFsView
+        userDisplay={userDisplay}
+        initialSubscriptions={initialSubscriptions}
+      />
     </>
   );
 }

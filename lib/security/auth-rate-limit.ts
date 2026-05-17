@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 type Rule = { prefix: string; max: number; windowMs: number };
 
 /**
- * Vienkāršs slīdošā loga ierobežojums (Edge middleware; atmiņa neatšķiras starp izolētiem deploy instancēm).
+ * Vienkāršs slīdošā loga ierobežojums (Edge proxy; atmiņa neatšķiras starp izolētiem deploy instancēm).
  * Produkcijā ieteicams papildināt ar CDN/Redis, ja vajag globālu skaitītāju.
  */
 const RULES: Rule[] = [

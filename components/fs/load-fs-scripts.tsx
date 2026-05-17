@@ -39,7 +39,7 @@ export function hydrateFsI18nFromTemplate(): void {
 
 const scriptInflight = new Map<string, Promise<void>>();
 
-/** Abonementu demo dati + palīgfunkcijas + augšējās joslas paziņojumi (ielādējas secīgi). */
+/** Abonementu bootstrap (`#subtrack-subs-bootstrap-json`) + palīgfunkcijas + augšējās joslas paziņojumi (ielādējas secīgi). */
 export const AUTHED_NOTIFY_SCRIPTS = [
   "/fs/js/subscriptions-data.js",
   "/fs/js/subscriptions-helpers.js",

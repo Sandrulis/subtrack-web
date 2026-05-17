@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { BodyLandingPageClass } from "@/components/body-landing-class";
-import { FsNotifyI18nBootstrap } from "@/components/fs/fs-notify-i18n-bootstrap";
 import { LandingNavSync } from "@/components/landing-nav-sync";
 import { LandingPageContent } from "@/components/landing-page";
 import { NavLanding } from "@/components/nav-landing";
@@ -18,13 +18,13 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function HomePage() {
   const userDisplay = await getSessionUserDisplaySafe();
+  if (userDisplay) redirect("/dashboard");
 
   return (
     <BodyLandingPageClass>
-      {userDisplay ? <FsNotifyI18nBootstrap /> : null}
-      <NavLanding userDisplay={userDisplay} />
+      <NavLanding />
       <LandingPageContent />
-      {userDisplay ? null : <LandingNavSync />}
+      <LandingNavSync />
     </BodyLandingPageClass>
   );
 }

@@ -1,14 +1,14 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.2.16` (skatīt lapas lejas daļā **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**).
+**Versija:** `0.3.4` (skatīt lapas lejas daļā **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**).
 
-**SubTrack** ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. Biznesa loģika abonementiem pašlaik daļēji balstās uz **FS prototipa JavaScript** (`public/fs/js/`), kas ielādējas demonstrācijas režīmā; **īstā datu glabāšana un backend** (Supabase Auth + Postgres shēmas pamats `database/supabase/`; abonementu sinhronizācija ar DB kā turpmāks solis) tiek pieslēgta pakāpeniski.
+**SubTrack** ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, RLS); CRUD notiek caur **Route Handlers** (`app/api/subscriptions/*`) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
 ## Galvenās iespējas (UI)
 
-- **Sākumlapa** - prezentācija, FAQ, saites uz paneli un reģistrāciju
+- **Sākumlapa** (`/`) - prezentācija, FAQ, saites uz paneli un reģistrāciju; **ar aktīvu sesiju** serveris novirza uz **`/dashboard`** (**`app/page.tsx`**, `redirect`). Paneļa augšējās joslas **produkta nosaukuma** saite (**`components/nav-dash.tsx`**) ved uz **`/dashboard`**, nevis **`/`**.
 - **Autentifikācija** - ieeja un reģistrācija caur **Supabase Auth** (Server Actions), OAuth (Google / Apple), **aizmirstā parole** (`/forgot-password`), **mainīt paroli** (`/change-password` ar `changePasswordAction`, **`components/fs/change-password-fs-view.tsx`** + **`components/change-password-form.tsx`** – **`t()`** un **`auth.pass_strength.level_*`** kā signup, atkārtojums, paroles rādīšanas poga; vecā parole netiek vērtēta pirms „Saglabāt”). **Pieteikšanās / reģistrācijas** formu virknes un maršruta **`<title>`** seko izvēlētajai lokālei (**`components/auth/auth-login-flow.tsx`**, **`components/auth/auth-signup-flow.tsx`** + **`components/signup-form.tsx`**, **`getUiPhraseForRequest`** no **`lib/ui/server-ui-phrases.ts`**). **Reģistrācija** (`/signup`): e-pasta formāta validācija, paroles stipruma indikators, atkārtotās paroles pārbaude, e-pasta aizņemtība (ja DB ir **`signup_email_exists`**, sk. `004_*`). **Flash ziņojumi** (kļūdas un īsie info teksti no `?error=` / `?message=` un OAuth kļūdas) tiek rādīti kā **peldošie toast** (`components/flash-param-toast.tsx`, `components/auth-toasts-host.tsx`): apmerami auto-aizvēršanās, uzvedot kursoru virs ziņojuma taimeris apstājas, pēc kursora nost no jauna. Query parametri pēc rādīšanas tiek tīrīti ar `history.replaceState`, lai pārlādē neatkārtojas. Izmantošana: `/login`, `/signup`, `/forgot-password` (gatavs nākotnes redirectiem), `/change-password`.
-- **Panelis** (`/dashboard`) - maksājumu kalendārs, kopsavilkums, abonementu CRUD (demo dati pārlūkā līdz pilnai DB migrācijai); **FS demo JS** (`public/fs/js/dashboard.js` …) dabū frāzes un **`Intl`** lokāli pirms **`loadScriptOnce`**, jo servera **`app/dashboard/page.tsx`** renderē **`FsI18nBootstrap`** (inline skripts uz **`window.__SUBTRACK_FS_I18N`**; skatīt **UI tulkošana**); augšējā joslā **paziņojumi** (kavētie / gaidāmie; mobilajā skatā – pilnekrāna caurspīdīgs fons ar **backdrop blur**, kā lietotāja izvēlne; abas izvēlnes nevar būt atvērtas vienlaikus)
+- **Panelis** (`/dashboard`) - maksājumu kalendārs, kopsavilkums, abonementu CRUD pret **`public.subscriptions`** (**`GET`/`POST` `/api/subscriptions`**, **`PATCH`/`DELETE` `/api/subscriptions/[id]`** ); sākuma dati SSR bootstraps (**`#subtrack-subs-bootstrap-json`**); **FS JS** (`public/fs/js/dashboard.js` …) dabū frāzes un **`Intl`** lokāli pirms **`loadScriptOnce`**, jo **`app/dashboard/page.tsx`** renderē **`FsI18nBootstrap`** (skatīt **UI tulkošana**); kalendārā **lv** nedēļas dienu galvenes **Pr … Sv**; augšējā joslā **paziņojumi** (tie paši dati no **`subscriptions`**; mobilajā skatā – pilnekrāna fons ar **backdrop blur**; abas izvēlnes nevar būt atvērtas vienlaikus)
 - **Analītika** (`/analytics`) - kopsavilkumi, kategorijas, Chart.js diagramma; **FS** slānī tāpat **`FsI18nBootstrap` + phrases** kā panelī (**`app/analytics/page.tsx`**, **`public/fs/js/analytics.js`** …)
 - **Iestatījumi** (`/settings`) - preferences: **`public.users.display_preferences`** (JSON), DB sinhronizācija + dublējums `localStorage` (kad ir migrācija `006_*`). Forma **`components/fs/settings-fs-view-client.tsx`** ar **`useSubtrackIntl`**; **`app/settings/page.tsx`** kārto **`languages`** atlasi ar **`Intl.Collator`** pēc **`resolveRequestUiLocales`** (nevis fiksētu `lv-LV`). **Saskarnes valoda** – pēc izvēles tiek uzreiz **`applyUiLocaleInBrowser`** (sīkdatne **`subtrack_ui_locale`**) + **`writeDisplayPreferencesToLocalStorage`** + **`router.refresh()`**, lai **`app/layout.tsx`** (**`SubtrackIntlProvider`**, tulkošanas `dbMap`) atbilstu jaunajai lokālei; **`mergeDisplayPreferencesFromSources`** (`lib/user-display-preferences.ts`) apvieno DB un LS tā, ka **derīgie `localStorage` lauki pārklāj DB** (optimistiskā UI pirms Supabase saglabāšanas). Bāzes noklusējumi no **`public.system_settings`** (`012`), ja nav lietotāja ieraksta; `/admin/system` ietekmē jaunos kontus un formas bāzi.
 - **Administrācija** (`/admin`, `/admin/users`, `/admin/system`, `/admin/languages`, `/admin/translations`) - tikai ar `public.users.is_admin > 0`: paneļa josla + sānizvēlne. **Ikonu tooltipi** admin tabulās – **`SubtrackTooltip`** (`components/subtrack-tooltip.tsx`): melns burbulis, teksts portalā uz **`document.body`** (`position: fixed`), lai **`admin-table-wrap`** `overflow` to neapgriež; uz **touch / coarse pointer** nerāda (**`useSupportsHoverTooltip`**). **Lietotāji** – servera lapa **`app/admin/users/page.tsx`** atlasa datus; **`components/admin/admin-users-view.tsx`** (klienta) rāda tulkošanu atslēgās, kopsavilkumu kategorijām un **`Intl`** datumus pēc UI lokāļa. Admin kopsavilkumi par abonementiem (RLS + **`008`**). **Vadteksti** valodu / tulkošanu / sistēmai – **`components/admin/admin-intros.tsx`**. **Sistēma** – panelis **`AdminSystemPanel`** (tulkošanu atslēgas formas virsrakstiem un kļūdām; dažu **`<select>` opciju** iekšējā teksta vēl var atšķirties). **Sistēma** (`/admin/system`) dati: **`012_system_settings.sql`**, Server Actions **`lib/admin/system-actions.ts`**, publiskā nosaukuma lasīšana **`lib/system-settings-public.ts`**. **Valodas** – CRUD pret **`public.languages`**, noklusējuma valoda jaunajiem apmeklētājiem (**`010`**; Server Actions **`lib/admin/languages-actions.ts`**, **`components/admin/admin-languages-panel.tsx`**; pamatā **`007`**); saraksta **`Intl.Collator`** – pēc pašreizējās UI lokāļa. **Tulkojumi** - **`public.site_translations`**: **`components/admin/admin-translations-panel.tsx`** + **`AdminTranslationsIntro`** (`titleActions`: poga vienā rindā ar virsrakstu); **modāļi** jaunai atslēgai un labošanai; tabulā **atslēga + teksts tikai aktīvajai UI lokālei**; **meklētājs** pilnā platuma rindā; **bez meklēšanas** papildu rindas ar **IntersectionObserver** (lazy DOM), **ar meklēšanu** filtrs pār **visu** servera ielasīto katalogu (`loadAdminTranslationsData`). Migrācija **`011`**; publiskā **SELECT** – **`012_site_translations_select_public.sql`**; sēkla – **`013_site_translations_seed_subtrack_ui.sql`**, skatīt **[UI tulkošana](#ui-tulkošana)** (**`python scripts/export_site_translations_sql.py`** pēc **`fallback-phrases.ts`** izmaiņām). Atšķiras **prototipa paneļu** vai citu **`components/fs/*`** vietu līmenis par fiksētām virknēm – papildināšana vienmēr ar **`t('…')`**. Admin pazīme: RLS un RPC **`current_user_is_admin`**. Piešķirt tiesības, piem.: `update public.users set is_admin = 1 where email = '...';`
@@ -31,16 +31,17 @@
 | Valoda | TypeScript |
 | Stili | `styles/subtrack.css` (no `FS` prototipa), `app/globals.css` |
 | Ikonas | Font Awesome 6 (CDN, `app/layout.tsx`), papildus **inline SVG** (nav, admin u.c.); `next/font` - Inter |
-| Demo paneļi | `public/fs/js/*.js` (kalendārs, modāļi, Chart.js, paziņojumi …) |
+| Demo paneļi | `public/fs/js/*.js` (kalendārs, modāļi, Chart.js, paziņojumi; CRUD pret `/api/subscriptions`) |
 
-| Backend (pamats) | [Supabase](https://supabase.com) - `lib/supabase/*`, `middleware.ts`, `database/supabase/*.sql` |
+| Backend (pamats) | [Supabase](https://supabase.com) - `lib/supabase/*`, `proxy.ts`, `database/supabase/*.sql` |
 
 ## Maršrutu aizsardzība (`lib/supabase/middleware.ts`)
 
 - **Sesijas nav**: **`/dashboard`**, **`/analytics`**, **`/settings`**, **`/change-password`**, **`/admin`** (kopā `/admin/*`) - novirze uz **`/`**.
-- **Sesija ir**: **`/login`**, **`/signup`**, **`/forgot-password`** - novirze uz **`/dashboard`**.
+- **Sesija ir**: **`/login`**, **`/signup`**, **`/forgot-password`** - novirze uz **`/dashboard`** (proxy **`GUEST_ONLY_PATHS`** iekš `lib/supabase/middleware.ts`).
+- **Sesija ir + saknes `/`**: papildus **`app/page.tsx`** izsauc **`redirect('/dashboard')`** (sākumlapas saturs tikai viesiem).
 
-Sesijas cookie atjaunošana arī šeit; saknes **`middleware.ts`** izsauc `updateSession`.
+Sesijas cookie atjaunošana arī šeit; saknes **`proxy.ts`** izsauc `updateSession`.
 
 ## Navigācija un veiktspēja (kopīgas sajūtas)
 
@@ -48,13 +49,16 @@ Pat salīdzinoši mazā lietotnē **`App Router`** maršruta maiņa parasti nav 
 
 | Ko dara projekts | Sekas |
 |------------------|--------|
-| **`middleware`** (`updateSession`) | uz maršruta / bieži arī **`<Link prefetch>`** pieprasījumu izsauc **`supabase.auth.getUser()`** – papildus tīkla solis pret Supabase katrā ceļā. |
-| **Aizsargātās lapas** | **`getSessionUserDisplay()`** (**`lib/auth/user-display.ts`**) atkal **`getUser()`**, **`users` SELECT**, **`resolveSessionIsAdmin`** (RPC **`current_user_is_admin`**) pat tad, kad middleware jau pārbaudīja sesiju. |
-| **`/admin/*`** (**`app/admin/layout.tsx`**) | secīgi **`requireAdminUser()`** (vēl **`getUser()` + RPC**) un tad **`getSessionUserDisplay()`** – atkārtots **`getUser()`** un atkārtots **tas pats admin RPC** vienā navigācijas atbildē (ja RPC atgriež kļūdu, velk arī **`users.is_admin` fallback**). |
-| **Saknes layout** (**`app/layout.tsx`**) | **`cookies()`** / **`headers()`** padara shell **dinamisku**; **`getPublicSiteTranslationsMerged`** atgriež **pilnu tulkoņu map'e** kā **`SubtrackIntlProvider`** `dbMap` props – tas ir **liels Flight serializācijas apjoms** (kešošana ar **`unstable_cache`** palīdz DB pusē; serializācija tomēr tiek veikta tad, kad layouts tiek veikts atkārtoti). |
-| **`generateMetadata` / `getUiPhraseForRequest`** | daudzas lapas paraleli atkārto lokāļa izvēli un tulkoņu merge vienā dokumenta pieprasījumā (sk. **`lib/ui/server-ui-phrases.ts`**); kešošana samazina DB dubultvēzi, bet struktūra joprojām ir atkārtots slāņu darbs. |
+| **`proxy`** (`updateSession`) | uz maršruta / bieži arī **`<Link prefetch>`** pieprasījumu izsauc **`supabase.auth.getUser()`** – papildus tīkla solis pret Supabase katrā ceļā. |
+| **Aizsargātās lapas** | **`getSessionUserDisplay`**, **`fetchSubscriptionsForSession`** un **`requireAdminUser`** dalās **`loadAuthContext`** (**`lib/auth/load-auth-context.ts`**) – viens **`getUser()`** + viens servera Supabase klients uz RSC pieprasījumu. |
+| **`current_user_is_admin` RPC** | **`resolveSessionIsAdmin`** (**`lib/auth/is-admin.ts`**) kešo RPC uz vienu klienta instanci vienā renderī. |
+| **`/admin/*`** (**`app/admin/layout.tsx`**) | **`requireAdminUser`** tad **`getSessionUserDisplay`** – vairs nav atkārtota **`getUser()`** un nav otra tā paša RPC vienā pieprasījumā (ja nepieciešams, **`users.is_admin`** joprojām kā rezerves datu avots). |
+| **Saknes layout** (**`app/layout.tsx`**) | **`cookies()`** / **`headers()`** padara shell **dinamisku**; **`getPublicSiteTranslationsMerged`** joprojām dod **lielu** `dbMap` (**`SubtrackIntlProvider`**); **`unstable_cache`** mazina DB slogu. **`getLanguagesCatalog`** ir arī **`react/cache`** vienam pieprasījumam. |
+| **`generateMetadata` / `getUiPhraseForRequest`** | **`resolveRequestUiLocales`** un sapludinātais tulkošanu objekts (**`lib/ui/server-ui-phrases.ts`**) tiek **memoizēti** uz dokumenta pieprasījumu. **`getSystemSiteName`** (**`generateMetadata`** + layout) – viens izsaukums uz pieprasījumu. |
 
-**`<Link>`** noklusējumā (**prefetch** viewport redzāmām saišu vietām) var sākt šo darbu **pirms** klikšķa – tas arī var radīt sajūtu, ka fonā „jau ko ielādē“. Tiešām izmaiņu meklēji sāk **`lib/supabase/middleware.ts`**, **`lib/auth/user-display.ts`**, **`lib/auth/require-admin.ts`**, **`app/layout.tsx`**.
+**`<Link prefetch={false}`** (admin, iestatījumi, parole, izvēlnes „Panelis”) samazina fonā **`proxy`** / prefetch slogu; **`/dashboard`** ↔ **`/analytics`** galvenajā nav izslēgts prefetch.
+
+**`<Link>`** citur noklusējumā (**prefetch**) var sākt līdzīgu darbu **pirms** klikšķa. Tiešām izmaiņu meklēji sāk **`lib/supabase/middleware.ts`**, **`lib/auth/load-auth-context.ts`**, **`lib/ui/server-ui-phrases.ts`**, **`app/layout.tsx`**.
 
 ## Supabase iestatīšana
 
@@ -74,6 +78,11 @@ Pat salīdzinoši mazā lietotnē **`App Router`** maršruta maiņa parasti nav 
    - **`database/supabase/001_initial_schema.sql`** - tabulas, RLS, trigeri. Ja Postgres sūdzas par `execute function` pie `auth.users` triggera, skatīt faila komentāru par `execute procedure`.
    - **`database/supabase/015_users_rls_protect_privileged_columns.sql`** – `public.users`: politika **`users_update_own`** ar papildu `WITH CHECK`, lai ar parasto Supabase klientu netiktu mainīti **`is_admin`** un **`email`** (novērsti privilēģiju pacelšanu); pēc **`001`** (**obligāti** produkcijas vidē ja `001` bija palaista vecajā variantā bez šī papildinājuma). Apraksts: **`security_check.md`**.
    - **`database/supabase/016_sync_public_users_email_from_auth.sql`** – trigeris uz **`auth.users`**: **`public.users.email`** sinhronizācija no Auth pēc e-pasta maiņas (**M1**). Pēc **`001`**/`015`. Ja DB sūdzas par `execute function`, pamēģini `execute procedure` ( kā **`001`** ).
+   - **`database/supabase/017_site_translations_fs_dashboard_api.sql`** – **`site_translations`** ieraksti API un „atzīmēts samaksāts” ziņām (**`fs.dashboard.toast_api_*`**, **`notify_paid_today_*`**). Pēc **`012`**.
+   - **`database/supabase/018_site_translations_dashboard_empty_state.sql`** – **`fs.dashboard.empty_lead`** (īsāks teksts); **`empty_secondary`** – **`DELETE`** no DB (nav tukšu `INSERT`). Pēc **`012`**.
+   - **`database/supabase/019_site_translations_optional_term_dates.sql`** – **`fs.dashboard.advanced_hint_credit`**: termiņa datumi kā neobligāti (progress josla tikai ja abi lauki). Pēc **`012`**.
+   - **`database/supabase/020_site_translations_dashboard_subscription_optional_fields.sql`** – paneļa ziņas: galvenais nosaukums obligāts tikai ar papildu rindām; papildu rindai – nosaukums, ja aizpildīts jebkurš lauks; saraksta „bez nosaukuma’’ teksts. Pēc **`012`**.
+   - **`database/supabase/021_site_translations_notify_empty_state.sql`** – **`session.notify_empty_lead`**: paziņojumu paneļa tukšais stāvoklis; **`session.notify_empty_hint`** dzēsts no DB. Pēc **`012`**.
    - Opcionāli **`002_migrate_profiles_to_users.sql`**, ja projektā bijusi vecā `profiles` shēma.
    - **`database/supabase/003_admin_users_select_policy.sql`** - **`current_user_is_admin()`** (`SECURITY DEFINER`) + SELECT politika **`users_select_all_if_admin`**, kas izsauc šo funkciju. Tas ļauj adminiem (`is_admin > 0`) lasīt visu `public.users` sarakstu **bez** RLS rekursijas. Vecais variants ar `EXISTS (SELECT … FROM public.users …)` politikā izraisīja kļūdu `infinite recursion detected in policy for relation users` - ja to redzi, palaid šo failu **pilnībā** vēlreiz. Bez `003` anon sesijā admin lapa redz tikai savu rindu.
    - **`database/supabase/004_signup_email_exists_rpc.sql`** - funkcija `signup_email_exists` (`SECURITY DEFINER`), ko izsauc Server Action, lai pirms „Izveidot kontu“ noteiktu, vai e-pasts jau ir `auth.users`. Bez šī soļa forma darbojas, bet aizņemta e-pasta brīdinājums neparādās.
@@ -114,7 +123,8 @@ Virknes UI: **`useSubtrackIntl().t('atslēga')`**, dati no **`site_translations`
 
 ```
 app/                      # App Router + `generateMetadata` ar tulkošanas atslēgām kur attiecas
-components/               # nav-landing, subtrack-intl-provider, auth/*, signup-form …
+app/api/subscriptions/    # autentificēts CRUD (cookie sesija, Supabase server klients)
+components/               # nav-landing, nav-dash (paneļa augšējā josla), subtrack-intl-provider, auth/*, signup-form …
 components/subtrack-tooltip.tsx  # admin (u.c.) hover tooltipi: portal + fine-pointer; stili `subtrack.css`
 components/auth/          # auth-login-flow.tsx, auth-signup-flow.tsx (kartīšu saturs lokālei)
 components/admin/         # admin-shell, admin-users-view, admin-intros, paneļu formas …
@@ -131,9 +141,9 @@ lib/i18n/                 # FALLBACK_PHRASES (`fallback-phrases.ts`) un apkārt�
 lib/auth/                 # user-display, is-admin, password-strength, require-admin, actions (ieskaitot changePassword)
 lib/user-display-preferences.ts  # display_preferences forma + **`mergeDisplayPreferencesFromSources`** (DB + LS; LS lauki pārklāj DB)
 lib/languages-catalog.ts  # kešots valodu katalogs + noklusējuma `code` (anon lasījums)
-lib/supabase/             # anon/server klienti, middleware-logika sesijai (+ **rate limit** – skatīt `middleware.ts`)
-middleware.ts             # **rate limit** auth ceļiem, tad `updateSession` + redirecti; sk. **[Navigācija un veiktspēja](#navigācija-un-veiktspēja-kopīgas-sajūtas)**
-database/supabase/        # Postgres + RLS (`001` … `016` utt.)
+lib/supabase/             # anon/server klienti, sesijas loģika (+ **rate limit** – skatīt `proxy.ts`)
+proxy.ts                  # **rate limit** auth ceļiem, tad `updateSession` + redirecti; sk. **[Navigācija un veiktspēja](#navigācija-un-veiktspēja-kopīgas-sajūtas)**
+database/supabase/        # Postgres + RLS (`001` … `021` utt.)
 scripts/                  # `export_site_translations_sql.py`; tulkošanas palīgvietas; **`security-smoke-users-rls.mjs`** (`SECURITY_SMOKE_*` vai izlaist)
 public/fs/js/             # FS demo JS (subscriptions, dash-alerts …)
 styles/subtrack.css       # dizaina līnija (toast-container--auth-pages u.c.)
@@ -152,11 +162,11 @@ npm run dev
 
 [http://localhost:3000](http://localhost:3000).
 
-**Ja izstrādē konsolē parādās:** `Router action dispatched before initialization` (**`use-action-queue`**, **`hmrRefresh`**) – tā ir **Next.js 16 Turbopack HMR** sacīkšu klases kļūda (parasti tikai **`next dev`**). Pagaidu risinājums: **`npm run dev:webpack`** vai pilna lapas pārlādēšana.
+**Ja izstrādē konsolē vai pārlūkā parādās:** `Router action dispatched before initialization` (**`use-action-queue`**, **`hmrRefresh`**) vai **`ChunkLoadError` / `Failed to load chunk`** (`/_next/static/chunks/...`) – tipiska **Next.js 16 Turbopack** HMR / fragmentu sacīkste (parasti tikai **`next dev`** bez **`--webpack`**). **Risinājums:** apturēt serveri, izdzēst mapi **`.next`**, palaist **`npm run dev`** no jauna un **cietā pārlādēšana**; ja atkārtojas – **`npm run dev:webpack`** (stabilāks izstrādes serveris).
 
 **Uzmanību:** nekādā **`next.config`** nelietojiet `deploymentId: process.env.X ?? ""`, ja rezultāts var būt **`""`** – tukša virkne Turbopack režīmā var salauzt hidratāciju un līdzīgas kļūdas (skat. [next.js #92858](https://github.com/vercel/next.js/issues/92858)).
 
-**Drošības papildinājumi:** Middleware **vietējo pieprasījumu līdzību** piemēro ceļiem `/login`, `/signup`, `/auth/callback`, `/forgot-password`, `/change-password` (`lib/security/auth-rate-limit.ts`). Lokālei testiem var **`DISABLE_RATE_LIMIT=true`** (`.env.local`). **`npm run audit`** (**`audit-level=high`**, CI arī) un **`npm run security:smoke-users-rls`** (iekšējais **`SECURITY_SMOKE_EMAIL`/`PASSWORD`; ja nav – izlaiž). Drošības **HTTP galvenes** (`next.config.ts`, CSP kā **report-only**). Detalizēti: **`security_check.md`**.
+**Drošības papildinājumi:** Saknes **proxy** (`proxy.ts`) **vietējo pieprasījumu līdzību** piemēro ceļiem `/login`, `/signup`, `/auth/callback`, `/forgot-password`, `/change-password` (`lib/security/auth-rate-limit.ts`). Lokālei testiem var **`DISABLE_RATE_LIMIT=true`** (`.env.local`). **`npm run audit`** (**`audit-level=high`**, CI arī) un **`npm run security:smoke-users-rls`** (iekšējais **`SECURITY_SMOKE_EMAIL`/`PASSWORD`; ja nav – izlaiž). Drošības **HTTP galvenes** (`next.config.ts`, CSP kā **report-only**). Detalizēti: **`security_check.md`**.
 
 ```bash
 npm run build
@@ -171,7 +181,7 @@ npm run lint
 ### Obligātie / ieteicamie soļi
 
 1. **`npm install`** – vienmēr pēc pull, ja mainījies `package.json` vai `package-lock.json`; ja šaubies, atkārto arī tad, kad lock fails nav mainījies (ātri un novērš „missing dependency’’ lokāli).
-2. **Žurnāls** – salīdzināt ar **[Izmaiņu žurnālu](#izmaiņu-žurnāls)** un rindiņu **`Versija:`** README augšā: tur tiek apkopotas būtiskākās izmaiņas (Auth, middleware, SQL, ENV, paneļa FS slānis).
+2. **Žurnāls** – salīdzināt ar **[Izmaiņu žurnālu](#izmaiņu-žurnāls)** un rindiņu **`Versija:`** README augšā: tur tiek apkopotas būtiskākās izmaiņas (Auth, proxy/sesija, SQL, ENV, paneļa FS slānis).
 3. **Supabase un ENV** – ja žurnālā vai commit aprakstā ir jauni Postgres soļi, salīdzināt **`database/supabase/`** jaunos vai labotos `.sql` failus un **`supabase.env.template`** ar savu **`.env.local`**; migrācijas palaist saskaņā ar **SQL sarakstu** README sadaļā **Supabase iestatīšana** (**divi faili `012_*`** – sekot aprakstam, ne tikai alfabetiskai kārtībai).
 4. **Pārbaude** – pēc lielākām atkarību vai tipu izmaiņām ieteicams **`npm run lint`** un **`npm run build`**; ikdienas darbam **`npm run dev`**.
 
@@ -191,11 +201,39 @@ Pie būtiskām izmaiņām **papildināt [Izmaiņu žurnālu](#izmaiņu-žurnāls
 
 ## Ceļš uz backend
 
-Paneļa **demonstrācijas** dati pašlaik no `localStorage` + `public/fs/js`. Supabase (**Auth**, **`users`**, **`subscriptions`** shēmas, RLS) ir sagatavojums; funkcionalitātes sinhronizācija uz Server Actions/API un vienots datu modelis būs kā turpmākie uzdevumi. Vecāka prototipa atsauce: **`www/FS`** (īpašiem workspace gadījumiem).
+Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscriptions`**, RLS) un **Next Route Handlers** (`app/api/subscriptions`). Citas funkcijas un paplašinājumi dokumentē atsevišķi. Vecāka prototipa atsauce: **`www/FS`** (īpašiem workspace gadījumiem).
 
 ## Izmaiņu žurnāls
 
 Šeit īss pieraksts par izlaistām izmaiņām; detalizētākās funkcijas un SQL skatīt augšējās sadaļās.
+
+### 0.3.4 (2026-05-17)
+
+- **Panelis / analītika (FS JS)** – izstrādē **React Strict Mode** un `loadScriptOnce` kešs lika **`dashboard.js` / `analytics.js` otrajā mountā nepalaist inicializāciju**; tagad **`window.fsBootDashboard` / `window.fsBootAnalytics`** izsauc **`useEffect`** pēc ielādes. Kalendāra / ikonu / krāsu listeneriem **`data-subtrackBound`**, lai uz tiem pašiem mezgliem nepiemērotu divreiz.
+
+### 0.3.3 (2026-05-17)
+
+- **Analītika** – klientā **pārlasa bootstrap** un **`GET /api/subscriptions`**, lai rādītu **īstos `subscriptions` datus** arī pēc **client navigācijas** no paneļa; tās pašas izmaiņas paneļa boot, lai saraksts vienmēr sakristu ar DB. JS: **`subscriptions-data.js`** (`subtrackReloadSubscriptionsFromBootstrap`), **`subscriptions-helpers.js`** (`subtrackSyncSubscriptionsFromApi`), **`analytics.js`**, **`dashboard.js`**. UI teksti bez „demo’’ (`**`analytics-fs-view.tsx`**, **`fallback-phrases.ts`**, pārrakstīts **`013_site_translations_seed_subtrack_ui.sql`**).
+
+### 0.3.2 (2026-05-17)
+
+- **Next.js 16** – saknes **`middleware.ts`** aizstāts ar **`proxy.ts`** (`export async function proxy`, kopā ar `export const config`); brīdinājums par novecojušo middleware konvenciju vairs nedraudzē `next dev`. **`README`**, **`security_check.md`**, īsi komentāri kodā.
+
+### 0.3.1 (2026-05-17)
+
+- **Veiktspēja (RSC)** – **`react/cache`**: kopīgs **`loadAuthContext`** (**`getUser`** + servera klients) **`getSessionUserDisplay`**, **`requireAdminUser`**, **`fetchSubscriptionsForSession`**; viena **`current_user_is_admin`** RPC uz klientu vienā renderī; **`resolveRequestUiLocales`**, sapludinātie **`site_translations`**, **`getLanguagesCatalog`**, **`getSystemSiteName`** – viena reize uz dokumenta pieprasījumu kur piemērots. **`prefetch={false}`** admin / settings / change-password / izvēlnes saitēm – mazāk fonā proxy sloga.
+
+### 0.3.0 (2026-05-17)
+
+- **Abonementu forma (panelis)** – galvenais **nosaukums** un **summa** nav obligāti, ja nav papildu rindu; summa tukša → **0**; ar papildu rindām galvenajam nosaukumam jābūt; katrai papildu rindai ar jebkuru aizpildītu lauku (ieskaitot piezīmi) – arī pozīcijas nosaukums. **`lib/subscriptions/subscription-map.ts`** (`normalizeDevicesForSubscription`), **`PATCH`** sapludināta validācija (**`app/api/subscriptions/[id]/route.ts`**), **`public/fs/js/dashboard.js`**, **`components/fs/dashboard-fs-view.tsx`** (summa – „neobligāti’’). Tulkošanas atslēgas **`fallback-phrases.ts`**, **`fs-page-i18n-keys.ts`**, SQL **`020_site_translations_dashboard_subscription_optional_fields.sql`**.
+- **Paziņojumu panelis** – gaidāmie ierobežoti līdz **nākamajām 7 dienām**; ja nav ko rādīt, profesionāls tukšais stāvoklis (**`components/nav-session-actions.tsx`**, **`public/fs/js/dash-alerts.js`**, **`styles/subtrack.css`**). SQL **`021_site_translations_notify_empty_state.sql`**.
+
+### 0.2.17 (2026-05-17)
+
+- **Navigācija ielogotajiem** – **`app/page.tsx`**: pie aktīvas sesijas **`/`** → **`/dashboard`** (`redirect`). **`components/nav-dash.tsx`**: zīmola saite uz **`/dashboard`**. **`components/nav-landing.tsx`**: ja tiek padots **`userDisplay`**, zīmols arī uz **`/dashboard`** (landing ar sesiju).
+- **Abonementu backend + FS panelis** – **`app/api/subscriptions`**, **`app/api/subscriptions/[id]`** ( **`GET`/`POST`/`PATCH`/`DELETE`** , Supabase RLS); **`lib/subscriptions/*`**, **`fetchSubscriptionsForSession`** uz **`/dashboard`** un **`/analytics`**; **`#subtrack-subs-bootstrap-json`** + **`public/fs/js/subscriptions-data.js`** (bez iepriekšējiem demo ierakstiem); **`dashboard.js`** un **`dash-alerts.js`** sinhronizācija ar API; kalendārs **lv**: nedēļas dienas **Pr–Sv**; jaunas tulkošanu atslēgas **`fallback-phrases.ts`** + SQL **`017_site_translations_fs_dashboard_api.sql`**.
+- **Paneļa tukšais stāvoklis** – īsāks **`fs.dashboard.empty_lead`**, **`empty_secondary`** noņemts ar **`DELETE`** migrācijā (**nav** tukšu virkņu kā tulkojumu); pilna platuma karte; **`018_site_translations_dashboard_empty_state.sql`**.
+- **Termiņa datumi (papildu opcijas)** – nav jāaizpilda abi lauki; API un **`dashboard.js`** validācija tikai tad, ja abi norādīti; **`019_site_translations_optional_term_dates.sql`**; noņemtas atslēgas **`toast_term_dates_invalid`** / **`toast_device_term_both_dates`** (fallback).
 
 ### 0.2.16 (2026-05-17)
 
@@ -271,10 +309,10 @@ Paneļa **demonstrācijas** dati pašlaik no `localStorage` + `public/fs/js`. Su
 
 ### 0.2.0 (2026-05-16)
 
-- **Supabase** – servera/pārlūka klienti (`lib/supabase/*`), sesijas `middleware.ts`, OAuth/apmaiņas maršruts `app/auth/callback/route.ts`, ENV paraugi (`supabase.env.template`, `.env.example`).
+- **Supabase** – servera/pārlūka klienti (`lib/supabase/*`), sesijas **`proxy.ts`**, OAuth/apmaiņas maršruts `app/auth/callback/route.ts`, ENV paraugi (`supabase.env.template`, `.env.example`).
 - **Datubāze** – Postgres + RLS skripti `database/supabase/001` … `013` (ieskaitot **`languages.is_default`** un anon kataloga lasīšanu **`010`**, tulkošanu **`011`–`013`**).
 - **Auth UX** – `/login`, `/signup`, `/forgot-password`, `/change-password` ar Server Actions un komponentēm (`signup-form`, `change-password-form`), peldošie toast kļūdām un ziņām (`flash-param-toast`, `auth-toasts-host`), sociālo pogu komponente.
-- **Aizsargātie maršruti** – panelis, analītika, iestatījumi, admin; novirzes sesijas stāvoklim atbilstoši `middleware`.
+- **Aizsargātie maršruti** – panelis, analītika, iestatījumi, admin; novirzes sesijas stāvoklim atbilstoši saknes **`proxy`** un `lib/supabase/middleware.ts`.
 - **Administrācija** – `/admin` un apakšlapas (`components/admin/*`), piekļuve tikai adminiem; **valodas** – CRUD + **noklusējuma valoda jaunajiem apmeklētājiem** (`public.languages.is_default`, `010` SQL, kolonna „Noklus.“, `lib/languages-catalog.ts`).
 - **Admin lietotāju UI** – `/admin/users`: pilna platuma submenu + saturs mobilajā (`admin-body` stretch), tabulas **kompaktais** variants tikai **≤640 px** (kolonnas „Loma“/„Reģistrēts“ zem e-pasta, bez iniciāļu apļa); **virs 640 px** – kolonnas un aplis kā šķīvākā skatā (`styles/subtrack.css`).
 - **Iestatījumi** – preferences JSON + sinhronizācija ar DB un `localStorage` (`006`, FS skats un klienta žogs kur nepieciešams).

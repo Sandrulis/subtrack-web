@@ -1,6 +1,7 @@
+import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
+import { loadAuthContext } from "@/lib/auth/load-auth-context";
 import { resolveSessionIsAdmin } from "@/lib/auth/is-admin";
 
 /** Paneļa augšējās joslas lietotāja attēlošana (serveris → props). */
@@ -134,12 +135,8 @@ function profileFromAuthMetadata(user: User): NavUserDisplay {
  * Aktīvās sesijas lietotāja vārds / inicialēs paneļa augšējai joslai.
  * Vispirms `public.users`; ja trūkst lauku – Auth `user_metadata`; tad e-pasts.
  */
-export async function getSessionUserDisplay(): Promise<NavUserDisplay | null> {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-    error: authErr,
-  } = await supabase.auth.getUser();
+async function getSessionUserDisplayImpl(): Promise<NavUserDisplay | null> {
+  const { supabase, user, authError: authErr } = await loadAuthContext();
 
   if (authErr || !user) return null;
 
@@ -166,6 +163,9 @@ export async function getSessionUserDisplay(): Promise<NavUserDisplay | null> {
     isAdmin,
   };
 }
+
+/** Viena pilna sesijas profila izvērtešana uz RSC pieprasījumu. */
+export const getSessionUserDisplay = cache(getSessionUserDisplayImpl);
 
 /**
  * Droša sesijas lasīšana publiskām lapām (piem. `/`): bez Supabase .env vai citām kļūdām atgriež null.

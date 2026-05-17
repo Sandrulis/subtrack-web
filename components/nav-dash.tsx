@@ -24,7 +24,7 @@ export function NavDash({ active = "", userDisplay }: NavDashProps) {
       <div className="dash-topbar-shell">
         <div className="dash-topbar-inner">
           <div className="dash-topbar-left">
-            <Link href="/" className="dash-brand">
+            <Link href="/dashboard" className="dash-brand">
               <span className="dash-brand-text">{systemSiteName}</span>
             </Link>
             <span className="dash-topbar-rule" aria-hidden="true" />
@@ -76,6 +76,7 @@ export function NavDash({ active = "", userDisplay }: NavDashProps) {
               {userDisplay?.isAdmin ? (
                 <Link
                   href="/admin"
+                  prefetch={false}
                   className={
                     "dash-nav-link" + (active === "admin" ? " is-active" : "")
                   }

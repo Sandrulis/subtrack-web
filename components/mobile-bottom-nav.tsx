@@ -141,6 +141,7 @@ export function MobileBottomNav({
           {isAdmin ? (
             <Link
               href="/admin"
+              prefetch={false}
               className={
                 "mobile-bottom-nav-link" +
                 (authedSegmentKey === "admin" ? " is-route-active" : "")

@@ -12,7 +12,7 @@ var calendarView = null;
  * Paneļa skripti tiek ielādēti pēc React mount (FsScripts); DOMContentLoaded
  * šajā brīdī jau ir noticis – inicializāciju jāpalaiž arī tad.
  */
-function fsBootDashboard() {
+function continueDashboardBoot() {
     setDefaultDate();
     renderList();
     initCalendarNav();
@@ -20,11 +20,16 @@ function fsBootDashboard() {
     initColorPicker();
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', fsBootDashboard);
-} else {
-    fsBootDashboard();
+function fsBootDashboard() {
+    if (typeof subtrackReloadSubscriptionsFromBootstrap === 'function') {
+        subtrackReloadSubscriptionsFromBootstrap();
+    }
+    subtrackSyncSubscriptionsFromApi().then(function () {
+        continueDashboardBoot();
+    });
 }
+
+window.fsBootDashboard = fsBootDashboard;
 
 /* ---- Render ---- */
 function renderList(scrollToItemId) {
@@ -96,12 +101,33 @@ function shiftCalendarMonth(delta) {
 function initCalendarNav() {
     var prev = document.getElementById('cal-prev');
     var next = document.getElementById('cal-next');
-    if (prev) {
+    if (prev && prev.dataset.subtrackBound !== '1') {
+        prev.dataset.subtrackBound = '1';
         prev.addEventListener('click', function () { shiftCalendarMonth(-1); });
     }
-    if (next) {
+    if (next && next.dataset.subtrackBound !== '1') {
+        next.dataset.subtrackBound = '1';
         next.addEventListener('click', function () { shiftCalendarMonth(1); });
     }
+}
+
+/** Nedēļas dienu galvenes: pirmdiena–svētdiena (kalendārs sākas ar pirmdienu). */
+function calendarWeekdayHeaders(locale) {
+    var lc = String(locale || '').toLowerCase();
+    if (lc === 'lv' || lc.indexOf('lv-') === 0) {
+        return ['Pr', 'Ot', 'Tr', 'Ce', 'Pk', 'Se', 'Sv'];
+    }
+    var wdFmt = new Intl.DateTimeFormat(locale, { weekday: 'narrow' });
+    var out = [];
+    for (var wiDay = 0; wiDay < 7; wiDay++) {
+        var ref = new Date(1970, 0, 5 + wiDay);
+        try {
+            out.push(wdFmt.format(ref));
+        } catch (we) {
+            out.push(String(wiDay + 1));
+        }
+    }
+    return out;
 }
 
 function renderPaymentCalendar() {
@@ -133,17 +159,7 @@ function renderPaymentCalendar() {
     var startPad = (first.getDay() + 6) % 7;
     var daysInMonth = new Date(y, m + 1, 0).getDate();
 
-    var wdFmt = new Intl.DateTimeFormat(locale, { weekday: 'short' });
-    var wdays = [];
-    var wiDay;
-    for (wiDay = 0; wiDay < 7; wiDay++) {
-        var ref = new Date(1970, 0, 5 + wiDay);
-        try {
-            wdays.push(wdFmt.format(ref));
-        } catch (we) {
-            wdays.push(String(wiDay + 1));
-        }
-    }
+    var wdays = calendarWeekdayHeaders(locale);
     var html = '<div class="pay-cal-weekdays">';
     for (var wi = 0; wi < wdays.length; wi++) {
         html += '<span class="pay-cal-wd">' + wdays[wi] + '</span>';
@@ -501,7 +517,9 @@ function buildItem(s) {
             '<div class="sub-main">' +
                     '<div class="sub-info">' +
                     '<div class="sub-name-row">' +
-                    '<span class="sub-name">' + escHtml(s.name) + '</span>' +
+                    '<span class="sub-name">' +
+                    escHtml((s.name && String(s.name).trim()) ? String(s.name).trim() : (FsT('fs.dashboard.list_untitled') || '-')) +
+                    '</span>' +
                     (s.note ? '<span class="sub-note-inline">' + escHtml(s.note) + '</span>' : '') +
                     '<span class="sub-category-pill">' + escHtml(categoryLabel(s.category)) + '</span>' +
                     '</div>' +
@@ -522,23 +540,23 @@ function buildItem(s) {
                         escAttr(FsT('fs.dashboard.tooltip_mark_paid')) +
                         '" aria-label="' +
                         escAttr(FsT('fs.dashboard.aria_mark_paid')) +
-                        '" onclick="markPaid(' +
-                        s.id +
-                        ')"><i class="fa-solid fa-check"></i></button>' +
+                        '" onclick=\'markPaid(' +
+                        JSON.stringify(String(s.id)) +
+                        ')\'><i class="fa-solid fa-check"></i></button>' +
                         '<button type="button" class="icon-btn" data-tooltip="' +
                         escAttr(FsT('fs.dashboard.tooltip_edit')) +
                         '" aria-label="' +
                         escAttr(FsT('fs.dashboard.aria_edit')) +
-                        '" onclick="openEditModal(' +
-                        s.id +
-                        ')"><i class="fa-solid fa-pen"></i></button>' +
+                        '" onclick=\'openEditModal(' +
+                        JSON.stringify(String(s.id)) +
+                        ')\'><i class="fa-solid fa-pen"></i></button>' +
                         '<button type="button" class="icon-btn delete" data-tooltip="' +
                         escAttr(FsT('fs.dashboard.tooltip_delete')) +
                         '" aria-label="' +
                         escAttr(FsT('fs.dashboard.aria_delete')) +
-                        '" onclick="openDeleteModal(' +
-                        s.id +
-                        ')"><i class="fa-solid fa-trash"></i></button>' +
+                        '" onclick=\'openDeleteModal(' +
+                        JSON.stringify(String(s.id)) +
+                        ')\'><i class="fa-solid fa-trash"></i></button>' +
                     '</div>' +
                     '<div class="sub-amount-wrap">' +
                         '<div class="sub-amount">€' + displayTotal.toFixed(2) + '</div>' +
@@ -559,16 +577,38 @@ function buildItem(s) {
     '</div>';
 }
 
-/* ---- Mark paid (frontend demo: nākamais datums pēc perioda, saraksts sakārtots pēc termiņa) ---- */
+/* ---- Mark paid (sinhronizācija ar API) ---- */
 function markPaid(id) {
-    var idx = subscriptions.findIndex(function (x) { return x.id === id; });
+    var idx = subscriptions.findIndex(function (x) {
+        return String(x.id) === String(id);
+    });
     if (idx === -1) return;
     var s = subscriptions[idx];
     var period = s.period || 'monthly';
-    s.date = advanceNextDueAfterPayment(s.date, period);
-    var raw = FsT('fs.dashboard.toast_marked_paid');
-    showToast(raw ? raw.replace(/\{date\}/g, formatDate(s.date)) : 'Maksājums.', 'success');
-    renderList(id);
+    var newDate = advanceNextDueAfterPayment(s.date, period);
+
+    fetch(apiSubscriptionUrl(s.id), {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: newDate }),
+    })
+        .then(parseApiJson)
+        .then(function (data) {
+            var shownDate = newDate;
+            if (data.subscription && data.subscription.date) {
+                mergeSubscriptionFromApi(data.subscription);
+                shownDate = data.subscription.date;
+            } else {
+                s.date = newDate;
+            }
+            var raw = FsT('fs.dashboard.toast_marked_paid');
+            showToast(raw ? raw.replace(/\{date\}/g, formatDate(shownDate)) : 'Maksājums.', 'success');
+            renderList(id);
+        })
+        .catch(function () {
+            showToast(FsT('fs.dashboard.toast_api_save_failed'), 'error');
+        });
 }
 
 /* ---- Stats ---- */
@@ -616,7 +656,8 @@ function openAddModal() {
     clearDeviceEditor();
     editingId = null;
     document.getElementById('modal-title').textContent = FsT('fs.dashboard.modal_add_title');
-    document.getElementById('modal-save-btn').textContent = FsT('fs.dashboard.modal_add_submit');
+    setModalSavePending(false);
+    modalSaveSetLabel(FsT('fs.dashboard.modal_add_submit'));
     document.getElementById('sub-name').value = '';
     document.getElementById('sub-category').value = 'subscription';
     document.getElementById('sub-amount').value = '';
@@ -632,14 +673,17 @@ function openAddModal() {
 }
 
 function openEditModal(id) {
-    var s = subscriptions.find(function(x) { return x.id === id; });
+    var s = subscriptions.find(function (x) {
+        return String(x.id) === String(id);
+    });
     if (!s) return;
-    editingId = id;
+    editingId = String(id);
     collapseIconPicker();
     clearDeviceEditor();
 
     document.getElementById('modal-title').textContent = FsT('fs.dashboard.modal_edit_title');
-    document.getElementById('modal-save-btn').textContent = FsT('fs.dashboard.modal_save');
+    setModalSavePending(false);
+    modalSaveSetLabel(FsT('fs.dashboard.modal_save'));
     document.getElementById('sub-name').value = s.name || '';
     document.getElementById('sub-category').value = normalizeCategoryKey(s.category);
     document.getElementById('sub-amount').value = s.amount != null ? s.amount : '';
@@ -663,18 +707,57 @@ function openEditModal(id) {
 }
 
 function closeModal() {
+    setModalSavePending(false);
     document.getElementById('modal-overlay').classList.remove('open');
     collapseIconPicker();
     collapseModalAdvanced();
 }
 
 function handleOverlayClick(e) {
-    if (e.target === document.getElementById('modal-overlay')) closeModal();
+    if (e.target !== document.getElementById('modal-overlay')) return;
+    if (isModalSaveBusy()) return;
+    closeModal();
+}
+
+function isModalSaveBusy() {
+    var saveBtn = document.getElementById('modal-save-btn');
+    return !!(saveBtn && saveBtn.getAttribute('aria-busy') === 'true');
+}
+
+/** Saglabāšanas laikā: spinneris, neļaut dubultklikšķi un aizvērt modāli no Atcelt. */
+function setModalSavePending(pending) {
+    var saveBtn = document.getElementById('modal-save-btn');
+    var cancelBtn = document.getElementById('modal-cancel-btn');
+    var closeBtn = document.getElementById('modal-close-btn');
+    if (saveBtn) {
+        var spinner = saveBtn.querySelector('.dash-save-spinner');
+        saveBtn.disabled = !!pending;
+        saveBtn.setAttribute('aria-busy', pending ? 'true' : 'false');
+        if (spinner) spinner.classList.toggle('hidden', !pending);
+    }
+    if (cancelBtn) {
+        cancelBtn.disabled = !!pending;
+    }
+    if (closeBtn) {
+        closeBtn.disabled = !!pending;
+    }
+}
+
+function modalSaveSetLabel(text) {
+    var saveBtn = document.getElementById('modal-save-btn');
+    if (!saveBtn) return;
+    var label = saveBtn.querySelector('.dash-save-label');
+    if (label) {
+        label.textContent = text;
+    } else {
+        saveBtn.textContent = text;
+    }
 }
 
 function saveSubscription() {
     var name = document.getElementById('sub-name').value.trim();
-    var amount = parseFloat(document.getElementById('sub-amount').value);
+    var amountRaw = document.getElementById('sub-amount').value.trim();
+    var amount = parseFloat(amountRaw);
     var period = document.getElementById('sub-period').value;
     var date = document.getElementById('sub-date').value;
     var note = document.getElementById('sub-note').value.trim();
@@ -682,16 +765,11 @@ function saveSubscription() {
     var termStart = document.getElementById('sub-term-start').value.trim();
     var termEnd = document.getElementById('sub-term-end').value.trim();
 
-    if (!name) { shakeInput('sub-name'); return; }
-    if (isNaN(amount) || amount <= 0) { shakeInput('sub-amount'); return; }
-    if (!date) { shakeInput('sub-date'); return; }
-
-    if ((termStart && !termEnd) || (!termStart && termEnd)) {
-        showToast(FsT('fs.dashboard.toast_term_dates_invalid'), 'error');
-        if (!termStart) shakeInput('sub-term-start');
-        else shakeInput('sub-term-end');
+    if (!date) {
+        shakeInput('sub-date');
         return;
     }
+
     if (termStart && termEnd) {
         var ts = new Date(termStart + 'T00:00:00');
         var te = new Date(termEnd + 'T00:00:00');
@@ -704,6 +782,20 @@ function saveSubscription() {
 
     var devices = collectDevicesFromForm();
     if (devices === null) return;
+
+    if (devices.length > 0 && !name) {
+        shakeInput('sub-name');
+        showToast(FsT('fs.dashboard.toast_name_required_when_addons'), 'error');
+        return;
+    }
+
+    if (amountRaw !== '' && (isNaN(amount) || amount < 0)) {
+        shakeInput('sub-amount');
+        return;
+    }
+    if (amountRaw === '' || isNaN(amount)) {
+        amount = 0;
+    }
 
     var payload = {
         name: name,
@@ -719,24 +811,60 @@ function saveSubscription() {
         devices: devices,
     };
 
-    if (editingId !== null) {
-        var idx = subscriptions.findIndex(function(x) { return x.id === editingId; });
-        if (idx !== -1) {
-            subscriptions[idx] = Object.assign({ id: editingId }, payload);
-        }
-        showToast(FsT('fs.dashboard.toast_saved'), 'success');
-    } else {
-        subscriptions.push(Object.assign({ id: nextId++ }, payload));
-        showToast(FsT('fs.dashboard.toast_added'), 'success');
+    setModalSavePending(true);
+
+    function finishSave() {
+        setModalSavePending(false);
     }
 
-    closeModal();
-    renderList();
+    function onFail() {
+        finishSave();
+        showToast(FsT('fs.dashboard.toast_api_save_failed'), 'error');
+    }
+
+    if (editingId !== null) {
+        fetch(apiSubscriptionUrl(editingId), {
+            method: 'PATCH',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        })
+            .then(parseApiJson)
+            .then(function (data) {
+                if (data.subscription) mergeSubscriptionFromApi(data.subscription);
+                finishSave();
+                showToast(FsT('fs.dashboard.toast_saved'), 'success');
+                closeModal();
+                renderList();
+            })
+            .catch(function () {
+                onFail();
+            });
+        return;
+    }
+
+    fetch('/api/subscriptions', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    })
+        .then(parseApiJson)
+        .then(function (data) {
+            if (data.subscription) mergeSubscriptionFromApi(data.subscription);
+            finishSave();
+            showToast(FsT('fs.dashboard.toast_added'), 'success');
+            closeModal();
+            renderList();
+        })
+        .catch(function () {
+            onFail();
+        });
 }
 
 /* ---- Delete ---- */
 function openDeleteModal(id) {
-    deletingId = id;
+    deletingId = String(id);
     var s = subscriptions.find(function(x) { return x.id === id; });
     document.getElementById('delete-confirm-name').textContent = FsT(
         'fs.dashboard.delete_body',
@@ -754,15 +882,32 @@ function handleDeleteOverlayClick(e) {
 }
 
 function confirmDelete() {
-    subscriptions = subscriptions.filter(function(x) { return x.id !== deletingId; });
-    closeDeleteModal();
-    renderList();
-    showToast(FsT('fs.dashboard.toast_deleted'), 'success');
+    var id = deletingId;
+    if (id == null) return;
+
+    fetch(apiSubscriptionUrl(id), {
+        method: 'DELETE',
+        credentials: 'same-origin',
+    })
+        .then(parseApiJson)
+        .then(function () {
+            subscriptions = subscriptions.filter(function (x) {
+                return String(x.id) !== String(id);
+            });
+            closeDeleteModal();
+            renderList();
+            showToast(FsT('fs.dashboard.toast_deleted'), 'success');
+        })
+        .catch(function () {
+            showToast(FsT('fs.dashboard.toast_api_delete_failed'), 'error');
+        });
 }
 
 /* ---- Icon picker ---- */
 function initIconPicker() {
     document.querySelectorAll('.icon-opt').forEach(function(btn) {
+        if (btn.dataset.subtrackBound === '1') return;
+        btn.dataset.subtrackBound = '1';
         btn.addEventListener('click', function() {
             selectIcon(btn.dataset.icon);
         });
@@ -908,15 +1053,19 @@ function addDeviceRow(data) {
         '</label><input type="number" class="sub-device-amount" placeholder="0" step="0.01" min="0" value="' +
         escAttr(amountV) +
         '"></div>' +
-        '<div class="form-row">' +
+            '<div class="form-row">' +
             '<div class="form-group"><label>' +
             escHtml(FsT('fs.dashboard.term_start')) +
-            '</label><input type="date" class="sub-device-ts" value="' +
+            ' <span class="form-optional">' +
+            escHtml(FsT('fs.dashboard.optional_paren')) +
+            '</span></label><input type="date" class="sub-device-ts" value="' +
             escAttr(tsV) +
             '"></div>' +
             '<div class="form-group"><label>' +
             escHtml(FsT('fs.dashboard.term_end')) +
-            '</label><input type="date" class="sub-device-te" value="' +
+            ' <span class="form-optional">' +
+            escHtml(FsT('fs.dashboard.optional_paren')) +
+            '</span></label><input type="date" class="sub-device-te" value="' +
             escAttr(teV) +
             '"></div>' +
         '</div>';
@@ -936,13 +1085,14 @@ function collectDevicesFromForm() {
         var amount = parseFloat(amountRaw);
         var ts = row.querySelector('.sub-device-ts').value.trim();
         var te = row.querySelector('.sub-device-te').value.trim();
-        var hasAny = name || ts || te || (amountRaw !== '' && !isNaN(amount) && amount !== 0);
+        var hasAny =
+            name ||
+            ts ||
+            te ||
+            (amountRaw !== '' && !isNaN(amount) && amount !== 0) ||
+            note;
         if (!hasAny) continue;
-        if ((ts && !te) || (!ts && te)) {
-            showToast(FsT('fs.dashboard.toast_device_term_both_dates'), 'error');
-            return null;
-        }
-        if (ts && te && !name) {
+        if (!name) {
             showToast(FsT('fs.dashboard.toast_device_name_when_term'), 'error');
             return null;
         }
@@ -969,6 +1119,8 @@ function collectDevicesFromForm() {
 /* ---- Color picker ---- */
 function initColorPicker() {
     document.querySelectorAll('.color-dot').forEach(function(dot) {
+        if (dot.dataset.subtrackBound === '1') return;
+        dot.dataset.subtrackBound = '1';
         dot.addEventListener('click', function() {
             selectColor(dot.dataset.color);
         });
@@ -985,7 +1137,7 @@ function selectColor(color) {
 /* ---- Keyboard close ---- */
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        closeModal();
+        if (!isModalSaveBusy()) closeModal();
         closeDeleteModal();
     }
 });
@@ -1026,6 +1178,7 @@ function escAttr(str) {
 
 function shakeInput(id) {
     var el = document.getElementById(id);
+    if (!el) return;
     el.style.borderColor = 'var(--danger)';
     el.focus();
     setTimeout(function() { el.style.borderColor = ''; }, 1500);

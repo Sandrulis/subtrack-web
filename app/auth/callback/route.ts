@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
             cookieStore.set(name, value, options),
           );
         } catch {
-          /* Route Handler: set var būt ierobežots; vēlāk sesiju atjauno middleware */
+          /* Route Handler: set var būt ierobežots; vēlāk sesiju atjauno proxy */
         }
       },
     },
