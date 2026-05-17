@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
+import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
 
 /**
  * Klienta formai: vai šis e-pasts jau ir auth.users.
- * Nepieciešama DB funkcija `signup_email_exists` (sk. database/supabase/004_signup_email_exists_rpc.sql).
+ * Pēc migrācijas `023_security_advisor_rpcs.sql` RPC ir tikai `service_role` –
+ * iestatiet `SUPABASE_SERVICE_ROLE_KEY` serverī (.env.local).
  */
 export async function signupEmailExistsAction(
   email: string,
@@ -21,7 +23,9 @@ export async function signupEmailExistsAction(
     return { exists: false };
   }
 
-  const supabase = await createServerSupabaseClient();
+  const svc = createServiceRoleSupabaseClient();
+  const supabase = svc ?? (await createServerSupabaseClient());
+
   const { data, error } = await supabase.rpc("signup_email_exists", {
     p_email: trimmed,
   });

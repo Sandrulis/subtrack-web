@@ -53,7 +53,11 @@ export default async function RootLayout({
   ]);
 
   return (
-    <html lang={lang} className={inter.variable}>
+    <html
+      lang={lang}
+      className={inter.variable}
+      data-scroll-behavior="smooth"
+    >
       <head>
         <link
           rel="stylesheet"

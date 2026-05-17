@@ -51,7 +51,7 @@ Atjaunināts: **`015_*.sql`** un **`016_sync_public_users_email_from_auth.sql` �
 
 ### 1. E-pasta esamības nodošana (UX vs privātums)
 
-`signup_email_exists` (`SECURITY DEFINER`, `anon`/`authenticated` var izsaukt) dod iespēju **uzminēt e-pasta reģistrāciju**. Biežs UX kompromiss.
+`signup_email_exists` (`SECURITY DEFINER`, pēc **`023_*`** izsauc tikai **`service_role`** no servera) joprojām ļauj **uzminēt e-pasta reģistrāciju** (Server Action). Biežs UX kompromiss.
 
 **Pacelt atzīmi:** vienotā atbilde („nav / nevar aprēķināt’’), vai **rate-limit** uz RPC (Supabase edge / Postgres pg_stat / aplikācijas slānis), vai ierobežot izsaukumu tikai signup plūsmā ar CSRF/next token līmeni ja vajag.
 
@@ -149,7 +149,7 @@ Pēc būtiski jaunas funkcijas ar datiem (admin, subscriptions, billing u.tml.):
 | `lib/auth/require-admin.ts` | Admin layout guards (`loadAuthContext` + **`resolveSessionIsAdmin`**) |
 | `lib/auth/actions.ts`, `auth/callback` | Sesija un `next` relatīvie ceļi |
 | `lib/admin/*-actions.ts` | `requireAdminUser()` uz mutācijas |
-| `database/supabase/001*` … `021*` | RLS politikām; **`015`**/**`016`** kritiski; **`012`** publiskā **`site_translations`** SELECT |
+| `database/supabase/001*` … `023*` | RLS politikām; **`015`**/**`016`** kritiski; **`012`** publiskā **`site_translations`** SELECT; **`022`**/**`023`** Advisor (RPC, DEFINER) |
 
 ---
 
