@@ -243,10 +243,6 @@ export function AdminSystemPanel({
 
       <div className="admin-lang-card">
         <p className="admin-lang-card-title">{t("admin.forms.section_title")}</p>
-        <p className="form-hint" style={{ marginTop: 0 }}>
-          {t("admin.forms.hint_main")}
-        </p>
-
         <p className="form-hint admin-system-autosave-hud" aria-live="polite" style={{ minHeight: 22 }}>
           {saveStatusText}
         </p>
@@ -270,9 +266,6 @@ export function AdminSystemPanel({
 
           <p className="form-section-label" style={{ marginTop: "20px" }}>
             {t("admin.forms.section_paid_plan")}
-          </p>
-          <p className="form-hint" style={{ marginTop: 0 }}>
-            {t("admin.forms.paid_plan_hint")}
           </p>
           <div
             className="form-group"

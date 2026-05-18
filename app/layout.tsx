@@ -1,17 +1,13 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { cookies, headers } from "next/headers";
 import "./globals.css";
 import { HtmlLangBridge } from "@/components/html-lang-bridge";
 import { SubtrackIntlProvider } from "@/components/subtrack-intl-provider";
 import { getLanguagesCatalog } from "@/lib/languages-catalog";
-import {
-  resolveRootHtmlLang,
-  SUBTRACK_UI_LOCALE_COOKIE,
-} from "@/lib/html-lang";
+import { localeCodeToHtmlLang } from "@/lib/html-lang";
 import { getPublicSiteTranslationsMerged } from "@/lib/site-translations-public";
 import { getPublicSystemSettings } from "@/lib/system-settings-public";
-import { resolveUiLocaleCodeFromRequest } from "@/lib/ui/ui-locale-from-request";
+import { resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
 
 const inter = Inter({
   subsets: ["latin", "latin-ext"],
@@ -36,17 +32,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const h = await headers();
-  const cookieStore = await cookies();
-  const cookieLocale = cookieStore.get(SUBTRACK_UI_LOCALE_COOKIE)?.value ?? null;
   const catalog = await getLanguagesCatalog();
-  const acceptLanguage = h.get("accept-language");
-  const lang = resolveRootHtmlLang(cookieLocale, acceptLanguage, catalog);
-  const uiLocaleCode = resolveUiLocaleCodeFromRequest(
-    cookieLocale,
-    acceptLanguage,
-    catalog,
-  );
+  const { locale: uiLocaleCode, isAuthenticated } = await resolveRequestUiLocales();
+  const lang = localeCodeToHtmlLang(uiLocaleCode);
   const [dbMap, publicSettings] = await Promise.all([
     getPublicSiteTranslationsMerged(uiLocaleCode, catalog.defaultCode),
     getPublicSystemSettings(),
@@ -68,7 +56,10 @@ export default async function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <HtmlLangBridge defaultInterfaceLanguageCode={catalog.defaultCode} />
+        <HtmlLangBridge
+          serverUiLocaleCode={uiLocaleCode}
+          preferLocalStorageLocale={!isAuthenticated}
+        />
         <SubtrackIntlProvider
           locale={uiLocaleCode}
           systemSiteName={systemSiteName}

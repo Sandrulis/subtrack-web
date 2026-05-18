@@ -24,6 +24,7 @@ function todayISOLocal() {
 function markNotifyItemPaid(rawId) {
     if (typeof subscriptions === 'undefined') return;
     if (typeof advanceNextDueAfterPayment !== 'function') return;
+    if (subtrackIsMarkPaidPending(rawId)) return;
 
     var s = subscriptions.find(function (x) {
         return String(x.id) === String(rawId);
@@ -39,6 +40,8 @@ function markNotifyItemPaid(rawId) {
 
     var period = s.period || 'monthly';
     var newDate = advanceNextDueAfterPayment(s.date, period);
+
+    subtrackSetMarkPaidPending(rawId, true);
 
     var isDemoPublic =
         typeof window !== 'undefined' &&
@@ -62,6 +65,7 @@ function markNotifyItemPaid(rawId) {
         if (typeof renderAnalytics === 'function') {
             renderAnalytics();
         }
+        subtrackSetMarkPaidPending(rawId, false);
         refreshDashNotifications();
         return;
     }
@@ -108,6 +112,9 @@ function markNotifyItemPaid(rawId) {
             if (typeof showToast === 'function') {
                 showToast(FsT('fs.dashboard.toast_api_save_failed'), 'error');
             }
+        })
+        .finally(function () {
+            subtrackSetMarkPaidPending(rawId, false);
         });
 }
 
@@ -142,7 +149,7 @@ function buildNotifyItemRow(s, isOverdue) {
             '" aria-label="' +
             escAttr(ariaOk) +
             '">' +
-            '<i class="fa-solid fa-check" aria-hidden="true"></i>' +
+            subtrackMarkPaidButtonInnerHtml() +
             '</button>' +
             '</div></div>'
         );
@@ -176,7 +183,7 @@ function buildNotifyTodayItemRow(s) {
         '" aria-label="' +
         escAttr(aria) +
         '">' +
-        '<i class="fa-solid fa-check" aria-hidden="true"></i>' +
+        subtrackMarkPaidButtonInnerHtml() +
         '</button>' +
         '</div></div>';
 }
@@ -412,6 +419,9 @@ function refreshDashNotifications() {
     }
 
     syncDashNotifyPanelMobPlacement();
+    if (typeof subtrackSyncMarkPaidButtonsPending === 'function') {
+        subtrackSyncMarkPaidButtonsPending();
+    }
 }
 
 /**
@@ -481,7 +491,9 @@ function initDashNotifications() {
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
-                markNotifyItemPaid(paidItem.getAttribute('data-subscription-id'));
+                var paidSubId = paidItem.getAttribute('data-subscription-id');
+                if (subtrackIsMarkPaidPending(paidSubId)) return;
+                markNotifyItemPaid(paidSubId);
                 return;
             }
 

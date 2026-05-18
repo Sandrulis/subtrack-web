@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import { calendarWeekdayHeadersForIntl } from "@/lib/calendar-weekday-headers";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,26 +11,33 @@ const HM_Y = 2026;
 const HM_M = 5;
 const HM_DEMO_TODAY = 16;
 
-const HM_CELL: Record<number, string> = {
-  8: "pay-cal-cell pay-cal-cell--due pay-cal-cell--overdue",
-  10: "pay-cal-cell pay-cal-cell--due",
-  15: "pay-cal-cell pay-cal-cell--due",
-  18: "pay-cal-cell pay-cal-cell--due",
-  24: "pay-cal-cell pay-cal-cell--due",
+/** Hero kalendāra parauga dienas (2026. gada maijs). */
+const HM_DAYS: Record<number, { classes: string[]; paidMark?: boolean }> = {
+  8: { classes: ["pay-cal-cell--due", "pay-cal-cell--overdue"] },
+  10: { classes: ["pay-cal-cell--paid-past"], paidMark: true },
+  13: { classes: ["pay-cal-cell--paid-past"], paidMark: true },
+  15: { classes: ["pay-cal-cell--due"] },
+  18: { classes: ["pay-cal-cell--due"] },
+  24: { classes: ["pay-cal-cell--due"] },
 };
 
-function heroCalendarWeekdays(intlLocale: string): string[] {
-  const fmt = new Intl.DateTimeFormat(intlLocale, { weekday: "short" });
-  for (let day = 1; day <= 31; day++) {
-    const anchor = new Date(HM_Y, HM_M - 1, day);
-    if (anchor.getDay() !== 1) continue;
-    return Array.from({ length: 7 }, (_, i) => {
-      const x = new Date(anchor);
-      x.setDate(anchor.getDate() + i);
-      return fmt.format(x);
-    });
+function heroCalCellSpec(day: number): { cls: string; paidMark: boolean } {
+  const spec = HM_DAYS[day];
+  const parts = ["pay-cal-cell", ...(spec?.classes ?? [])];
+  if (
+    day === HM_DEMO_TODAY &&
+    !parts.includes("pay-cal-cell--overdue")
+  ) {
+    parts.push("pay-cal-cell--today");
   }
-  return ["?", "?", "?", "?", "?", "?", "?"];
+  return {
+    cls: parts.join(" "),
+    paidMark: spec?.paidMark === true,
+  };
+}
+
+function heroCalendarWeekdays(intlLocale: string): string[] {
+  return calendarWeekdayHeadersForIntl(intlLocale);
 }
 
 function heroCalendarMonthTitle(intlLocale: string): string {
@@ -43,10 +51,12 @@ export function LandingHeroCalendarMock({
   intlLocale,
   legendDue,
   legendOverdue,
+  legendPaid,
 }: {
   intlLocale: string;
   legendDue: string;
   legendOverdue: string;
+  legendPaid: string;
 }) {
   const first = new Date(HM_Y, HM_M - 1, 1);
   const hmPad = (first.getDay() + 6) % 7;
@@ -65,16 +75,15 @@ export function LandingHeroCalendarMock({
     );
   }
   for (let d = 1; d <= hmDim; d++) {
-    let cls = HM_CELL[d] ?? "pay-cal-cell";
-    if (
-      (cls === "pay-cal-cell" || !cls.includes("pay-cal-cell--overdue")) &&
-      d === HM_DEMO_TODAY
-    ) {
-      cls += " pay-cal-cell--today";
-    }
+    const { cls, paidMark } = heroCalCellSpec(d);
     cells.push(
-      <div key={d} className={cls.trim()}>
+      <div key={d} className={cls}>
         {d}
+        {paidMark ? (
+          <span className="pay-cal-cell-paid-flag" aria-hidden="true">
+            <i className="fa-solid fa-check" />
+          </span>
+        ) : null}
       </div>,
     );
   }
@@ -91,7 +100,7 @@ export function LandingHeroCalendarMock({
             <i className="fa-solid fa-chevron-right" aria-hidden="true" />
           </span>
         </div>
-        <div className="pay-calendar">
+        <div className="pay-calendar landing-hero-cal-body">
           <div className="pay-cal-weekdays">
             {weekdays.map((wd, idx) => (
               <span key={`${HM_M}-${HM_Y}-${idx}-${wd}`} className="pay-cal-wd">
@@ -104,12 +113,22 @@ export function LandingHeroCalendarMock({
         <p className="pay-calendar-hint landing-hero-cal-hint">
           <span className="pay-cal-legend-i pay-cal-legend-i--due" aria-hidden="true" />
           {legendDue}
-          <span className="pay-calendar-hint-sep">·</span>
+          <span className="pay-calendar-hint-sep" aria-hidden="true">
+            ·
+          </span>
           <span
             className="pay-cal-legend-i pay-cal-legend-i--overdue"
             aria-hidden="true"
           />
           {legendOverdue}
+          <span className="pay-calendar-hint-sep" aria-hidden="true">
+            ·
+          </span>
+          <span
+            className="pay-cal-legend-i pay-cal-legend-i--paid-past"
+            aria-hidden="true"
+          />
+          {legendPaid}
         </p>
       </div>
     </div>
@@ -153,6 +172,7 @@ export function LandingHeroDashboardMock({
             intlLocale={intlLocale}
             legendDue={t("landing.mock.legend_due")}
             legendOverdue={t("landing.mock.legend_overdue")}
+            legendPaid={t("fs.dashboard.legend_paid_marked")}
           />
           {paidPlanEnabled ? (
             <p className="landing-hero-calendar-paid-note" role="note">
@@ -163,23 +183,6 @@ export function LandingHeroDashboardMock({
         </div>
 
         <div className="dashboard-overview-right-col">
-          <div className="dashboard-overview-head-col">
-            <div className="page-header">
-              <div>
-                <h2 className="page-title landing-hero-dashboard-title">
-                  {t("landing.mock.subscriptions_title")}
-                </h2>
-                <p className="page-subtitle">{t("landing.mock.subscriptions_subtitle")}</p>
-              </div>
-              <span
-                className="btn btn-primary landing-hero-dashboard-add-btn"
-                aria-hidden="true"
-              >
-                <i className="fa-solid fa-plus" /> {t("landing.mock.btn_add")}
-              </span>
-            </div>
-          </div>
-
           <div className="dashboard-overview-stats-row landing-hero-mock-stats">
             <div className="stat-card">
               <div className="stat-label">{t("landing.mock.stat_total_label")}</div>
@@ -596,8 +599,8 @@ export function LandingPageContent() {
               <p>{t("landing.faq.a_install")}</p>
             </details>
             <details className="faq-item">
-              <summary>{t("landing.faq.q_ready")}</summary>
-              <p>{t("landing.faq.a_ready")}</p>
+              <summary>{t("landing.faq.q_demo")}</summary>
+              <p>{t("landing.faq.a_demo")}</p>
             </details>
           </div>
         </div>

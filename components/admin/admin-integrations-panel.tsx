@@ -212,9 +212,6 @@ export function AdminIntegrationsPanel({
               {t("admin.integrations_panel.add_btn")}
             </button>
           </div>
-          <p className="admin-lang-new-hints" aria-live="polite">
-            {t("admin.integrations_panel.hints_line")}
-          </p>
         </div>
       </div>
 

@@ -242,9 +242,6 @@ export function AdminLanguagesPanel({
               {t("admin.languages_panel.add_btn")}
             </button>
           </div>
-          <p className="admin-lang-new-hints" aria-live="polite">
-            {t("admin.languages_panel.hints_line")}
-          </p>
         </div>
       </div>
 

@@ -108,14 +108,10 @@ export function AnalyticsFsView({
             </div>
             <div className="stat-card analytics-card analytics-card--cat-list">
               <div className="stat-label">{t("fs.analytics.section_by_category")}</div>
-              <p className="analytics-cat-hint">{t("fs.analytics.hint_monthly_equivalents")}</p>
               <div id="analytics-by-category" className="analytics-by-category" />
             </div>
             <div className="stat-card analytics-card analytics-card--cat-chart">
               <div className="stat-label">{t("fs.analytics.section_category_split")}</div>
-              <p className="analytics-cat-hint analytics-cat-hint--muted">
-                {t("fs.analytics.hint_visual_split")}
-              </p>
               <div className="analytics-pie-wrap" id="analytics-pie-wrap">
                 <div id="analytics-category-donut-root" />
               </div>

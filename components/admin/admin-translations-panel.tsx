@@ -495,13 +495,6 @@ export function AdminTranslationsPanel({
             <p className="admin-empty">{t("admin.translations_panel.search_no_results")}</p>
           ) : (
             <>
-              {!isSearchActive && displayedRows.length < filteredRows.length ? (
-                <p className="admin-i18n-lazy-hint">
-                  {t("admin.translations_panel.lazy_partial_hint")
-                    .replace(/\{shown\}/g, String(displayedRows.length))
-                    .replace(/\{total\}/g, String(filteredRows.length))}
-                </p>
-              ) : null}
               <div className="admin-table-wrap">
                 <table className="admin-table admin-table--translations admin-table--translations-compact">
                 <thead>

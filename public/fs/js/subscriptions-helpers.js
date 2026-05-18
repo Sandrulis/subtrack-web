@@ -396,6 +396,64 @@ function mergeSubscriptionFromApi(sub) {
     }
 }
 
+/** Aktīvie „atzīmēt kā samaksāts” pieprasījumi (subscription id). */
+var subtrackMarkPaidPending = {};
+
+function subtrackIsMarkPaidPending(rawId) {
+    return !!subtrackMarkPaidPending[String(rawId)];
+}
+
+function subtrackMarkPaidButtonInnerHtml() {
+    return (
+        '<i class="fa-solid fa-check mark-paid-icon" aria-hidden="true"></i>' +
+        '<span class="mark-paid-spinner btn-spinner hidden" aria-hidden="true"></span>'
+    );
+}
+
+function subtrackApplyMarkPaidButtonPending(btn, pending) {
+    if (!btn) return;
+    var icon = btn.querySelector('.mark-paid-icon');
+    var spinner = btn.querySelector('.mark-paid-spinner');
+    btn.disabled = !!pending;
+    btn.setAttribute('aria-busy', pending ? 'true' : 'false');
+    if (icon) icon.classList.toggle('hidden', !!pending);
+    if (spinner) spinner.classList.toggle('hidden', !pending);
+    btn.classList.toggle('mark-paid--pending', !!pending);
+}
+
+function subtrackSyncMarkPaidButtonsPending() {
+    var ids = Object.keys(subtrackMarkPaidPending);
+    if (!ids.length) return;
+    ids.forEach(function (id) {
+        if (!subtrackMarkPaidPending[id]) return;
+        document
+            .querySelectorAll(
+                '.mark-paid[data-subscription-id], .dash-notify-mark-paid-ok[data-subscription-id]',
+            )
+            .forEach(function (btn) {
+                if (String(btn.getAttribute('data-subscription-id')) !== String(id)) return;
+                subtrackApplyMarkPaidButtonPending(btn, true);
+            });
+    });
+}
+
+function subtrackSetMarkPaidPending(rawId, pending) {
+    var id = String(rawId);
+    if (pending) {
+        subtrackMarkPaidPending[id] = true;
+    } else {
+        delete subtrackMarkPaidPending[id];
+    }
+    document
+        .querySelectorAll(
+            '.mark-paid[data-subscription-id], .dash-notify-mark-paid-ok[data-subscription-id]',
+        )
+        .forEach(function (btn) {
+            if (String(btn.getAttribute('data-subscription-id')) !== id) return;
+            subtrackApplyMarkPaidButtonPending(btn, pending);
+        });
+}
+
 /** Toast ziņojumi (lapā nepieciešams elements #toast-container). */
 function showToast(msg, type) {
     var container = document.getElementById('toast-container');

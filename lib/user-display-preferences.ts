@@ -145,18 +145,23 @@ export function mergeDisplayPreferencesFromSources(
   localRaw: unknown,
   dbRaw: unknown,
   base: DisplayPreferences = DISPLAY_PREFERENCES_DEFAULTS,
+  options?: { prioritizeDbInterfaceLanguage?: boolean },
 ): DisplayPreferences {
   const fromLocal = sanitizeDisplayPreferencesPartial(localRaw);
   const fromDb = sanitizeDisplayPreferencesPartial(dbRaw);
   const dbHasAny = Object.keys(fromDb).length > 0;
   if (dbHasAny) {
-    return mergeDisplayPreferences(
+    const merged = mergeDisplayPreferences(
       {
         ...fromDb,
         ...fromLocal,
       },
       base,
     );
+    if (options?.prioritizeDbInterfaceLanguage && fromDb.interface_language_code) {
+      merged.interface_language_code = fromDb.interface_language_code;
+    }
+    return merged;
   }
   return mergeDisplayPreferences(fromLocal, base);
 }

@@ -67,11 +67,7 @@ export function AdminUsersView({
     <div className="admin-page admin-users-page">
       <div className="admin-page-head">
         <h1 className="admin-page-title">{t("admin.users.heading")}</h1>
-        <p className="admin-page-lead">
-          {t("admin.users.lead_intro")}{" "}
-          <code className="admin-inline-code">public.users</code>
-          {t("admin.users.lead_outro")}
-        </p>
+        <p className="admin-page-lead">{t("admin.users.lead_intro")}</p>
       </div>
 
       {fetchError ? (

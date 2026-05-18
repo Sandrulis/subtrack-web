@@ -1,29 +1,32 @@
 "use client";
 
 import { useEffect } from "react";
-import { applyUiLocaleInBrowser } from "@/lib/html-lang";
-import {
-  DISPLAY_PREFERENCES_DEFAULTS,
-  mergeDisplayPreferences,
-  readDisplayPreferencesFromLocalStorage,
-} from "@/lib/user-display-preferences";
+import { applyUiLocaleInBrowser, isValidPreferredLanguageCode } from "@/lib/html-lang";
+import { readDisplayPreferencesFromLocalStorage } from "@/lib/user-display-preferences";
 
-/** Sinhronizē `<html lang>` un sīkdati no `display_preferences` keša (`localStorage`). */
+/**
+ * Sinhronizē `<html lang>` un sīkdatni ar servera lokāli.
+ * Viesim: derīga valoda no `localStorage` var pārrakstīt (kešs pirms sīkdatnes).
+ * Ielogotam: tikai servera lokāle (profils), lai `localStorage` nepārrakstītu DB izvēli.
+ */
 export function HtmlLangBridge({
-  defaultInterfaceLanguageCode,
+  serverUiLocaleCode,
+  preferLocalStorageLocale = false,
 }: {
-  /** No `public.languages.is_default` (kešots katalogs). */
-  defaultInterfaceLanguageCode: string;
+  serverUiLocaleCode: string;
+  preferLocalStorageLocale?: boolean;
 }) {
   useEffect(() => {
-    const base = {
-      ...DISPLAY_PREFERENCES_DEFAULTS,
-      interface_language_code: defaultInterfaceLanguageCode.trim().toLowerCase(),
-    };
-    const local = readDisplayPreferencesFromLocalStorage();
-    const merged = mergeDisplayPreferences(local, base);
-    applyUiLocaleInBrowser(merged.interface_language_code);
-  }, [defaultInterfaceLanguageCode]);
+    if (preferLocalStorageLocale) {
+      const local = readDisplayPreferencesFromLocalStorage();
+      const localLang = local.interface_language_code;
+      if (typeof localLang === "string" && isValidPreferredLanguageCode(localLang)) {
+        applyUiLocaleInBrowser(localLang);
+        return;
+      }
+    }
+    applyUiLocaleInBrowser(serverUiLocaleCode);
+  }, [serverUiLocaleCode, preferLocalStorageLocale]);
 
   return null;
 }

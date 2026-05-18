@@ -463,7 +463,6 @@ export function DashboardFsView({
                   <> </>
                   <span className="form-optional">{t("fs.dashboard.optional_paren")}</span>
                 </p>
-                <p className="form-hint form-hint--tight">{t("fs.dashboard.advanced_hint_credit")}</p>
                 <div className="form-row">
                   <div className="form-group">
                     <label htmlFor="sub-term-start">

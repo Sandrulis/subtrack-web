@@ -139,7 +139,6 @@ export function DemoAnalyticsPage({
 
           <div className="stat-card analytics-card analytics-card--cat-list">
             <div className="stat-label">{t("fs.analytics.section_by_category")}</div>
-            <p className="analytics-cat-hint">{t("fs.analytics.hint_monthly_equivalents")}</p>
             <div className="analytics-by-category">
               {pieRows.map((row) => {
                 const pct =
@@ -167,9 +166,6 @@ export function DemoAnalyticsPage({
           </div>
           <div className="stat-card analytics-card analytics-card--cat-chart">
             <div className="stat-label">{t("fs.analytics.section_category_split")}</div>
-            <p className="analytics-cat-hint analytics-cat-hint--muted">
-              {t("fs.analytics.hint_visual_split")}
-            </p>
             <DemoCategoryDonut segments={pieRows} t={t} />
           </div>
         </div>

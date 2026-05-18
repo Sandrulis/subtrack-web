@@ -1,26 +1,37 @@
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
+import { getSessionInterfaceLanguageCode } from "@/lib/auth/display-preferences-server";
+import { loadAuthContext } from "@/lib/auth/load-auth-context";
 import { pickFallbackPhrase } from "@/lib/i18n/fallback-lookup";
 import { SUBTRACK_UI_LOCALE_COOKIE } from "@/lib/html-lang";
 import { getLanguagesCatalog } from "@/lib/languages-catalog";
 import { getPublicSiteTranslationsMerged } from "@/lib/site-translations-public";
-import { resolveUiLocaleCodeFromRequest } from "@/lib/ui/ui-locale-from-request";
+import { resolveUiLocaleCodeForRequest } from "@/lib/ui/ui-locale-from-request";
 
 export const resolveRequestUiLocales = cache(async (): Promise<{
   locale: string;
   defaultLocale: string;
+  isAuthenticated: boolean;
 }> => {
   const cookieStore = await cookies();
   const h = await headers();
   const catalog = await getLanguagesCatalog();
-  const locale = resolveUiLocaleCodeFromRequest(
-    cookieStore.get(SUBTRACK_UI_LOCALE_COOKIE)?.value ?? null,
-    h.get("accept-language"),
+  const { user } = await loadAuthContext();
+  const isAuthenticated = !!user;
+  const sessionInterfaceLanguageCode = isAuthenticated
+    ? await getSessionInterfaceLanguageCode()
+    : null;
+  const locale = resolveUiLocaleCodeForRequest({
+    isAuthenticated,
+    sessionInterfaceLanguageCode,
+    cookieVal: cookieStore.get(SUBTRACK_UI_LOCALE_COOKIE)?.value ?? null,
+    acceptLanguage: h.get("accept-language"),
     catalog,
-  );
+  });
   return {
     locale,
     defaultLocale: catalog.defaultCode.trim().toLowerCase(),
+    isAuthenticated,
   };
 });
 

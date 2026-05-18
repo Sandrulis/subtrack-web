@@ -70,6 +70,9 @@ function renderList(scrollToItemId) {
         refreshDashNotifications();
     }
     subtrackRefreshFreeTierAddButtons();
+    if (typeof subtrackSyncMarkPaidButtonsPending === 'function') {
+        subtrackSyncMarkPaidButtonsPending();
+    }
 }
 
 function pad2Cal(n) {
@@ -149,9 +152,12 @@ function initPayCalIncludePaidToggle() {
 
 /** Nedēļas dienu galvenes: pirmdiena–svētdiena (kalendārs sākas ar pirmdienu). */
 function calendarWeekdayHeaders(locale) {
-    var lc = String(locale || '').toLowerCase();
-    if (lc === 'lv' || lc.indexOf('lv-') === 0) {
-        return ['Pr', 'Ot', 'Tr', 'Ce', 'Pk', 'Se', 'Sv'];
+    var lc = String(locale || '').trim().toLowerCase();
+    if (lc === 'lv' || lc.indexOf('lv-') === 0 || lc.indexOf('lv_') === 0) {
+        return ['P', 'O', 'T', 'C', 'Pk', 'S', 'Sv'];
+    }
+    if (lc === 'en' || lc.indexOf('en-') === 0 || lc.indexOf('en_') === 0) {
+        return ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
     }
     var wdFmt = new Intl.DateTimeFormat(locale, { weekday: 'narrow' });
     var out = [];
@@ -636,13 +642,17 @@ function buildItem(s) {
                 '</div>' +
                 '<div class="sub-right">' +
                     '<div class="sub-actions">' +
-                        '<button type="button" class="icon-btn mark-paid" data-tooltip="' +
+                        '<button type="button" class="icon-btn mark-paid" data-subscription-id="' +
+                        escAttr(String(s.id)) +
+                        '" data-tooltip="' +
                         escAttr(FsT('fs.dashboard.tooltip_mark_paid')) +
                         '" aria-label="' +
                         escAttr(FsT('fs.dashboard.aria_mark_paid')) +
                         '" onclick=\'markPaid(' +
                         JSON.stringify(String(s.id)) +
-                        ')\'><i class="fa-solid fa-check"></i></button>' +
+                        ')\'>' +
+                        subtrackMarkPaidButtonInnerHtml() +
+                        '</button>' +
                         '<button type="button" class="icon-btn" data-tooltip="' +
                         escAttr(FsT('fs.dashboard.tooltip_edit')) +
                         '" aria-label="' +
@@ -679,6 +689,7 @@ function buildItem(s) {
 
 /* ---- Mark paid (sinhronizācija ar API) ---- */
 function markPaid(id) {
+    if (subtrackIsMarkPaidPending(id)) return;
     var idx = subscriptions.findIndex(function (x) {
         return String(x.id) === String(id);
     });
@@ -687,6 +698,8 @@ function markPaid(id) {
     var paidOnIso = normalizeSubscriptionDateIso(s.date);
     var period = s.period || 'monthly';
     var newDate = advanceNextDueAfterPayment(s.date, period);
+
+    subtrackSetMarkPaidPending(id, true);
 
     if (typeof window !== 'undefined' && window.__SUBTRACK_DEMO_DASHBOARD__) {
         s.date = normalizeSubscriptionDateIso(newDate) || newDate;
@@ -699,6 +712,7 @@ function markPaid(id) {
             'success',
         );
         showToast(FsT('fs.dashboard.toast_demo_only'), 'success');
+        subtrackSetMarkPaidPending(id, false);
         renderList(id);
         return;
     }
@@ -732,6 +746,9 @@ function markPaid(id) {
         })
         .catch(function () {
             showToast(FsT('fs.dashboard.toast_api_save_failed'), 'error');
+        })
+        .finally(function () {
+            subtrackSetMarkPaidPending(id, false);
         });
 }
 

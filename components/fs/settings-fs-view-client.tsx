@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavDash } from "@/components/nav-dash";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { updateSessionDisplayPreferences } from "@/lib/auth/display-preferences-client";
 import {
   type DisplayPreferences,
   formatDisplayPreferencesPreview,
@@ -75,23 +75,13 @@ export function SettingsFsViewClient({
       }
       applyUiLocaleInBrowser(snapshot.interface_language_code);
 
-      const supabase = createBrowserSupabaseClient();
-      const {
-        data: { user },
-        error: userErr,
-      } = await supabase.auth.getUser();
-      if (userErr || !user) {
-        pushDomToast(t("settings.toast_local_only"), "error");
-        return;
-      }
-
-      const { error } = await supabase
-        .from("users")
-        .update({ display_preferences: snapshot })
-        .eq("id", user.id);
-
-      if (error) {
-        const raw = (error.message || "").trim();
+      const saved = await updateSessionDisplayPreferences(snapshot);
+      if (!saved.ok) {
+        if (saved.reason === "no_user") {
+          pushDomToast(t("settings.toast_local_only"), "error");
+          return;
+        }
+        const raw = (saved.message || "").trim();
         const detail = raw.length > 0 ? raw : t("settings.toast_server_unknown_error");
         pushDomToast(`${t("settings.toast_generic_server_error_prefix")} ${detail}`, "error");
         return;
@@ -114,7 +104,9 @@ export function SettingsFsViewClient({
     queueMicrotask(() => {
       if (cancelled) return;
       const local = readDisplayPreferencesFromLocalStorage();
-      let merged = mergeDisplayPreferencesFromSources(local, dbPreferencesRaw, preferenceBase);
+      let merged = mergeDisplayPreferencesFromSources(local, dbPreferencesRaw, preferenceBase, {
+        prioritizeDbInterfaceLanguage: dbPreferencesRaw != null,
+      });
       merged = mergeDisplayPreferences(merged, preferenceBase);
       if (languageOptions.length > 0) {
         merged = mergeDisplayPreferences(
@@ -210,7 +202,6 @@ export function SettingsFsViewClient({
             <i className="fa-solid fa-sliders fa-xl" aria-hidden="true" />
           </div>
           <h1>{t("settings.page_heading")}</h1>
-          <p className="auth-subtitle">{t("settings.page_intro")}</p>
 
           <form
             id="settings-form"
@@ -236,13 +227,6 @@ export function SettingsFsViewClient({
                   </option>
                 ))}
               </select>
-              <p className="form-hint form-hint--settings-under-select">
-                {t("settings.hint_document_lang")}{" "}
-                <code lang="en" className="admin-inline-code">
-                  lang
-                </code>
-                {t("settings.hint_document_lang_suffix")}
-              </p>
             </div>
 
             <p className="form-section-label form-section-label--spaced">{t("settings.section_currency")}</p>

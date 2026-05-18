@@ -1,6 +1,7 @@
 "use client";
 
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import { updateSessionDisplayPreferences } from "@/lib/auth/display-preferences-client";
 import { applyUiLocaleInBrowser } from "@/lib/html-lang";
 import { languageCodeToFlagEmoji } from "@/lib/ui/language-code-flag-emoji";
 import {
@@ -91,7 +92,15 @@ export function NavUiLanguageSwitcher({ layout = "topbar" }: { layout?: Layout }
     if (!writeDisplayPreferencesToLocalStorage(next)) return;
     applyUiLocaleInBrowser(norm);
     setOpen(false);
-    router.refresh();
+
+    void (async () => {
+      const saved = await updateSessionDisplayPreferences(next);
+      if (saved.ok) {
+        router.refresh();
+        return;
+      }
+      router.refresh();
+    })();
   }
 
   function toggle() {
