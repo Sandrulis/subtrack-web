@@ -22,6 +22,12 @@ export default async function HomePage() {
 
   return (
     <BodyLandingPageClass>
+      {/* Pirms React hydration – body.landing-page fons (CSS ritms vairs no tā nav atkarīgs) */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `document.body.classList.add("landing-page");`,
+        }}
+      />
       <NavLanding />
       <LandingPageContent />
       <LandingNavSync />

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { NavDash } from "@/components/nav-dash";
-import { SiteStandardCopyrightNotice } from "@/components/site-standard-copyright-notice";
+import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
@@ -97,9 +97,7 @@ export function SubscribeProView({
           </div>
         </section>
       </main>
-      <footer className="landing-footer">
-        <SiteStandardCopyrightNotice />
-      </footer>
+      <SiteLandingFooter />
     </div>
   );
 }

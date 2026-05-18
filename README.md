@@ -1,6 +1,6 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.3.35` (skatīt lapas lejas daļā **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**).
+**Versija:** `0.3.41` (skatīt lapas lejas daļā **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**).
 
 **SubTrack** ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, RLS); CRUD notiek caur **Route Handlers** (`app/api/subscriptions/*`) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
@@ -17,7 +17,7 @@
 
 ### Mobilā vide (līdz ~768 px platums)
 
-Šaurām ekrānplatēm horizontālā augšējā navigācija ir slēpta; vietā **`components/mobile-bottom-nav.tsx`** liek peldošu, daļēji caurspīdīgu **apakšējo navigāciju** („glass’’ pill): ielogoti – Panelis / Analītika (tikai ja atļauta **`/analytics`** – ar **`paid_plan_active`**, ja ieslēgts maksas plāns) / Administrācija (adminiem); **`/demo/*`** lapās – demo panelis / demo analītika / mājas (`/`) vai **Admin**; bez sesijas sākumlapā - Iespējas / Demonstrācija / FAQ. `position: fixed` tiek pārnests uz **`document.body`** ar **`createPortal`**, lai izkārtojums vienmēr balstās pret viewport.
+Šaurām ekrānplatēm (**≤960 px**, ieskaitot **iPhone landscape**, kur platums bieži **>768 px**) horizontālā atstarpe ir vienota caur **`--app-shell-pad-x`** (**20px**, **24px** desktop) – topbar, panelis, landing, admin, auth; Chrome DevTools „mobile” (parasti **390 px**) un īstais tālrunis var atšķirties, ja netiek lietots **960 px** slieksnis. horizontālā augšējā navigācija ir slēpta; vietā **`components/mobile-bottom-nav.tsx`** liek peldošu, daļēji caurspīdīgu **apakšējo navigāciju** („glass’’ pill): ielogoti – Panelis / Analītika (tikai ja atļauta **`/analytics`** – ar **`paid_plan_active`**, ja ieslēgts maksas plāns) / Administrācija (adminiem); **`/demo/*`** lapās – demo panelis / demo analītika / mājas (`/`) vai **Admin**; bez sesijas sākumlapā - Iespējas / Demonstrācija / FAQ. `position: fixed` tiek pārnests uz **`document.body`** ar **`createPortal`**, lai izkārtojums vienmēr balstās pret viewport.
 
 **ADMIN sadaļā** (`@media (max-width: 768px)`, `styles/subtrack.css`): izkārtojums kolonnā (`admin-body`); **`align-items: stretch`**, lai **submenu josla un galvenais saturs** aizpildītu to pašu platumu kā augšējā josla (`dash-topbar-shell`), nevis sarautos pa kreisi. Apakšizvēlne `components/admin/admin-shell.tsx` ir **horizontāli ritināma** saišu josla ar īsiem nosaukumiem, apaļām tabletēm un aktīvās sadaļas `scrollIntoView`; virsrakstā diskrēts „Ritini”, ja nepieciešams.
 
@@ -116,6 +116,11 @@ Pat salīdzinoši mazā lietotnē **`App Router`** maršruta maiņa parasti nav 
    - **`database/supabase/044_site_translations_admin_users_pro_vip.sql`** – admin lietotāju tabulas un **`api.admin.pro_vip.*`**. Pēc **`012`**.
    - **`database/supabase/045_site_translations_shorter_admin_ui_hints.sql`** – īsāki admin intro teksti; **`admin.forms.preview_intro`**; **`fs.dashboard.advanced_hint_devices`** (lv „termiņu”). Pēc **`044`**.
    - **`database/supabase/046_site_translations_landing_faq_public.sql`** – sākumlapas FAQ produkcijas teksti (konta dati, mobilais, pārlūks, demo vs konts); dzēš novecojušās **`landing.faq.q_ready`** / **`a_ready`**. Pēc **`012`**.
+   - **`database/supabase/050_site_translations_landing_footer_hero.sql`** – **`landing.hero.subtitle`** ar **`{SYSTEM_NAME}`**; **`landing.footer.byline`** (pārvaldība, ne prototips). Pēc **`012`**.
+   - **`database/supabase/051_system_settings_email_templates.sql`** – **`system_settings.email_templates`** (JSON admin e-pasta dizainam). Pēc **`012`**.
+   - **`database/supabase/052_email_reminder_log.sql`** – žurnāls kavēto maksājumu e-pastu deduplikācijai. Pēc **`001`**.
+   - **`database/supabase/053_site_translations_admin_email_design.sql`** – admin **`/admin/email-design`**. Pēc **`012`**.
+   - **`database/supabase/054_site_translations_admin_email_design_lead.sql`** – admin apraksts par visām e-pasta valodām. Pēc **`053`**.
    - Opcionāli **`002_migrate_profiles_to_users.sql`**, ja projektā bijusi vecā `profiles` shēma.
    - **`database/supabase/003_admin_users_select_policy.sql`** - **`current_user_is_admin()`** (sākotnēji **SECURITY DEFINER**; pēc **`023`** – **SECURITY INVOKER**) + SELECT politika **`users_select_all_if_admin`**. Tas ļauj adminiem (`is_admin > 0`) lasīt visu `public.users` sarakstu **bez** RLS rekursijas. Vecais variants ar `EXISTS (SELECT … FROM public.users …)` politikā izraisīja kļūdu `infinite recursion detected in policy for relation users` - ja to redzi, palaid šo failu **pilnībā** vēlreiz. Bez `003` anon sesijā admin lapa redz tikai savu rindu. **Pēc `022`/`023` politikas un grants atbilst jaunajai kārtībai** (Atkārtota palaišana ir idempotenta, ja izmanto jaunākos failus.)
    - **`database/supabase/004_signup_email_exists_rpc.sql`** - sākotnēja `signup_email_exists` (`SECURITY DEFINER`). **Pēc `023`:** `EXECUTE` tikai **`service_role`**; aplikācija izsauc caur **`signupEmailExistsAction`** ar **`SUPABASE_SERVICE_ROLE_KEY`**. Bez migrācijas **`023`** un bez atslēgas – vecais anon izsaukums var vairs nedarboties pēc grants maiņas.
@@ -246,6 +251,32 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 ## Izmaiņu žurnāls
 
 Šeit īss pieraksts par izlaistām izmaiņām; detalizētākās funkcijas un SQL skatīt augšējās sadaļās.
+
+### 0.3.41 (2026-05-18)
+
+- **Admin – e-pasta dizains** – **`/admin/email-design`**: priekšskatījums un tekstu rediģēšana **visās 7 valodās** (en, fr, de, es, pt, lv, ru) – reģistrācija, parole, magic link, kavēts maksājums u.c.; noklusējuma teksti katrā valodā; saglabāšana **`system_settings.email_templates`**; „Kopēt Supabase” Auth šabloniem. **`lib/emails/*`**, **`054_site_translations_admin_email_design_lead.sql`**, **`051`–`053`**.
+- **Kavēto maksājumu e-pasts** – cron **`GET /api/cron/overdue-payment-emails`** ( **`CRON_SECRET`**, Resend **`RESEND_API_KEY`** + **`EMAIL_FROM`** ); deduplikācija **`052_email_reminder_log.sql`**. ENV: **`supabase.env.template`**.
+
+### 0.3.40 (2026-05-18)
+
+- **Sākumlapa – teksti** – **`landing.footer.byline`**: „pārvaldība” (ne prototips); **`landing.hero.subtitle`**: **`{SYSTEM_NAME}`** vietā fiksēta „SubTrack”; **`050_site_translations_landing_footer_hero.sql`**, **`fallback-phrases.ts`**.
+- **Juridiskās lapas un sīkdatnes** – publiski **`/terms`**, **`/privacy`**, **`/cookies`**; reģistrācijā saites; kājene ar juridiskajām saitēm (arī mobilajā); cookie banner pirmajā apmeklējumā. **`049_site_translations_legal.sql`**, **`components/legal/*`**.
+
+### 0.3.39 (2026-05-18)
+
+- **Sākumlapa – padding pēc ielādes** – FAQ/CTA horizontālā atstarpe vairs **neatkarīga** no `body.landing-page` (bija tikai pēc React `useEffect`); **`--app-shell-pad-x`** uz `.faq-inner`, `.landing-cta`, u.c. vienmēr; sinhrons **`landing-page`** skripts `app/page.tsx`; **`cta-box`** `max-width: 100%`.
+
+### 0.3.38 (2026-05-18)
+
+- **iPhone landscape / Safari** – mobilie stili pārcelti uz **`@media (max-width: 960px)`** (ne tikai 768): viena kolonna panelim un hero mock, **`--app-shell-pad-x`**, apakšējā navigācija; hero **`calc(100% + 20px)`** tikai **≥961px**; iOS **`100dvw`**, **`overflow-x: hidden`**, **`touch-action: pan-y`**.
+
+### 0.3.37 (2026-05-18)
+
+- **Mobilais UI – horizontālais ritms** – kopīgs **`--app-shell-pad-x`** (mobilajā **20px**): topbar, **`main-content`**, landing, admin, auth, apakšējā navigācija; sākumlapas hero mock vairs neizplešas platāk par joslu; admin negatīvās malas saskaņotas ar mainīgo.
+
+### 0.3.36 (2026-05-18)
+
+- **Mobilais UI – horizontālā ritināšana** – iOS / šauros ekrānos novērsta visa sistēma ~20px plata: **`overflow-x: clip`** uz **`html`**, **`body`**, **`.app-layout`**; augšējās joslas ēnu ietver **`dash-topbar-shell`**; **`mobile-bottom-nav`** bez **`width:100%` + `left/right`** konflikta; admin **`admin-body`** mobilajā; **`viewport`** **`app/layout.tsx`**.
 
 ### 0.3.35 (2026-05-18)
 

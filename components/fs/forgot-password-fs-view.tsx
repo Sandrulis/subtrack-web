@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
-import { SiteStandardCopyrightNotice } from "@/components/site-standard-copyright-notice";
+import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
 import {
   requestPasswordResetAction,
   type ForgotPasswordFormState,
@@ -110,9 +110,7 @@ export function ForgotPasswordFsView() {
         )}
       </div>
 
-      <footer className="landing-footer">
-        <SiteStandardCopyrightNotice />
-      </footer>
+      <SiteLandingFooter />
     </>
   );
 }

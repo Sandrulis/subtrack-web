@@ -33,6 +33,16 @@ export function AdminLanguagesIntro() {
   );
 }
 
+export function AdminEmailDesignIntro() {
+  const { t } = useSubtrackIntl();
+  return (
+    <div className="admin-page-head">
+      <h1 className="admin-page-title">{t("admin.email_design.heading")}</h1>
+      <p className="admin-page-lead">{t("admin.email_design.lead")}</p>
+    </div>
+  );
+}
+
 export function AdminTranslationsIntro({ titleActions }: { titleActions?: ReactNode }) {
   const { t } = useSubtrackIntl();
   return (

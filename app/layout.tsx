@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { HtmlLangBridge } from "@/components/html-lang-bridge";
+import { CookieConsentRoot } from "@/components/legal/cookie-consent-root";
 import { SubtrackIntlProvider } from "@/components/subtrack-intl-provider";
 import { getLanguagesCatalog } from "@/lib/languages-catalog";
 import { localeCodeToHtmlLang } from "@/lib/html-lang";
@@ -14,6 +15,11 @@ const inter = Inter({
   variable: "--font-inter",
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const { systemName } = await getPublicSystemSettings();
@@ -68,6 +74,7 @@ export default async function RootLayout({
           dbMap={dbMap}
         >
           {children}
+          <CookieConsentRoot />
         </SubtrackIntlProvider>
       </body>
     </html>

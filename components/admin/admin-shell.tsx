@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
+import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { NavDash } from "@/components/nav-dash";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
@@ -13,6 +14,7 @@ export type AdminNavActive =
   | "system"
   | "languages"
   | "translations"
+  | "email_design"
   | "";
 
 function navActiveFromPath(pathname: string): AdminNavActive {
@@ -27,6 +29,7 @@ function navActiveFromPath(pathname: string): AdminNavActive {
   if (pathname.startsWith("/admin/system")) return "system";
   if (pathname.startsWith("/admin/languages")) return "languages";
   if (pathname.startsWith("/admin/translations")) return "translations";
+  if (pathname.startsWith("/admin/email-design")) return "email_design";
   return "";
 }
 
@@ -43,7 +46,8 @@ const navItems: {
     | "admin.nav.languages"
     | "admin.nav.translations"
     | "admin.nav.integrations"
-    | "admin.nav.system";
+    | "admin.nav.system"
+    | "admin.nav.email_design";
 }[] = [
   { href: "/admin/users", key: "users", labelKey: "admin.nav.users" },
   {
@@ -62,6 +66,11 @@ const navItems: {
     labelKey: "admin.nav.integrations",
   },
   { href: "/admin/system", key: "system", labelKey: "admin.nav.system" },
+  {
+    href: "/admin/email-design",
+    key: "email_design",
+    labelKey: "admin.nav.email_design",
+  },
 ];
 
 export function AdminShell({
@@ -123,7 +132,8 @@ export function AdminShell({
         </aside>
         <div className="admin-main">{children}</div>
       </div>
-      <footer className="landing-footer admin-footer">
+      <footer className="landing-footer landing-footer--with-legal admin-footer">
+        <LegalFooterLinks />
         <p>
           &copy; {year} {systemSiteName}. {t("admin.footer.rights_reserved")}
         </p>

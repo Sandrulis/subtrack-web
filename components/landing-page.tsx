@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { calendarWeekdayHeadersForIntl } from "@/lib/calendar-weekday-headers";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
@@ -375,7 +376,6 @@ const FEATURE_ROWS = [
 
 export function LandingPageContent() {
   const { t, locale, systemSiteName, paidPlan } = useSubtrackIntl();
-  const year = new Date().getFullYear();
   const intlLocale = useMemo(() => uiLocaleCodeToBcp47ForIntl(locale), [locale]);
 
   const paidPitch = useMemo(() => {
@@ -622,11 +622,7 @@ export function LandingPageContent() {
         </div>
       </section>
 
-      <footer className="landing-footer">
-        <p>
-          © {year} {systemSiteName} — {t("landing.footer.byline")}
-        </p>
-      </footer>
+      <SiteLandingFooter byline />
     </>
   );
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { DemoTopbar } from "@/components/demo/demo-topbar";
-import { SiteStandardCopyrightNotice } from "@/components/site-standard-copyright-notice";
+import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import type { DemoAnalyticsSnapshot } from "@/lib/demo/build-demo-analytics-snapshot";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
@@ -170,9 +170,7 @@ export function DemoAnalyticsPage({
           </div>
         </div>
       </main>
-      <footer className="landing-footer">
-        <SiteStandardCopyrightNotice />
-      </footer>
+      <SiteLandingFooter />
     </div>
   );
 }

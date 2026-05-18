@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ChangePasswordForm } from "@/components/change-password-form";
 import { FlashParamToast } from "@/components/flash-param-toast";
 import { NavDash } from "@/components/nav-dash";
-import { SiteStandardCopyrightNotice } from "@/components/site-standard-copyright-notice";
+import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 
@@ -37,9 +37,7 @@ export function ChangePasswordFsView({
         </div>
       </div>
 
-      <footer className="landing-footer">
-        <SiteStandardCopyrightNotice />
-      </footer>
+      <SiteLandingFooter />
 
       <div className="toast-container toast-container--auth-pages">
         <FlashParamToast error={flashError} message={flashMessage} />

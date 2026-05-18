@@ -3,7 +3,7 @@ import { AuthSignupCard } from "@/components/auth/auth-signup-flow";
 import { AuthToastsHost } from "@/components/auth-toasts-host";
 import { FsScripts } from "@/components/fs/load-fs-scripts";
 import { NavLanding } from "@/components/nav-landing";
-import { SiteStandardCopyrightNotice } from "@/components/site-standard-copyright-notice";
+import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
 import { getLoginSocialIntegrationFlags } from "@/lib/integrations/login-social-flags";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
@@ -36,9 +36,7 @@ export default async function SignupPage({
           />
         </div>
 
-        <footer className="landing-footer">
-          <SiteStandardCopyrightNotice />
-        </footer>
+        <SiteLandingFooter />
 
         <FsScripts srcs={SIGNUP_SCRIPTS} />
       </AuthToastsHost>

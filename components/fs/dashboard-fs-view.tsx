@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { NavDash } from "@/components/nav-dash";
-import { SiteStandardCopyrightNotice } from "@/components/site-standard-copyright-notice";
+import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
 import {
   ensureAuthedNotifyScriptsLoaded,
   loadScriptOnce,
@@ -291,9 +291,7 @@ export function DashboardFsView({
           </div>
         </main>
 
-        <footer className="landing-footer">
-          <SiteStandardCopyrightNotice />
-        </footer>
+        <SiteLandingFooter />
       </div>
 
       <div

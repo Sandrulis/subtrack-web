@@ -106,5 +106,22 @@ export function applyUiLocaleInBrowser(code: string): void {
   if (!isValidPreferredLanguageCode(code)) return;
   const norm = code.trim().toLowerCase();
   document.documentElement.lang = localeCodeToHtmlLang(norm);
+  if (!canSetFunctionalCookiesInBrowser()) return;
   document.cookie = `${SUBTRACK_UI_LOCALE_COOKIE}=${encodeURIComponent(norm)};path=/;max-age=31536000;samesite=lax`;
+}
+
+function canSetFunctionalCookiesInBrowser(): boolean {
+  if (typeof document === "undefined") return true;
+  const match = document.cookie
+    .split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith("subtrack_cookie_consent_v1="));
+  if (!match) return true;
+  try {
+    const raw = decodeURIComponent(match.slice("subtrack_cookie_consent_v1=".length));
+    const o = JSON.parse(raw) as { functional?: boolean };
+    return o.functional !== false;
+  } catch {
+    return true;
+  }
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AuthFormPendingFieldset } from "@/components/auth/auth-form-pending-fieldset";
 import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import Link from "next/link";
 import { signUpAction, signupEmailExistsAction } from "@/lib/auth/actions";
 import {
   PASSWORD_STRENGTH_META,
@@ -293,9 +294,9 @@ export function SignupForm() {
 
       <p className="auth-legal-note">
         {t("auth.signup.legal_intro")}
-        <a href="#">{t("auth.signup.legal_terms")}</a>
+        <Link href="/terms">{t("auth.signup.legal_terms")}</Link>
         {t("auth.signup.legal_and")}
-        <a href="#">{t("auth.signup.legal_privacy")}</a>
+        <Link href="/privacy">{t("auth.signup.legal_privacy")}</Link>
       </p>
     </form>
   );

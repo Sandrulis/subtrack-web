@@ -15,7 +15,7 @@ import {
   writeDisplayPreferencesToLocalStorage,
 } from "@/lib/user-display-preferences";
 import type { SettingsLanguageOption } from "@/components/fs/settings-fs-view";
-import { SiteStandardCopyrightNotice } from "@/components/site-standard-copyright-notice";
+import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
 import { applyUiLocaleInBrowser } from "@/lib/html-lang";
 import { pushDomToast } from "@/lib/push-dom-toast";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
@@ -394,9 +394,7 @@ export function SettingsFsViewClient({
         </div>
       </div>
 
-      <footer className="landing-footer">
-        <SiteStandardCopyrightNotice />
-      </footer>
+      <SiteLandingFooter />
 
       <div className="toast-container toast-container--auth-pages" id="toast-container" />
     </>
