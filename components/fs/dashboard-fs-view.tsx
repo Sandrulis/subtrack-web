@@ -7,12 +7,15 @@ import {
   ensureAuthedNotifyScriptsLoaded,
   loadScriptOnce,
 } from "@/components/fs/load-fs-scripts";
+import { FsDemoDashboardWindowFlag } from "@/components/fs/fs-demo-window-flags";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { getFsIconPickerSearchBootstrap } from "@/lib/fs-icon-picker-search";
 import { FA_ICONS_ALL, FS_COLOR_DOTS } from "@/lib/fs-icons";
 import type { SubscriptionClient } from "@/lib/subscriptions/subscription-client";
+import type { DashboardFreeTierGatePayload } from "@/lib/subscriptions/dashboard-free-tier-gate";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { SubtrackTooltip } from "@/components/subtrack-tooltip";
+import Link from "next/link";
 
 const SUBTRACK_ICON_SEARCH_BOOTSTRAP = JSON.stringify({
   icons: getFsIconPickerSearchBootstrap(),
@@ -21,16 +24,27 @@ const SUBTRACK_ICON_SEARCH_BOOTSTRAP = JSON.stringify({
 export function DashboardFsView({
   userDisplay,
   initialSubscriptions,
+  freeTierGate,
+  demoMode = false,
 }: {
   userDisplay?: NavUserDisplay | null;
   initialSubscriptions: SubscriptionClient[];
+  freeTierGate: DashboardFreeTierGatePayload;
+  /** Publiskais `/demo/dashboard`: bez API, navigācija paliek demo maršrutos. */
+  demoMode?: boolean;
 }) {
-  const { t } = useSubtrackIntl();
+  const { t, paidPlan } = useSubtrackIntl();
   const calPaidToggleLabel = t("fs.dashboard.cal_toggle_all_payments_label");
   const calPaidToggleHint = t("fs.dashboard.cal_toggle_all_payments_hint");
   const calPaidToggleTitle = [calPaidToggleLabel, calPaidToggleHint]
     .filter((s) => typeof s === "string" && s.trim().length > 0)
     .join(" – ");
+
+  const showGetProLink =
+    freeTierGate.enforcement === true && freeTierGate.isPaidUser !== true;
+
+  const showCalendar =
+    !freeTierGate.enforcement || freeTierGate.isPaidUser === true;
 
   useEffect(() => {
     let cancelled = false;
@@ -52,26 +66,65 @@ export function DashboardFsView({
 
   return (
     <>
-      <script
+      {demoMode ? <FsDemoDashboardWindowFlag /> : null}
+      <template
         id="subtrack-subs-bootstrap-json"
-        type="application/json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(initialSubscriptions).replace(/</g, "\\u003c"),
         }}
       />
-      <script
+      <template
         id="subtrack-icon-search-bootstrap"
-        type="application/json"
         dangerouslySetInnerHTML={{ __html: SUBTRACK_ICON_SEARCH_BOOTSTRAP }}
       />
+      <template
+        id="subtrack-free-tier-gate-json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(freeTierGate).replace(/</g, "\\u003c"),
+        }}
+      />
       <div className="app-layout app-layout-stacked">
-        <NavDash active="dashboard" userDisplay={userDisplay} />
+        <NavDash
+          active="dashboard"
+          userDisplay={userDisplay}
+          demoMode={demoMode}
+        />
+        {demoMode ? (
+          <div className="subtrack-demo-banner" role="status">
+            <div className="subtrack-demo-banner-inner">
+              <i className="fa-solid fa-circle-info" aria-hidden="true" />
+              <p>{t("demo.banner")}</p>
+              <Link
+                href="/signup"
+                className="btn btn-primary btn-sm subtrack-demo-banner-cta"
+              >
+                {t("landing.hero.cta_signup")}
+                <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+        ) : null}
         <main className="main-content">
           <div className="dashboard-overview">
-            <div className="dashboard-overview-main">
+            <div
+              className={
+                "dashboard-overview-main" +
+                (showCalendar ? "" : " dashboard-overview-main--no-calendar")
+              }
+            >
+            {showCalendar ? (
               <div className="dashboard-overview-calendar-col">
                 <div className="dashboard-top-calendar">
                   <div className="pay-calendar-card">
+                    {demoMode && paidPlan.enabled ? (
+                      <span
+                        className="dash-nav-pro-pill pay-calendar-pro-badge"
+                        title={t("nav.analytics_demo_hint")}
+                        aria-label={t("nav.analytics_demo_hint")}
+                      >
+                        {t("nav.pro_badge")}
+                      </span>
+                    ) : null}
                     <div className="pay-calendar-toolbar">
                       <button
                         type="button"
@@ -138,21 +191,30 @@ export function DashboardFsView({
                   </div>
                 </div>
               </div>
+            ) : null}
 
-              <div className="dashboard-overview-right-col">
+            <div className="dashboard-overview-right-col">
                 <div className="dashboard-overview-head-col">
                   <div className="page-header">
                     <div>
                       <h1 className="page-title">{t("landing.mock.subscriptions_title")}</h1>
                       <p className="page-subtitle">{t("landing.mock.subscriptions_subtitle")}</p>
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={() => window.openAddModal?.()}
-                    >
-                      <i className="fa-solid fa-plus" /> {t("landing.mock.btn_add")}
-                    </button>
+                    <div className="page-header-actions-column">
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        data-subtrack-add-sub="1"
+                        onClick={() => window.openAddModal?.()}
+                      >
+                        <i className="fa-solid fa-plus" /> {t("landing.mock.btn_add")}
+                      </button>
+                      {showGetProLink ? (
+                        <Link href="/subscribe" className="dashboard-get-pro-link">
+                          {t("dashboard.link_get_pro")}
+                        </Link>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
 
@@ -214,10 +276,16 @@ export function DashboardFsView({
                 <button
                   type="button"
                   className="btn btn-primary"
+                  data-subtrack-add-sub="1"
                   onClick={() => window.openAddModal?.()}
                 >
                   <i className="fa-solid fa-plus" /> {t("fs.dashboard.empty_cta")}
                 </button>
+                {showGetProLink ? (
+                  <Link href="/subscribe" className="dashboard-get-pro-link dashboard-get-pro-link--empty">
+                    {t("dashboard.link_get_pro")}
+                  </Link>
+                ) : null}
               </div>
             </div>
           </div>

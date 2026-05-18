@@ -3,6 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdminUser } from "@/lib/auth/require-admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 import {
   sanitizeDisplayPreferencesPartial,
   type DisplayPreferences,
@@ -25,6 +26,13 @@ const TIMEZONES = new Set<string>([
 
 function readFormString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
+}
+
+function readFormBool(formData: FormData, key: string): boolean {
+  const v = String(formData.get(key) ?? "")
+    .trim()
+    .toLowerCase();
+  return v === "1" || v === "true" || v === "on" || v === "yes";
 }
 
 function validateSystemName(raw: string): string | null {
@@ -69,6 +77,30 @@ export async function saveSystemSettingsAction(
     return { ok: false, message: "Nederīga laika zonas izvēle." };
   }
 
+  const paid_plan_enabled = readFormBool(formData, "paid_plan_enabled");
+  const priceStr = readFormString(formData, "paid_plan_price_eur").replace(",", ".");
+  const price = Number.parseFloat(priceStr);
+  if (!Number.isFinite(price) || price < 0.01 || price > 9999.99) {
+    return {
+      ok: false,
+      message: await getUiPhraseForRequest("admin.forms.err_paid_plan_price"),
+    };
+  }
+  const limitRaw = readFormString(formData, "paid_plan_free_subscription_limit");
+  if (!/^\d+$/.test(limitRaw)) {
+    return {
+      ok: false,
+      message: await getUiPhraseForRequest("admin.forms.err_paid_plan_limit"),
+    };
+  }
+  const limit = Number.parseInt(limitRaw, 10);
+  if (limit > 100000) {
+    return {
+      ok: false,
+      message: await getUiPhraseForRequest("admin.forms.err_paid_plan_limit"),
+    };
+  }
+
   const supabase = await createServerSupabaseClient();
 
   const { error } = await supabase
@@ -76,14 +108,20 @@ export async function saveSystemSettingsAction(
     .update({
       system_name,
       default_display_preferences: partial,
+      paid_plan_enabled,
+      paid_plan_price_eur: Math.round(price * 100) / 100,
+      paid_plan_free_subscription_limit: limit,
     })
     .eq("id", 1);
 
   if (error) {
-    const msg =
-      /relation .* does not exist/i.test(error.message) || /schema cache/i.test(error.message)
-        ? "Migrācija `database/supabase/012_system_settings.sql` vēl nav palaista."
-        : error.message;
+    let msg = error.message;
+    if (/paid_plan/i.test(msg) && /column/i.test(msg)) {
+      msg =
+        "Migrācija `database/supabase/027_paid_plan.sql` vēl nav palaista (trēkst kolonnas).";
+    } else if (/relation .* does not exist/i.test(msg) || /schema cache/i.test(msg)) {
+      msg = "Migrācija `database/supabase/012_system_settings.sql` vēl nav palaista.";
+    }
     return { ok: false, message: msg };
   }
 

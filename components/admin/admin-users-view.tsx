@@ -2,8 +2,11 @@
 
 import { SubtrackTooltip } from "@/components/subtrack-tooltip";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import { pushDomToast } from "@/lib/push-dom-toast";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
-import { useMemo } from "react";
+import { navUserHasProEntitlement } from "@/lib/auth/pro-plan-access";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 
 export type AdminUsersViewUser = {
   id: string;
@@ -12,6 +15,9 @@ export type AdminUsersViewUser = {
   email: string;
   is_admin: number;
   created_at: string;
+  /** Kad `paid_plan_enabled` un kolonna pieejama no DB */
+  paidPlanActive?: boolean;
+  proVip?: boolean;
 };
 
 type SubscriptionCategory =
@@ -38,6 +44,8 @@ export type AdminUsersCountsSerializable = Partial<
 type AdminUsersViewProps = {
   users: AdminUsersViewUser[];
   countsByUserId: Record<string, AdminUsersCountsSerializable> | null;
+  /** Ja true, rāda VIP slēdzi (`system_settings.paid_plan_enabled`); Pro – kronītis pie avatāra. */
+  paidPlanEnabled?: boolean;
   fetchError?: string | null;
   subscriptionsFetchError?: string | null;
 };
@@ -45,6 +53,7 @@ type AdminUsersViewProps = {
 export function AdminUsersView({
   users,
   countsByUserId,
+  paidPlanEnabled = false,
   fetchError,
   subscriptionsFetchError,
 }: AdminUsersViewProps) {
@@ -107,24 +116,41 @@ export function AdminUsersView({
                   <th className="admin-table-col-counts">
                     {t("admin.users.col_records")}
                   </th>
-                  <th className="admin-table-col-role">
-                    {t("admin.users.col_role")}
-                  </th>
+                  {paidPlanEnabled ? (
+                    <th className="admin-table-col-vip">
+                      {t("admin.users.col_vip")}
+                    </th>
+                  ) : null}
                   <th className="admin-table-col-registered">
                     {t("admin.users.col_registered")}
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => (
-                  <tr key={u.id}>
+                {users.map((u) => {
+                  const hasPro = navUserHasProEntitlement({
+                    paidPlanActive: u.paidPlanActive === true,
+                    proVip: u.proVip === true,
+                  });
+                  return (
+                    <tr key={u.id}>
                     <td>
                       <div className="admin-user-cell">
-                        <SubtrackTooltip label={fullDisplayName(u)}>
-                          <span className="admin-user-avatar" aria-hidden>
-                            {userAvatarInitials(u.name, u.surname, u.email)}
-                          </span>
-                        </SubtrackTooltip>
+                        <div className="admin-user-avatar-wrap">
+                          {hasPro ? (
+                            <span
+                              className="admin-user-paid-crown"
+                              aria-hidden="true"
+                            >
+                              <i className="fa-solid fa-crown" />
+                            </span>
+                          ) : null}
+                          <SubtrackTooltip label={fullDisplayName(u)}>
+                            <span className="admin-user-avatar" aria-hidden>
+                              {userAvatarInitials(u.name, u.surname, u.email)}
+                            </span>
+                          </SubtrackTooltip>
+                        </div>
                         <div className="admin-user-meta">
                           <div className="admin-user-name">
                             {fullDisplayName(u)}
@@ -132,6 +158,21 @@ export function AdminUsersView({
                           <div className="admin-user-email">
                             {u.email?.trim() || "–"}
                           </div>
+                          {u.is_admin > 0 ? (
+                            <div className="admin-user-role-under-email">
+                              <span className="admin-badge admin-badge--admin">
+                                {t("admin.users.role_admin")}
+                              </span>
+                            </div>
+                          ) : null}
+                          {hasPro ? (
+                            <span
+                              className="admin-user-pro-crown-mobile-only"
+                              aria-hidden="true"
+                            >
+                              <i className="fa-solid fa-crown" />
+                            </span>
+                          ) : null}
                           <div className="admin-user-registered-mobile">
                             <span className="admin-user-meta-mobile-label">
                               {t("admin.users.col_registered")}
@@ -140,22 +181,19 @@ export function AdminUsersView({
                               {formatDateTimeIntl(u.created_at, intlLocale)}
                             </span>
                           </div>
-                          <div className="admin-user-role-mobile">
-                            <span className="admin-user-meta-mobile-label">
-                              {t("admin.users.col_role")}
-                            </span>
-                            <span className="admin-user-meta-mobile-value">
-                              {u.is_admin > 0 ? (
-                                <span className="admin-badge admin-badge--admin">
-                                  {t("admin.users.role_admin")}
-                                </span>
-                              ) : (
-                                <span className="admin-badge">
-                                  {t("admin.users.role_user")}
-                                </span>
-                              )}
-                            </span>
-                          </div>
+                          {paidPlanEnabled ? (
+                            <div className="admin-user-vip-mobile">
+                              <span className="admin-user-meta-mobile-label">
+                                {t("admin.users.col_vip")}
+                              </span>
+                              <span className="admin-user-meta-mobile-value">
+                                <AdminUserVipSwitch
+                                  userId={u.id}
+                                  checked={u.proVip === true}
+                                />
+                              </span>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     </td>
@@ -165,28 +203,83 @@ export function AdminUsersView({
                         subsLoaded={!subscriptionsFetchError}
                       />
                     </td>
-                    <td className="admin-table-col-role">
-                      {u.is_admin > 0 ? (
-                        <span className="admin-badge admin-badge--admin">
-                          {t("admin.users.role_admin")}
-                        </span>
-                      ) : (
-                        <span className="admin-badge">
-                          {t("admin.users.role_user")}
-                        </span>
-                      )}
-                    </td>
+                    {paidPlanEnabled ? (
+                      <td className="admin-table-col-vip">
+                        <AdminUserVipSwitch
+                          userId={u.id}
+                          checked={u.proVip === true}
+                        />
+                      </td>
+                    ) : null}
                     <td className="admin-table-col-registered">
                       {formatDateTimeIntl(u.created_at, intlLocale)}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </>
       )}
     </div>
+  );
+}
+
+function AdminUserVipSwitch({
+  userId,
+  checked,
+}: {
+  userId: string;
+  checked: boolean;
+}) {
+  const { t } = useSubtrackIntl();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+
+  async function toggle() {
+    if (busy) return;
+    const next = !checked;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/users/pro-vip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, proVip: next }),
+      });
+      let data: { success?: boolean; message?: string } = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+      if (!res.ok || data.success !== true) {
+        pushDomToast(data.message ?? t("admin.users.err_vip_update"), "error");
+        return;
+      }
+      pushDomToast(t("admin.users.vip_saved"), "success");
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      className={`admin-switch${checked ? " is-on" : ""}`}
+      aria-checked={checked}
+      aria-label={t("admin.users.vip_toggle_aria")}
+      aria-busy={busy}
+      disabled={busy}
+      onClick={() => {
+        void toggle();
+      }}
+    >
+      <span className="admin-switch-track" aria-hidden />
+      <span className="admin-switch-thumb" aria-hidden />
+    </button>
   );
 }
 

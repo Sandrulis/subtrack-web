@@ -1,7 +1,10 @@
 "use client";
 
+import { NavUiLanguageSwitcher } from "@/components/nav-ui-language-switcher";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
+import { canAccessAnalytics } from "@/lib/subscriptions/analytics-access";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { AuthedNotifyBootstrap } from "@/components/authed-notify-bootstrap";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
@@ -16,7 +19,11 @@ type NavLandingProps = {
 };
 
 export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
-  const { t, systemSiteName } = useSubtrackIntl();
+  const { t, systemSiteName, paidPlan } = useSubtrackIntl();
+  const pathname = usePathname() ?? "";
+  const showAuthedAnalytics =
+    Boolean(userDisplay) && canAccessAnalytics(paidPlan, userDisplay);
+  const authedAnalyticsPathActive = pathname.startsWith("/analytics");
   return (
     <>
     <AuthedNotifyBootstrap enabled={Boolean(userDisplay)} />
@@ -55,22 +62,35 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                     </svg>
                     <span className="dash-nav-link-text">{t("nav.dashboard")}</span>
                   </Link>
-                  <Link href="/analytics" className="dash-nav-link">
-                    <svg
-                      className="dash-icon"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                      focusable="false"
+                  {showAuthedAnalytics ? (
+                    <Link
+                      href="/analytics"
+                      className={
+                        "dash-nav-link" +
+                        (authedAnalyticsPathActive ? " is-active" : "")
+                      }
+                      aria-current={
+                        authedAnalyticsPathActive ? "page" : undefined
+                      }
                     >
-                      <path
-                        fill="currentColor"
-                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8h8c0 4.41-3.59 8-8 8z"
-                      />
-                    </svg>
-                    <span className="dash-nav-link-text">{t("nav.analytics")}</span>
-                  </Link>
+                      <svg
+                        className="dash-icon"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <path
+                          fill="currentColor"
+                          d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8h8c0 4.41-3.59 8-8 8z"
+                        />
+                      </svg>
+                      <span className="dash-nav-link-text">
+                        {t("nav.analytics")}
+                      </span>
+                    </Link>
+                  ) : null}
                   {userDisplay.isAdmin ? (
                     <Link href="/admin" prefetch={false} className="dash-nav-link">
                       <svg
@@ -166,6 +186,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
               />
             ) : (
               <div className="dash-actions">
+                <NavUiLanguageSwitcher layout="topbar" />
                 <Link
                   href="/login"
                   className={
@@ -220,6 +241,8 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
     <MobileBottomNav
       mode={userDisplay ? "authed" : "guest"}
       isAdmin={Boolean(userDisplay?.isAdmin)}
+      showAnalytics={showAuthedAnalytics}
+      analyticsHref="/analytics"
     />
     </>
   );

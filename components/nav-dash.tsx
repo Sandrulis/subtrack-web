@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
+import { canAccessAnalytics } from "@/lib/subscriptions/analytics-access";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { AuthedNotifyBootstrap } from "@/components/authed-notify-bootstrap";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
@@ -13,24 +14,44 @@ type NavDashProps = {
   active?: NavDashActive;
   /** Ja nav (neliels SSR robežgadījums), rāda īsu rezerves tekstu. */
   userDisplay?: NavUserDisplay | null;
+  /**
+   * `/demo/*` maršruti: paneļa un analītikas saites paliek demonstrācijā
+   * un mobilā josla izmanto `mode="demo"`.
+   */
+  demoMode?: boolean;
 };
 
-export function NavDash({ active = "", userDisplay }: NavDashProps) {
-  const { t, systemSiteName } = useSubtrackIntl();
+export function NavDash({ active = "", userDisplay, demoMode = false }: NavDashProps) {
+  const { t, systemSiteName, paidPlan } = useSubtrackIntl();
+  const analyticsHref = demoMode ? "/demo/analytics" : "/analytics";
+  const dashboardHref = demoMode ? "/demo/dashboard" : "/dashboard";
+  const showAnalyticsNav =
+    demoMode || canAccessAnalytics(paidPlan, userDisplay);
   return (
     <>
-    <AuthedNotifyBootstrap enabled={Boolean(userDisplay)} />
+    <AuthedNotifyBootstrap
+      enabled={Boolean(userDisplay) || demoMode}
+      reloadSubscriptionsFromBootstrap={demoMode}
+    />
     <header className="dash-topbar">
       <div className="dash-topbar-shell">
         <div className="dash-topbar-inner">
           <div className="dash-topbar-left">
-            <Link href="/dashboard" className="dash-brand">
+            <Link href={dashboardHref} className="dash-brand">
               <span className="dash-brand-text">{systemSiteName}</span>
             </Link>
+            {demoMode ? (
+              <span
+                className="subtrack-demo-topbar-badge"
+                title={t("demo.banner")}
+              >
+                {t("demo.nav.badge")}
+              </span>
+            ) : null}
             <span className="dash-topbar-rule" aria-hidden="true" />
             <nav className="dash-nav-links" aria-label={t("nav.primary")}>
               <Link
-                href="/dashboard"
+                href={dashboardHref}
                 className={
                   "dash-nav-link" + (active === "dashboard" ? " is-active" : "")
                 }
@@ -51,28 +72,30 @@ export function NavDash({ active = "", userDisplay }: NavDashProps) {
                 </svg>
                 <span className="dash-nav-link-text">{t("nav.dashboard")}</span>
               </Link>
-              <Link
-                href="/analytics"
-                className={
-                  "dash-nav-link" + (active === "analytics" ? " is-active" : "")
-                }
-                aria-current={active === "analytics" ? "page" : undefined}
-              >
-                <svg
-                  className="dash-icon"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                  focusable="false"
+              {showAnalyticsNav ? (
+                <Link
+                  href={analyticsHref}
+                  className={
+                    "dash-nav-link" + (active === "analytics" ? " is-active" : "")
+                  }
+                  aria-current={active === "analytics" ? "page" : undefined}
                 >
-                  <path
-                    fill="currentColor"
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8h8c0 4.41-3.59 8-8 8z"
-                  />
-                </svg>
-                <span className="dash-nav-link-text">{t("nav.analytics")}</span>
-              </Link>
+                  <svg
+                    className="dash-icon"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      fill="currentColor"
+                      d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8h8c0 4.41-3.59 8-8 8z"
+                    />
+                  </svg>
+                  <span className="dash-nav-link-text">{t("nav.analytics")}</span>
+                </Link>
+              ) : null}
               {userDisplay?.isAdmin ? (
                 <Link
                   href="/admin"
@@ -106,7 +129,12 @@ export function NavDash({ active = "", userDisplay }: NavDashProps) {
         </div>
       </div>
     </header>
-    <MobileBottomNav mode="authed" isAdmin={Boolean(userDisplay?.isAdmin)} />
+    <MobileBottomNav
+      mode={demoMode ? "demo" : "authed"}
+      isAdmin={Boolean(userDisplay?.isAdmin)}
+      showAnalytics={showAnalyticsNav}
+      analyticsHref={analyticsHref}
+    />
     </>
   );
 }

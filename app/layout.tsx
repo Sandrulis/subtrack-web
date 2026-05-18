@@ -10,7 +10,7 @@ import {
   SUBTRACK_UI_LOCALE_COOKIE,
 } from "@/lib/html-lang";
 import { getPublicSiteTranslationsMerged } from "@/lib/site-translations-public";
-import { getSystemSiteName } from "@/lib/system-settings-public";
+import { getPublicSystemSettings } from "@/lib/system-settings-public";
 import { resolveUiLocaleCodeFromRequest } from "@/lib/ui/ui-locale-from-request";
 
 const inter = Inter({
@@ -20,7 +20,7 @@ const inter = Inter({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const systemName = await getSystemSiteName();
+  const { systemName } = await getPublicSystemSettings();
   return {
     title: {
       default: systemName,
@@ -47,10 +47,11 @@ export default async function RootLayout({
     acceptLanguage,
     catalog,
   );
-  const [dbMap, systemSiteName] = await Promise.all([
+  const [dbMap, publicSettings] = await Promise.all([
     getPublicSiteTranslationsMerged(uiLocaleCode, catalog.defaultCode),
-    getSystemSiteName(),
+    getPublicSystemSettings(),
   ]);
+  const systemSiteName = publicSettings.systemName;
 
   return (
     <html
@@ -68,7 +69,13 @@ export default async function RootLayout({
       </head>
       <body className={inter.className}>
         <HtmlLangBridge defaultInterfaceLanguageCode={catalog.defaultCode} />
-        <SubtrackIntlProvider locale={uiLocaleCode} systemSiteName={systemSiteName} dbMap={dbMap}>
+        <SubtrackIntlProvider
+          locale={uiLocaleCode}
+          systemSiteName={systemSiteName}
+          paidPlan={publicSettings.paidPlan}
+          languageOptions={catalog.options}
+          dbMap={dbMap}
+        >
           {children}
         </SubtrackIntlProvider>
       </body>

@@ -14,15 +14,48 @@ export type AdminSystemPanelProps = {
   loadError: string | null;
   initialSystemName: string;
   initialDefaults: DisplayPreferences;
+  initialPaidPlan: {
+    enabled: boolean;
+    priceEur: number;
+    freeSubscriptionLimit: number;
+  };
 };
 
 const AUTOSAVE_DEBOUNCE_MS = 450;
 
 type SaveHud = "idle" | "saving" | "saved";
 
+function PaidPlanSwitch({
+  checked,
+  disabled,
+  onCheckedChange,
+  ariaLabelledBy,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onCheckedChange: (next: boolean) => void;
+  ariaLabelledBy: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      className={`admin-switch${checked ? " is-on" : ""}`}
+      aria-checked={checked}
+      aria-labelledby={ariaLabelledBy}
+      disabled={disabled}
+      onClick={() => onCheckedChange(!checked)}
+    >
+      <span className="admin-switch-track" aria-hidden />
+      <span className="admin-switch-thumb" aria-hidden />
+    </button>
+  );
+}
+
 function buildFormData(
   systemName: string,
   prefs: DisplayPreferences,
+  paid: { enabled: boolean; priceEur: number; freeSubscriptionLimit: number },
 ): FormData | null {
   const name = systemName.trim();
   if (!name) {
@@ -37,6 +70,9 @@ function buildFormData(
   fd.set("time_sep", prefs.time_sep);
   fd.set("timezone", prefs.timezone);
   fd.set("week_start", prefs.week_start);
+  fd.set("paid_plan_enabled", paid.enabled ? "1" : "0");
+  fd.set("paid_plan_price_eur", paid.priceEur.toFixed(2));
+  fd.set("paid_plan_free_subscription_limit", String(paid.freeSubscriptionLimit));
   return fd;
 }
 
@@ -45,7 +81,9 @@ function fdSignature(fd: FormData): string {
     `${String(fd.get("system_name"))}\0${String(fd.get("currency"))}` +
     `\0${String(fd.get("date_order"))}\0${String(fd.get("date_sep"))}` +
     `\0${String(fd.get("time_format"))}\0${String(fd.get("time_sep"))}` +
-    `\0${String(fd.get("timezone"))}\0${String(fd.get("week_start"))}`
+    `\0${String(fd.get("timezone"))}\0${String(fd.get("week_start"))}` +
+    `\0${String(fd.get("paid_plan_enabled"))}\0${String(fd.get("paid_plan_price_eur"))}` +
+    `\0${String(fd.get("paid_plan_free_subscription_limit"))}`
   );
 }
 
@@ -53,12 +91,20 @@ export function AdminSystemPanel({
   loadError,
   initialSystemName,
   initialDefaults,
+  initialPaidPlan,
 }: AdminSystemPanelProps) {
   const { t, locale } = useSubtrackIntl();
   const [systemName, setSystemName] = useState(initialSystemName);
   const [prefs, setPrefs] = useState<DisplayPreferences>(() => ({
     ...initialDefaults,
   }));
+  const [paidPlanEnabled, setPaidPlanEnabled] = useState(initialPaidPlan.enabled);
+  const [paidPlanPrice, setPaidPlanPrice] = useState(
+    initialPaidPlan.priceEur.toFixed(2),
+  );
+  const [paidPlanFreeLimit, setPaidPlanFreeLimit] = useState(
+    String(initialPaidPlan.freeSubscriptionLimit),
+  );
   const [saveHud, setSaveHud] = useState<SaveHud>("idle");
 
   const hydratedRef = useRef(false);
@@ -72,8 +118,17 @@ export function AdminSystemPanel({
   const snapshotRef = useRef({
     systemName: initialSystemName,
     prefs: initialDefaults,
+    paid: initialPaidPlan,
   });
-  snapshotRef.current = { systemName, prefs };
+  snapshotRef.current = {
+    systemName,
+    prefs,
+    paid: {
+      enabled: paidPlanEnabled,
+      priceEur: Number.parseFloat(String(paidPlanPrice).replace(",", ".")) || 0,
+      freeSubscriptionLimit: Number.parseInt(paidPlanFreeLimit, 10) || 0,
+    },
+  };
 
   const intlLocale = useMemo(() => uiLocaleCodeToBcp47ForIntl(locale), [locale]);
 
@@ -89,8 +144,8 @@ export function AdminSystemPanel({
 
   async function persistFlushSilent(): Promise<void> {
     if (!hydratedRef.current || loadErrRef.current) return;
-    const { systemName: sn, prefs: p } = snapshotRef.current;
-    const fd = buildFormData(sn, p);
+    const { systemName: sn, prefs: p, paid: pd } = snapshotRef.current;
+    const fd = buildFormData(sn, p, pd);
     if (!fd) return;
     const sig = fdSignature(fd);
     if (sig === persistedSigRef.current) return;
@@ -104,8 +159,8 @@ export function AdminSystemPanel({
 
   async function persistDebouncedUi(): Promise<void> {
     if (loadErrRef.current) return;
-    const { systemName: sn, prefs: p } = snapshotRef.current;
-    const fd = buildFormData(sn, p);
+    const { systemName: sn, prefs: p, paid: pd } = snapshotRef.current;
+    const fd = buildFormData(sn, p, pd);
     if (!fd) {
       pushDomToast(t("admin.forms.err_system_name_required"), "error");
       return;
@@ -150,10 +205,10 @@ export function AdminSystemPanel({
   useEffect(() => {
     queueMicrotask(() => {
       hydratedRef.current = true;
-      const fd = buildFormData(initialSystemName, initialDefaults);
+      const fd = buildFormData(initialSystemName, initialDefaults, initialPaidPlan);
       if (fd) persistedSigRef.current = fdSignature(fd);
     });
-  }, [initialDefaults, initialSystemName]);
+  }, [initialDefaults, initialSystemName, initialPaidPlan]);
 
   useEffect(() => {
     return () => {
@@ -212,6 +267,72 @@ export function AdminSystemPanel({
               }}
             />
           </div>
+
+          <p className="form-section-label" style={{ marginTop: "20px" }}>
+            {t("admin.forms.section_paid_plan")}
+          </p>
+          <p className="form-hint" style={{ marginTop: 0 }}>
+            {t("admin.forms.paid_plan_hint")}
+          </p>
+          <div
+            className="form-group"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <PaidPlanSwitch
+              checked={paidPlanEnabled}
+              disabled={loadError !== null}
+              onCheckedChange={(next) => {
+                setPaidPlanEnabled(next);
+                scheduleAutosave();
+              }}
+              ariaLabelledBy="sys_paid_toggle_label"
+            />
+            <span id="sys_paid_toggle_label">{t("admin.forms.paid_plan_enable")}</span>
+          </div>
+          {paidPlanEnabled ? (
+            <div className="form-row" style={{ marginTop: 12 }}>
+              <div className="form-group">
+                <label htmlFor="sys_paid_price">{t("admin.forms.label_paid_plan_price")}</label>
+                <input
+                  id="sys_paid_price"
+                  type="number"
+                  name="paid_plan_price_eur"
+                  min={0.01}
+                  max={9999.99}
+                  step={0.01}
+                  value={paidPlanPrice}
+                  disabled={loadError !== null}
+                  onChange={(e) => {
+                    setPaidPlanPrice(e.target.value);
+                    scheduleAutosave();
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="sys_paid_limit">
+                  {t("admin.forms.label_paid_plan_free_limit")}
+                </label>
+                <input
+                  id="sys_paid_limit"
+                  inputMode="numeric"
+                  name="paid_plan_free_subscription_limit"
+                  value={paidPlanFreeLimit}
+                  disabled={loadError !== null}
+                  onChange={(e) => {
+                    setPaidPlanFreeLimit(
+                      e.target.value.replace(/\D/g, "").slice(0, 6),
+                    );
+                    scheduleAutosave();
+                  }}
+                />
+              </div>
+            </div>
+          ) : null}
 
           <p className="form-section-label" style={{ marginTop: "20px" }}>
             {t("admin.forms.section_currency")}

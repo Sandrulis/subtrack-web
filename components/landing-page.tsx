@@ -3,6 +3,7 @@
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import Link from "next/link";
+import Image from "next/image";
 import { useMemo, type ReactNode } from "react";
 
 const HM_Y = 2026;
@@ -118,9 +119,15 @@ export function LandingHeroCalendarMock({
 export function LandingHeroDashboardMock({
   intlLocale,
   t,
+  demoMode = false,
+  paidPlanEnabled = false,
 }: {
   intlLocale: string;
   t: (key: string) => string;
+  /** Publiskajai /demo/dashboard: redzams ekrāna lasītājiem un paraugu „Labot” pogas. */
+  demoMode?: boolean;
+  /** Ja maksas plāns ieslēgts: piezīme zem kalendāra par ilustratīvo saturu. */
+  paidPlanEnabled?: boolean;
 }) {
   const df = useMemo(
     () =>
@@ -136,7 +143,10 @@ export function LandingHeroDashboardMock({
   const d18 = df.format(new Date(HM_Y, HM_M - 1, 18));
 
   return (
-    <div className="landing-hero-dashboard-mock" aria-hidden="true">
+    <div
+      className="landing-hero-dashboard-mock"
+      aria-hidden={demoMode ? undefined : true}
+    >
       <div className="dashboard-overview-main">
         <div className="dashboard-overview-calendar-col">
           <LandingHeroCalendarMock
@@ -144,6 +154,12 @@ export function LandingHeroDashboardMock({
             legendDue={t("landing.mock.legend_due")}
             legendOverdue={t("landing.mock.legend_overdue")}
           />
+          {paidPlanEnabled ? (
+            <p className="landing-hero-calendar-paid-note" role="note">
+              <i className="fa-solid fa-circle-info" aria-hidden="true" />
+              {t("landing.hero.calendar_mock_paid_note")}
+            </p>
+          ) : null}
         </div>
 
         <div className="dashboard-overview-right-col">
@@ -183,7 +199,7 @@ export function LandingHeroDashboardMock({
               <div className="stat-next-body">
                 <div className="stat-next-text">
                   <div className="stat-value stat-value--next">{d18}</div>
-                  <div className="stat-next-name">Telefona rēķins</div>
+                  <div className="stat-next-name">{t("landing.mock.sample_bill_name")}</div>
                 </div>
                 <div className="stat-next-amount">€30.50</div>
               </div>
@@ -223,6 +239,15 @@ export function LandingHeroDashboardMock({
                   <div className="sub-amount">€9.99</div>
                   <div className="sub-period">{t("landing.mock.period_month")}</div>
                 </div>
+                {demoMode ? (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline demo-sub-edit-btn"
+                    title={t("demo.edit_hint")}
+                  >
+                    {t("demo.action.edit_sample")}
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>
@@ -254,6 +279,15 @@ export function LandingHeroDashboardMock({
                   <div className="sub-amount">€10.99</div>
                   <div className="sub-period">{t("landing.mock.period_month")}</div>
                 </div>
+                {demoMode ? (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline demo-sub-edit-btn"
+                    title={t("demo.edit_hint")}
+                  >
+                    {t("demo.action.edit_sample")}
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>
@@ -272,7 +306,7 @@ export function LandingHeroDashboardMock({
             <div className="sub-main">
               <div className="sub-info">
                 <div className="sub-name-row">
-                  <span className="sub-name">Telefona rēķins</span>
+                  <span className="sub-name">{t("landing.mock.sample_bill_name")}</span>
                   <span className="sub-category-pill">{t("landing.mock.pill_bill")}</span>
                 </div>
                 <div className="sub-date">
@@ -288,6 +322,15 @@ export function LandingHeroDashboardMock({
                   <div className="sub-amount">€30.50</div>
                   <div className="sub-period">{t("landing.mock.period_month")}</div>
                 </div>
+                {demoMode ? (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline demo-sub-edit-btn"
+                    title={t("demo.edit_hint")}
+                  >
+                    {t("demo.action.edit_sample")}
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>
@@ -328,9 +371,21 @@ const FEATURE_ROWS = [
 ];
 
 export function LandingPageContent() {
-  const { t, locale, systemSiteName } = useSubtrackIntl();
+  const { t, locale, systemSiteName, paidPlan } = useSubtrackIntl();
   const year = new Date().getFullYear();
   const intlLocale = useMemo(() => uiLocaleCodeToBcp47ForIntl(locale), [locale]);
+
+  const paidPitch = useMemo(() => {
+    if (!paidPlan?.enabled) return null;
+    const price = new Intl.NumberFormat(intlLocale, {
+      style: "currency",
+      currency: "EUR",
+    }).format(paidPlan.priceEur);
+    const blurb = t("landing.pricing.blurb")
+      .replace(/\{count\}/g, String(paidPlan.freeSubscriptionLimit))
+      .replace(/\{price\}/g, price);
+    return { blurb };
+  }, [intlLocale, paidPlan, t]);
 
   return (
     <>
@@ -353,7 +408,7 @@ export function LandingPageContent() {
                 {t("landing.hero.cta_signup")}
                 <i className="fa-solid fa-arrow-right" />
               </Link>
-              <Link href="/dashboard" className="btn btn-outline btn-lg">
+              <Link href="/demo/dashboard" className="btn btn-outline btn-lg">
                 {t("landing.hero.cta_demo")}
               </Link>
             </div>
@@ -373,10 +428,42 @@ export function LandingPageContent() {
             </div>
           </div>
           <div className="landing-hero-preview">
-            <LandingHeroDashboardMock intlLocale={intlLocale} t={t} />
+            <LandingHeroDashboardMock
+              intlLocale={intlLocale}
+              t={t}
+              paidPlanEnabled={Boolean(paidPlan?.enabled)}
+            />
           </div>
         </div>
       </section>
+
+      {paidPitch ? (
+        <section className="landing-pricing-section" id="pricing">
+          <div className="landing-pricing-inner">
+            <div className="landing-pricing-visual">
+              <Image
+                src="/landing-coffee.svg"
+                alt={t("landing.pricing.alt_coffee")}
+                width={120}
+                height={120}
+                className="landing-pricing-coffee-img"
+              />
+            </div>
+            <div className="landing-pricing-copy">
+              <div className="section-label">{t("landing.pricing.label")}</div>
+              <h2 className="landing-pricing-title">{t("landing.pricing.title")}</h2>
+              <p className="landing-pricing-lead">{t("subscribe.hero.lead")}</p>
+              <p className="landing-pricing-blurb">{paidPitch.blurb}</p>
+              <div className="landing-pricing-cta">
+                <Link href="/signup" className="btn btn-primary btn-lg">
+                  {t("landing.hero.cta_signup")}
+                  <i className="fa-solid fa-arrow-right" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="landing-trust">
         <div className="landing-trust-inner">
@@ -449,7 +536,7 @@ export function LandingPageContent() {
           <div className="section-label">{t("landing.explore.label")}</div>
           <h2 className="section-title">{t("landing.explore.title")}</h2>
           <div className="landing-explore-grid">
-            <Link href="/dashboard" className="landing-explore-card">
+            <Link href="/demo/dashboard" className="landing-explore-card">
               <div className="landing-explore-card-icon">
                 <i className="fa-solid fa-gauge-high" />
               </div>
@@ -460,12 +547,28 @@ export function LandingPageContent() {
                 <i className="fa-solid fa-arrow-right" />
               </span>
             </Link>
-            <Link href="/analytics" className="landing-explore-card">
+            <Link
+              href="/demo/analytics"
+              className={
+                "landing-explore-card landing-explore-card--analytics" +
+                (paidPlan?.enabled ? " landing-explore-card--has-pro-hint" : "")
+              }
+            >
               <div className="landing-explore-card-icon">
                 <i className="fa-solid fa-chart-line" />
               </div>
+              {paidPlan?.enabled ? (
+                <span className="landing-explore-pro-badge">
+                  {t("landing.explore.pro_in_app_badge")}
+                </span>
+              ) : null}
               <h3>{t("landing.explore.analytics.title")}</h3>
               <p>{t("landing.explore.analytics.blurb")}</p>
+              {paidPlan?.enabled ? (
+                <p className="landing-explore-analytics-pro-hint">
+                  {t("landing.explore.analytics.pro_hint")}
+                </p>
+              ) : null}
               <span className="landing-explore-more">
                 {t("landing.explore.analytics.cta")}
                 <i className="fa-solid fa-arrow-right" />
@@ -509,7 +612,7 @@ export function LandingPageContent() {
               {t("landing.cta.btn_signup")}
               <i className="fa-solid fa-arrow-right" />
             </Link>
-            <Link href="/dashboard" className="btn btn-outline-light btn-lg">
+            <Link href="/demo/dashboard" className="btn btn-outline-light btn-lg">
               {t("landing.cta.btn_demo")}
             </Link>
           </div>

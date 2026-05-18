@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import { navUserHasProEntitlement } from "@/lib/auth/pro-plan-access";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 
 type NavUserMenuProps = {
@@ -12,6 +13,7 @@ type NavUserMenuProps = {
 
 const SUBTRACK_NOTIFY_OPENED = "subtrack:notify-opened";
 const SUBTRACK_USER_MENU_OPENED = "subtrack:user-menu-opened";
+const SUBTRACK_LANG_MENU_OPENED = "subtrack:lang-menu-opened";
 
 /**
  * Lietotāja izvēlne: tap/click atver aizvēr; ārpuses pieskāriens aizver.
@@ -25,6 +27,10 @@ export function NavUserMenu({
   const displayName =
     userDisplay?.displayName?.trim() || t("session.user_fallback_name");
   const initials = userDisplay?.initials?.trim() || "?";
+  const hasProTier = navUserHasProEntitlement(userDisplay);
+  const triggerAria = hasProTier
+    ? `${displayName} (${t("session.paid_plan_badge_aria")}): ${t("session.user_menu_aria_suffix")}`
+    : `${displayName}: ${t("session.user_menu_aria_suffix")}`;
   const menuId = useId();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -55,6 +61,15 @@ export function NavUserMenu({
   }, [open]);
 
   useEffect(() => {
+    function onLangOpened() {
+      setOpen(false);
+    }
+    window.addEventListener(SUBTRACK_LANG_MENU_OPENED, onLangOpened);
+    return () =>
+      window.removeEventListener(SUBTRACK_LANG_MENU_OPENED, onLangOpened);
+  }, []);
+
+  useEffect(() => {
     function onNotifyOpened() {
       setOpen(false);
     }
@@ -76,7 +91,7 @@ export function NavUserMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         aria-controls={menuId}
-        aria-label={`${displayName}: ${t("session.user_menu_aria_suffix")}`}
+        aria-label={triggerAria}
         onClick={() =>
           setOpen((v) => {
             const next = !v;
@@ -92,8 +107,15 @@ export function NavUserMenu({
         }
       >
         <span className="dash-user">
-          <span className="user-avatar" aria-hidden="true">
-            {initials}
+          <span className="dash-user-avatar-wrap">
+            {hasProTier ? (
+              <span className="dash-paid-crown" aria-hidden="true">
+                <i className="fa-solid fa-crown" />
+              </span>
+            ) : null}
+            <span className="user-avatar" aria-hidden="true">
+              {initials}
+            </span>
           </span>
           <span className="dash-user-name">{displayName}</span>
         </span>

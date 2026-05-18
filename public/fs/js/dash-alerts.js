@@ -40,6 +40,32 @@ function markNotifyItemPaid(rawId) {
     var period = s.period || 'monthly';
     var newDate = advanceNextDueAfterPayment(s.date, period);
 
+    var isDemoPublic =
+        typeof window !== 'undefined' &&
+        (window.__SUBTRACK_DEMO_DASHBOARD__ || window.__SUBTRACK_DEMO_ANALYTICS__);
+    if (isDemoPublic) {
+        s.date = normalizeSubscriptionDateIso(newDate) || newDate;
+        if (paidOnIso && typeof subtrackAddPaidCalendarDay === 'function') {
+            subtrackAddPaidCalendarDay(paidOnIso);
+        }
+        var rawDemo = FsT('fs.dashboard.toast_marked_paid');
+        if (typeof showToast === 'function') {
+            showToast(
+                rawDemo ? rawDemo.replace(/\{date\}/g, formatDate(s.date)) : '',
+                'success',
+            );
+            showToast(FsT('fs.dashboard.toast_demo_only'), 'success');
+        }
+        if (typeof renderList === 'function') {
+            renderList();
+        }
+        if (typeof renderAnalytics === 'function') {
+            renderAnalytics();
+        }
+        refreshDashNotifications();
+        return;
+    }
+
     fetch(apiSubscriptionUrl(s.id), {
         method: 'PATCH',
         credentials: 'same-origin',
@@ -158,6 +184,8 @@ function buildNotifyTodayItemRow(s) {
 /** Cita augšējās joslas izvēlne (piem. lietotājs): lai nav divu „modāļu“ un tumša fona aiz paziņojumiem. */
 var SUBTRACK_NOTIFY_OPENED = 'subtrack:notify-opened';
 var SUBTRACK_USER_MENU_OPENED = 'subtrack:user-menu-opened';
+
+var SUBTRACK_LANG_MENU_OPENED = 'subtrack:lang-menu-opened';
 
 function closeDashNotifyPanel() {
     var panel = document.getElementById('dash-notify-panel');
@@ -478,6 +506,7 @@ function initDashNotifications() {
     });
 
     window.addEventListener(SUBTRACK_USER_MENU_OPENED, closeDashNotifyPanel);
+    window.addEventListener(SUBTRACK_LANG_MENU_OPENED, closeDashNotifyPanel);
 
     var resizeT;
     function onReflow() {

@@ -8,6 +8,7 @@ import {
 } from "@/lib/user-display-preferences";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
+import { normalizePaidPlanRow } from "@/lib/system-settings-public";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -20,7 +21,9 @@ export default async function AdminSystemPage() {
 
   const { data, error } = await supabase
     .from("system_settings")
-    .select("system_name, default_display_preferences")
+    .select(
+      "system_name, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit",
+    )
     .eq("id", 1)
     .maybeSingle();
 
@@ -31,6 +34,8 @@ export default async function AdminSystemPage() {
       ? data.system_name.trim()
       : "SubTrack";
 
+  const initialPaidPlan = normalizePaidPlanRow(data);
+
   return (
     <div className="admin-page">
       <AdminSystemIntro />
@@ -38,6 +43,7 @@ export default async function AdminSystemPage() {
         loadError={error?.message ?? null}
         initialSystemName={initialSystemName}
         initialDefaults={initialDefaults}
+        initialPaidPlan={initialPaidPlan}
       />
     </div>
   );

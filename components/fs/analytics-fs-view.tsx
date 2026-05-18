@@ -11,11 +11,7 @@ import type { NavUserDisplay } from "@/lib/auth/user-display";
 import type { SubscriptionClient } from "@/lib/subscriptions/subscription-client";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 
-const ANALYTICS_TAIL_SCRIPTS = [
-  "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js",
-  "https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js",
-  "/fs/js/analytics.js",
-] as const;
+const ANALYTICS_TAIL_SCRIPTS = ["/fs/js/analytics.js"] as const;
 
 export function AnalyticsFsView({
   userDisplay,
@@ -49,10 +45,9 @@ export function AnalyticsFsView({
 
   return (
     <>
-      <script
+      <template
         id="subtrack-subs-bootstrap-json"
-        type="application/json"
-        // eslint-disable-next-line react/no-danger -- Supabase JSON bootstrap pirms FS skriptiem
+        // eslint-disable-next-line react/no-danger -- FS JSON bootstrap pirms skriptiem (skat. FsI18nBootstrap)
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(initialSubscriptions).replace(/</g, "\\u003c"),
         }}
@@ -122,10 +117,7 @@ export function AnalyticsFsView({
                 {t("fs.analytics.hint_visual_split")}
               </p>
               <div className="analytics-pie-wrap" id="analytics-pie-wrap">
-                <canvas
-                  id="analytics-category-pie"
-                  aria-label={t("fs.analytics.pie_chart_aria")}
-                />
+                <div id="analytics-category-donut-root" />
               </div>
               <p className="analytics-pie-empty hidden" id="analytics-pie-empty">
                 {t("fs.analytics.pie_empty")}

@@ -39,7 +39,10 @@ window.fsBootDashboard = fsBootDashboard;
 function renderList(scrollToItemId) {
     var list = document.getElementById('sub-list');
     var empty = document.getElementById('empty-state');
-    if (!list || !empty) return;
+    if (!list || !empty) {
+        subtrackRefreshFreeTierAddButtons();
+        return;
+    }
 
     updateStats();
     renderPaymentCalendar();
@@ -50,6 +53,7 @@ function renderList(scrollToItemId) {
         if (typeof refreshDashNotifications === 'function') {
             refreshDashNotifications();
         }
+        subtrackRefreshFreeTierAddButtons();
         return;
     }
 
@@ -65,6 +69,7 @@ function renderList(scrollToItemId) {
     if (typeof refreshDashNotifications === 'function') {
         refreshDashNotifications();
     }
+    subtrackRefreshFreeTierAddButtons();
 }
 
 function pad2Cal(n) {
@@ -683,6 +688,21 @@ function markPaid(id) {
     var period = s.period || 'monthly';
     var newDate = advanceNextDueAfterPayment(s.date, period);
 
+    if (typeof window !== 'undefined' && window.__SUBTRACK_DEMO_DASHBOARD__) {
+        s.date = normalizeSubscriptionDateIso(newDate) || newDate;
+        if (paidOnIso && typeof subtrackAddPaidCalendarDay === 'function') {
+            subtrackAddPaidCalendarDay(paidOnIso);
+        }
+        var rawDemo = FsT('fs.dashboard.toast_marked_paid');
+        showToast(
+            rawDemo ? rawDemo.replace(/\{date\}/g, formatDate(s.date)) : 'Maksājums.',
+            'success',
+        );
+        showToast(FsT('fs.dashboard.toast_demo_only'), 'success');
+        renderList(id);
+        return;
+    }
+
     fetch(apiSubscriptionUrl(s.id), {
         method: 'PATCH',
         credentials: 'same-origin',
@@ -753,8 +773,70 @@ function updateStats() {
     }
 }
 
+/* ---- Free tier: neļaut atvērt „Pievienot” modāli pie limita ---- */
+function subtrackReadFreeTierGate() {
+    var raw =
+        typeof subtrackReadBootstrapJsonTextById === 'function'
+            ? subtrackReadBootstrapJsonTextById('subtrack-free-tier-gate-json')
+            : '';
+    if (!raw) return null;
+    try {
+        return JSON.parse(raw);
+    } catch (e) {
+        return null;
+    }
+}
+
+function subtrackFreeTierBlockedMessage() {
+    var g = subtrackReadFreeTierGate();
+    var lim = g && typeof g.freeLimit === 'number' ? g.freeLimit : parseInt(String(g && g.freeLimit), 10);
+    if (!isFinite(lim)) lim = 0;
+    var price = g && typeof g.priceEur === 'number' ? g.priceEur : parseFloat(String(g && g.priceEur));
+    if (!isFinite(price)) price = 0;
+    var intl = fsIntlLocale();
+    var priceFmt;
+    try {
+        priceFmt = new Intl.NumberFormat(intl, { style: 'currency', currency: 'EUR' }).format(price);
+    } catch (e) {
+        priceFmt = '€' + String(price);
+    }
+    var tpl = FsT('api.subscriptions.free_tier_limit');
+    if (!tpl) tpl = 'Free tier limit reached ({count} entries). Paid plan: {price}/mo.';
+    return tpl.replace(/\{count\}/g, String(lim)).replace(/\{price\}/g, priceFmt);
+}
+
+function subtrackIsFreeTierAddBlocked() {
+    var g = subtrackReadFreeTierGate();
+    if (!g || !g.enforcement) return false;
+    if (g.isPaidUser === true) return false;
+    var lim = typeof g.freeLimit === 'number' ? g.freeLimit : parseInt(String(g.freeLimit), 10);
+    if (!isFinite(lim) || lim < 0) return false;
+    var n = typeof subscriptions !== 'undefined' && subscriptions ? subscriptions.length : 0;
+    return n >= lim;
+}
+
+function subtrackRefreshFreeTierAddButtons() {
+    var blocked = subtrackIsFreeTierAddBlocked();
+    var msg = blocked ? subtrackFreeTierBlockedMessage() : '';
+    document.querySelectorAll('[data-subtrack-add-sub="1"]').forEach(function (btn) {
+        if (!(btn instanceof HTMLButtonElement)) return;
+        btn.disabled = blocked;
+        if (blocked) {
+            btn.setAttribute('aria-disabled', 'true');
+            if (msg) btn.title = msg;
+        } else {
+            btn.removeAttribute('aria-disabled');
+            btn.removeAttribute('title');
+        }
+    });
+}
+
 /* ---- Add Modal ---- */
 function openAddModal() {
+    if (subtrackIsFreeTierAddBlocked()) {
+        showToast(subtrackFreeTierBlockedMessage(), 'error');
+        return;
+    }
     collapseIconPicker();
     collapseModalAdvanced();
     clearDeviceEditor();
@@ -927,13 +1009,29 @@ function saveSubscription() {
 
     setModalSavePending(true);
 
+    if (typeof window !== 'undefined' && window.__SUBTRACK_DEMO_DASHBOARD__) {
+        var idStr = editingId !== null ? String(editingId) : 'demo-fs-' + Date.now();
+        mergeSubscriptionFromApi(Object.assign({ id: idStr }, payload));
+        setModalSavePending(false);
+        closeModal();
+        renderList();
+        showToast(
+            editingId !== null ? FsT('fs.dashboard.toast_saved') : FsT('fs.dashboard.toast_added'),
+            'success',
+        );
+        showToast(FsT('fs.dashboard.toast_demo_only'), 'success');
+        return;
+    }
+
     function finishSave() {
         setModalSavePending(false);
     }
 
-    function onFail() {
+    function onFail(err) {
         finishSave();
-        showToast(FsT('fs.dashboard.toast_api_save_failed'), 'error');
+        var raw = err && err.message ? String(err.message) : '';
+        var msg = raw || FsT('fs.dashboard.toast_api_save_failed');
+        showToast(msg, 'error');
     }
 
     if (editingId !== null) {
@@ -951,8 +1049,8 @@ function saveSubscription() {
                 closeModal();
                 renderList();
             })
-            .catch(function () {
-                onFail();
+            .catch(function (err) {
+                onFail(err);
             });
         return;
     }
@@ -971,8 +1069,8 @@ function saveSubscription() {
             closeModal();
             renderList();
         })
-        .catch(function () {
-            onFail();
+        .catch(function (err) {
+            onFail(err);
         });
 }
 
@@ -998,6 +1096,17 @@ function handleDeleteOverlayClick(e) {
 function confirmDelete() {
     var id = deletingId;
     if (id == null) return;
+
+    if (typeof window !== 'undefined' && window.__SUBTRACK_DEMO_DASHBOARD__) {
+        subscriptions = subscriptions.filter(function (x) {
+            return String(x.id) !== String(id);
+        });
+        closeDeleteModal();
+        renderList();
+        showToast(FsT('fs.dashboard.toast_deleted'), 'success');
+        showToast(FsT('fs.dashboard.toast_demo_only'), 'success');
+        return;
+    }
 
     fetch(apiSubscriptionUrl(id), {
         method: 'DELETE',
@@ -1049,10 +1158,13 @@ function fsIconHintSortKey(row, queryNorm) {
 function loadFsIconSearchBootstrap() {
     if (fsIconSearchRows !== null) return;
     fsIconSearchRows = [];
-    var el = document.getElementById('subtrack-icon-search-bootstrap');
-    if (!el || !el.textContent) return;
+    var raw =
+        typeof subtrackReadBootstrapJsonTextById === 'function'
+            ? subtrackReadBootstrapJsonTextById('subtrack-icon-search-bootstrap')
+            : '';
+    if (!raw) return;
     try {
-        var parsed = JSON.parse(el.textContent);
+        var parsed = JSON.parse(raw);
         if (parsed && Array.isArray(parsed.icons)) {
             fsIconSearchRows = parsed.icons;
         }

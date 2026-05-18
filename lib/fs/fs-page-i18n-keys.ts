@@ -77,8 +77,10 @@ export const FS_DASHBOARD_DEMO_EXTRA_KEYS = [
   "fs.dashboard.btn_delete",
   "fs.dashboard.toast_api_save_failed",
   "fs.dashboard.toast_api_delete_failed",
+  "fs.dashboard.toast_demo_only",
   "fs.dashboard.cal_toggle_all_payments_label",
   "fs.dashboard.cal_toggle_all_payments_hint",
+  "api.subscriptions.free_tier_limit",
 ] as const;
 
 /** Tikai augšējās joslas paziņojumi (`dash-alerts.js` + `formatOverdueLabel`), ja nav pilnā paneļa bootstrap. Ietver arī „atzīmēt samaksāts” un toast tekstu vienam maksājumam. */
@@ -88,6 +90,7 @@ export const FS_NOTIFY_BAR_KEYS = [
   "fs.dashboard.toast_api_save_failed",
   "fs.dashboard.aria_mark_paid",
   "fs.dashboard.toast_marked_paid",
+  "fs.dashboard.toast_demo_only",
 ] as const;
 
 export function fsNotifyBarPhraseKeys(): string[] {

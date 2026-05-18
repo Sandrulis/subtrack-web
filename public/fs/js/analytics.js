@@ -2,48 +2,29 @@
    SubTrack - Analītikas lapa (abonementi no API / bootstrap)
    ============================================= */
 
-var analyticsPieChart = null;
-var analyticsPieDataLabelsRegistered = false;
-
-/** Krāsas „slices” - saskaņotas ar SubTrack, pietiekami atšķirīgas */
+/** Krāsas „slices” - saskaņotas ar SubTrack, pietiekami atšķirīgas (tā pat kā demo donut). */
 var ANALYTICS_PIE_COLORS = [
     '#0d9488', '#f59e0b', '#3b82f6', '#64748b', '#e11d48', '#8b5cf6', '#059669', '#d97706'
 ];
 
-function destroyCategoryPieChart() {
-    if (analyticsPieChart) {
-        analyticsPieChart.destroy();
-        analyticsPieChart = null;
-    }
-}
-
-function registerChartDataLabelsOnce() {
-    if (analyticsPieDataLabelsRegistered || typeof Chart === 'undefined') return;
-    var P = typeof ChartDataLabels !== 'undefined' ? ChartDataLabels : null;
-    if (P && Chart.register) {
-        try {
-            Chart.register(P);
-            analyticsPieDataLabelsRegistered = true;
-        } catch (e) {
-            analyticsPieDataLabelsRegistered = false;
-        }
-    }
-}
-
-function renderCategoryPie(catKeys, byCat) {
-    var canvas = document.getElementById('analytics-category-pie');
+/**
+ * Kategoriju sadalījums: CSS conic-gradient donut + leģenda (`demo-analytics-*`, kā `/demo/analytics`).
+ */
+function renderCategoryDonut(catKeys, byCat) {
     var wrap = document.getElementById('analytics-pie-wrap');
+    var root = document.getElementById('analytics-category-donut-root');
     var emptyEl = document.getElementById('analytics-pie-empty');
-    if (!canvas || typeof Chart === 'undefined') {
+    if (!root || !wrap) {
         return;
     }
 
-    destroyCategoryPieChart();
-
-    var total = catKeys.reduce(function (s, k) { return s + byCat[k]; }, 0);
+    var total = catKeys.reduce(function (s, k) {
+        return s + byCat[k];
+    }, 0);
 
     if (!catKeys.length || total <= 0) {
-        if (wrap) wrap.classList.add('hidden');
+        wrap.classList.add('hidden');
+        root.innerHTML = '';
         if (emptyEl) {
             emptyEl.classList.remove('hidden');
             emptyEl.textContent = FsT('fs.analytics.pie_empty');
@@ -51,80 +32,59 @@ function renderCategoryPie(catKeys, byCat) {
         return;
     }
 
-    if (wrap) wrap.classList.remove('hidden');
-    if (emptyEl) emptyEl.classList.add('hidden');
-
-    registerChartDataLabelsOnce();
-
-    var labels = catKeys.map(function (k) { return categoryLabel(k); });
-    var values = catKeys.map(function (k) { return byCat[k]; });
-    var colors = catKeys.map(function (k, i) { return ANALYTICS_PIE_COLORS[i % ANALYTICS_PIE_COLORS.length]; });
-
-    var ctx = canvas.getContext('2d');
-
-    var pluginsCfg = {
-        legend: {
-            position: 'right',
-            align: 'center',
-            labels: {
-                boxWidth: 12,
-                boxHeight: 12,
-                padding: 12,
-                usePointStyle: true,
-                pointStyle: 'rect',
-                font: { size: 12, family: 'Inter, system-ui, sans-serif', weight: '500' },
-                color: '#475569'
-            }
-        },
-        tooltip: {
-            callbacks: {
-                label: function (context) {
-                    var label = context.label || '';
-                    var v = context.raw;
-                    var sum = context.dataset.data.reduce(function (a, b) { return a + b; }, 0);
-                    var pct = sum > 0 ? Math.round((v / sum) * 100) : 0;
-                    return label + ': €' + Number(v).toFixed(2) + ' (' + pct + '%)';
-                }
-            }
-        }
-    };
-
-    if (analyticsPieDataLabelsRegistered && typeof ChartDataLabels !== 'undefined') {
-        pluginsCfg.datalabels = {
-            color: '#ffffff',
-            font: { weight: '700', size: 11, family: 'Inter, system-ui, sans-serif' },
-            formatter: function (value, ctx) {
-                var arr = ctx.dataset.data;
-                var sum = arr.reduce(function (a, b) { return a + b; }, 0);
-                if (sum <= 0) return '';
-                return Math.round((value / sum) * 100) + '%';
-            },
-            backgroundColor: 'rgba(30, 30, 46, 0.88)',
-            borderRadius: 4,
-            padding: { top: 4, right: 6, bottom: 4, left: 6 }
-        };
+    wrap.classList.remove('hidden');
+    if (emptyEl) {
+        emptyEl.classList.add('hidden');
     }
 
-    analyticsPieChart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: values,
-                backgroundColor: colors,
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 1.05,
-            layout: {
-                padding: { top: 6, right: 4, bottom: 6, left: 4 }
-            },
-            plugins: pluginsCfg
-        }
+    var colors = catKeys.map(function (k, i) {
+        return ANALYTICS_PIE_COLORS[i % ANALYTICS_PIE_COLORS.length];
     });
+
+    var angle = 0;
+    var conicParts = catKeys.map(function (k, i) {
+        var frac = byCat[k] / total;
+        var deg = frac * 360;
+        var from = angle;
+        angle += deg;
+        return colors[i] + ' ' + from + 'deg ' + angle + 'deg';
+    });
+    var conic =
+        conicParts.length > 0
+            ? 'conic-gradient(' + conicParts.join(', ') + ')'
+            : '#e2e8f0';
+
+    var legendHtml = catKeys
+        .map(function (k, i) {
+            return (
+                '<li>' +
+                '<span class="demo-analytics-dot" style="background:' +
+                escAttr(colors[i]) +
+                '" aria-hidden="true"></span>' +
+                '<span class="demo-analytics-cat-name">' +
+                escHtml(categoryLabel(k)) +
+                '</span>' +
+                '<span class="demo-analytics-cat-amt">€' +
+                Number(byCat[k]).toFixed(2) +
+                '</span>' +
+                '</li>'
+            );
+        })
+        .join('');
+
+    var aria = FsT('fs.analytics.pie_chart_aria') || FsT('fs.analytics.section_category_split');
+    root.innerHTML =
+        '<div class="demo-analytics-donut-wrap" role="img" aria-label="' +
+        escAttr(aria) +
+        '">' +
+        '<div class="demo-donut-ring-shell" aria-hidden="true">' +
+        '<div class="demo-donut-ring" style="background:' +
+        escAttr(conic) +
+        '"></div>' +
+        '<div class="demo-donut-hole"></div></div>' +
+        '<ul class="demo-analytics-donut-legend">' +
+        legendHtml +
+        '</ul></div>';
 }
 
 function addDays(d, n) {
@@ -162,7 +122,9 @@ function renderAnalytics() {
     var catKeys = Object.keys(byCat).sort(function (a, b) {
         return byCat[b] - byCat[a];
     });
-    var maxCat = catKeys.length ? Math.max.apply(null, catKeys.map(function (k) { return byCat[k]; })) : 0;
+    var catTotal = catKeys.reduce(function (s, k) {
+        return s + byCat[k];
+    }, 0);
 
     var catHost = document.getElementById('analytics-by-category');
     if (catHost) {
@@ -170,22 +132,32 @@ function renderAnalytics() {
             catHost.innerHTML =
                 '<p class="analytics-empty">' + escHtml(FsT('fs.analytics.cat_empty')) + '</p>';
         } else {
-            catHost.innerHTML = catKeys.map(function (key) {
-                var amt = byCat[key];
-                var pct = maxCat > 0 ? Math.round((amt / maxCat) * 100) : 0;
-                return '<div class="analytics-cat-row">' +
-                    '<div class="analytics-cat-label"><span class="analytics-cat-name">' + escHtml(categoryLabel(key)) + '</span>' +
-                    '<span class="analytics-cat-amount">€' +
-                    amt.toFixed(2) +
-                    escHtml(FsT('fs.analytics.per_month_abbr')) +
-                    '</span></div>' +
-                    '<div class="analytics-cat-bar"><div class="analytics-cat-bar-fill" style="width:' + pct + '%"></div></div>' +
-                    '</div>';
-            }).join('');
+            catHost.innerHTML = catKeys
+                .map(function (key, i) {
+                    var amt = byCat[key];
+                    var pct = catTotal > 0 ? Math.round((amt / catTotal) * 100) : 0;
+                    var color = ANALYTICS_PIE_COLORS[i % ANALYTICS_PIE_COLORS.length];
+                    return (
+                        '<div class="analytics-cat-row">' +
+                        '<div class="analytics-cat-label"><span class="analytics-cat-name">' +
+                        escHtml(categoryLabel(key)) +
+                        '</span>' +
+                        '<span class="analytics-cat-amount">€' +
+                        amt.toFixed(2) +
+                        '</span></div>' +
+                        '<div class="analytics-cat-bar"><div class="analytics-cat-bar-fill" style="width:' +
+                        pct +
+                        '%;background:' +
+                        escAttr(color) +
+                        '"></div></div>' +
+                        '</div>'
+                    );
+                })
+                .join('');
         }
     }
 
-    renderCategoryPie(catKeys, byCat);
+    renderCategoryDonut(catKeys, byCat);
 
     var upcomingHorizon = subscriptions
         .filter(function (s) {
@@ -213,8 +185,12 @@ function renderAnalytics() {
     }
 
     var futureAll = subscriptions
-        .filter(function (s) { return s.date && new Date(s.date + 'T00:00:00') >= today; })
-        .sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
+        .filter(function (s) {
+            return s.date && new Date(s.date + 'T00:00:00') >= today;
+        })
+        .sort(function (a, b) {
+            return new Date(a.date) - new Date(b.date);
+        });
 
     var elNextDate = document.getElementById('analytics-next-date');
     var elNextName = document.getElementById('analytics-next-name');

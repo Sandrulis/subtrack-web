@@ -4,6 +4,7 @@ import {
   type AdminUsersCountsSerializable,
 } from "@/components/admin/admin-users-view";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { coercePgBool } from "@/lib/system-settings-public";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -11,15 +12,6 @@ export async function generateMetadata(): Promise<Metadata> {
     title: await getUiPhraseForRequest("meta.title.admin.users"),
   };
 }
-
-type UserRow = {
-  id: string;
-  name: string;
-  surname: string;
-  email: string;
-  is_admin: number;
-  created_at: string;
-};
 
 type SubscriptionCategory =
   | "subscription"
@@ -87,15 +79,43 @@ export default async function AdminUsersPage() {
   const [
     { data: rows, error },
     { data: subRows, error: subsError },
+    { data: sysRow },
   ] = await Promise.all([
     supabase
       .from("users")
-      .select("id, name, surname, email, is_admin, created_at")
+      .select(
+        "id, name, surname, email, is_admin, created_at, paid_plan_active, pro_vip",
+      )
       .order("created_at", { ascending: false }),
     supabase.from("subscriptions").select("user_id, category"),
+    supabase
+      .from("system_settings")
+      .select("paid_plan_enabled")
+      .eq("id", 1)
+      .maybeSingle(),
   ]);
 
-  const list = (rows ?? []) as UserRow[];
+  const paidPlanEnabled = coercePgBool(sysRow?.paid_plan_enabled);
+
+  const listRaw = rows ?? [];
+  type UserRowDb = (typeof listRaw)[number] & {
+    paid_plan_active?: boolean | null;
+    pro_vip?: boolean | null;
+  };
+
+  const list = (listRaw as UserRowDb[]).map((r) => ({
+    id: r.id,
+    name: r.name ?? "",
+    surname: r.surname ?? "",
+    email: r.email ?? "",
+    is_admin:
+      typeof r.is_admin === "number"
+        ? r.is_admin
+        : Number.parseInt(String(r.is_admin ?? 0), 10) || 0,
+    created_at: r.created_at ?? "",
+    paidPlanActive: r.paid_plan_active === true,
+    proVip: r.pro_vip === true,
+  }));
   const countsByUser = subsError
     ? null
     : aggregateSubscriptionCounts((subRows ?? []) as SubCountRow[]);
@@ -104,6 +124,7 @@ export default async function AdminUsersPage() {
     <AdminUsersView
       users={list}
       countsByUserId={serializeCounts(countsByUser)}
+      paidPlanEnabled={paidPlanEnabled}
       fetchError={error?.message ?? null}
       subscriptionsFetchError={subsError?.message ?? null}
     />

@@ -2,14 +2,25 @@ import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
+export type LanguageOption = {
+  code: string;
+  label: string;
+};
+
 export type LanguagesCatalog = {
   codes: string[];
   defaultCode: string;
+  /** Valodu saraksts UI slēdzim (kods + nosaukums savā valodā), sakārtots pēc DB. */
+  options: LanguageOption[];
 };
 
 const STATIC_FALLBACK: LanguagesCatalog = {
   codes: ["lv", "en"],
   defaultCode: "lv",
+  options: [
+    { code: "lv", label: "Latviešu" },
+    { code: "en", label: "English" },
+  ],
 };
 
 async function fetchLanguagesCatalog(): Promise<LanguagesCatalog> {
@@ -20,7 +31,7 @@ async function fetchLanguagesCatalog(): Promise<LanguagesCatalog> {
   const supabase = createClient(url, key);
   const { data, error } = await supabase
     .from("languages")
-    .select("code, is_default")
+    .select("code, label, is_default, sort_order")
     .order("sort_order", { ascending: true })
     .order("code", { ascending: true });
 
@@ -28,22 +39,41 @@ async function fetchLanguagesCatalog(): Promise<LanguagesCatalog> {
     return STATIC_FALLBACK;
   }
 
-  const codes = data
-    .map((r) => String((r as { code: string }).code ?? "").trim().toLowerCase())
-    .filter(Boolean);
-  const unique = [...new Set(codes)];
+  type Row = { code: string; label?: string; is_default?: boolean };
+  const rows = data as Row[];
 
-  const defRow = data.find((r) => (r as { is_default?: boolean }).is_default === true);
-  const fromRow = defRow
-    ? String((defRow as { code: string }).code ?? "").trim().toLowerCase()
-    : "";
+  const options: LanguageOption[] = [];
+  for (const r of rows) {
+    const code = String(r.code ?? "").trim().toLowerCase();
+    if (!code) continue;
+    const label = String(r.label ?? "").trim() || code.toUpperCase();
+    options.push({ code, label });
+  }
+
+  const uniqueOptions: LanguageOption[] = [];
+  const seen = new Set<string>();
+  for (const o of options) {
+    if (seen.has(o.code)) continue;
+    seen.add(o.code);
+    uniqueOptions.push(o);
+  }
+
+  if (uniqueOptions.length === 0) {
+    return STATIC_FALLBACK;
+  }
+
+  const codes = uniqueOptions.map((o) => o.code);
+
+  const defRow = rows.find((r) => r.is_default === true);
+  const fromRow = defRow ? String(defRow.code ?? "").trim().toLowerCase() : "";
 
   const defaultCode =
-    fromRow && unique.includes(fromRow) ? fromRow : (unique[0] ?? STATIC_FALLBACK.defaultCode);
+    fromRow && codes.includes(fromRow) ? fromRow : (codes[0] ?? STATIC_FALLBACK.defaultCode);
 
   return {
-    codes: unique.length ? unique : STATIC_FALLBACK.codes,
+    codes,
     defaultCode,
+    options: uniqueOptions,
   };
 }
 
@@ -53,7 +83,7 @@ async function fetchLanguagesCatalog(): Promise<LanguagesCatalog> {
  * `cache()` – viens izsaukums uz RSC pieprasījumu (kopā ar layout `getLanguagesCatalog`).
  */
 export const getLanguagesCatalog = cache(async (): Promise<LanguagesCatalog> => {
-  return unstable_cache(fetchLanguagesCatalog, ["subtrack-languages-catalog-v1"], {
+  return unstable_cache(fetchLanguagesCatalog, ["subtrack-languages-catalog-v2"], {
     revalidate: 3600,
     tags: ["languages-catalog"],
   })();

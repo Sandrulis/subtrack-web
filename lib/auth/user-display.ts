@@ -10,6 +10,10 @@ export type NavUserDisplay = {
   initials: string;
   /** public.users.is_admin > 0; ja nav kolonnas / rindiņas — false */
   isAdmin?: boolean;
+  /** public.users.paid_plan_active (apmaksa / checkout) */
+  paidPlanActive?: boolean;
+  /** public.users.pro_vip; admin dāvināta Pro piekļuve */
+  proVip?: boolean;
 };
 
 function firstGrapheme(s: string): string {
@@ -140,27 +144,41 @@ async function getSessionUserDisplayImpl(): Promise<NavUserDisplay | null> {
 
   if (authErr || !user) return null;
 
-  const { data: row } = await supabase
+  const { data: row, error: rowErr } = await supabase
     .from("users")
-    .select("name, surname, is_admin")
+    .select("name, surname, is_admin, paid_plan_active, pro_vip")
     .eq("id", user.id)
     .maybeSingle();
 
   const name = typeof row?.name === "string" ? row.name : "";
   const surname = typeof row?.surname === "string" ? row.surname : "";
   const isAdmin = await resolveSessionIsAdmin(supabase, row);
+  const paidPlanActive =
+    !rowErr &&
+    row &&
+    typeof (row as { paid_plan_active?: unknown }).paid_plan_active === "boolean"
+      ? (row as { paid_plan_active: boolean }).paid_plan_active
+      : false;
+  const proVip =
+    !rowErr &&
+    row &&
+    typeof (row as { pro_vip?: unknown }).pro_vip === "boolean"
+      ? (row as { pro_vip: boolean }).pro_vip
+      : false;
 
   const trimmedName = name.trim();
   const trimmedSurname = surname.trim();
 
   if (!trimmedName && !trimmedSurname) {
     const fromMeta = profileFromAuthMetadata(user);
-    return { ...fromMeta, isAdmin };
+    return { ...fromMeta, isAdmin, paidPlanActive, proVip };
   }
 
   return {
     ...navUserDisplayFromParts(trimmedName, trimmedSurname, user.email ?? ""),
     isAdmin,
+    paidPlanActive,
+    proVip,
   };
 }
 

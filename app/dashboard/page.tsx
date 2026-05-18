@@ -3,6 +3,10 @@ import { FsI18nBootstrap } from "@/components/fs/fs-i18n-bootstrap";
 import { DashboardFsView } from "@/components/fs/dashboard-fs-view";
 import { getSessionUserDisplay } from "@/lib/auth/user-display";
 import { fetchSubscriptionsForSession } from "@/lib/subscriptions/fetch-subscriptions-server";
+import {
+  buildDashboardFreeTierGatePayload,
+  fetchSystemPaidPlanLiveForDashboard,
+} from "@/lib/subscriptions/dashboard-free-tier-gate";
 import { fsDashboardPhraseKeys } from "@/lib/fs/fs-page-i18n-keys";
 import {
   getUiPhraseForRequest,
@@ -18,8 +22,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DashboardPage() {
-  const userDisplay = await getSessionUserDisplay();
-  const initialSubscriptions = await fetchSubscriptionsForSession();
+  const [userDisplay, initialSubscriptions, paidPlanLive] = await Promise.all([
+    getSessionUserDisplay(),
+    fetchSubscriptionsForSession(),
+    fetchSystemPaidPlanLiveForDashboard(),
+  ]);
+  const freeTierGate = buildDashboardFreeTierGatePayload(userDisplay, paidPlanLive);
   const { locale } = await resolveRequestUiLocales();
   const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
   const fsI18n = await getUiPhrasesForRequest(fsDashboardPhraseKeys());
@@ -30,6 +38,7 @@ export default async function DashboardPage() {
       <DashboardFsView
         userDisplay={userDisplay}
         initialSubscriptions={initialSubscriptions}
+        freeTierGate={freeTierGate}
       />
     </>
   );

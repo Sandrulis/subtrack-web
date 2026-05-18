@@ -117,12 +117,29 @@ function subtrackMarkSubsSyncedFromApi() {
     }
 }
 
+/**
+ * JSON teksts no elementa ar `id` — `<template>` (React 19 FS bootstrap) vai vecā `<script type="application/json">`.
+ * @param { string } id
+ * @returns { string }
+ */
+function subtrackReadBootstrapJsonTextById(id) {
+    var el = document.getElementById(id);
+    if (!el) return '';
+    var raw;
+    if (typeof HTMLTemplateElement !== 'undefined' && el instanceof HTMLTemplateElement) {
+        raw = el.content.textContent || '';
+    } else {
+        raw = el.textContent || '';
+    }
+    return String(raw).trim();
+}
+
 /** Atkārtoti nolasa `#subtrack-subs-bootstrap-json` (klienta navigācija starp /dashboard un /analytics). */
 function subtrackReloadSubscriptionsFromBootstrap() {
-    var el = document.getElementById('subtrack-subs-bootstrap-json');
-    if (!el || !el.textContent) return;
+    var raw = subtrackReadBootstrapJsonTextById('subtrack-subs-bootstrap-json');
+    if (!raw) return;
     try {
-        var parsed = JSON.parse(el.textContent.trim());
+        var parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
             subscriptions = parsed.map(function (item) {
                 if (!item || typeof item !== 'object') return item;
@@ -321,6 +338,12 @@ function parseApiJson(res) {
  * Kļūdas gadījumā klusa iziešana – paliek `subscriptions` no bootstrap.
  */
 function subtrackSyncSubscriptionsFromApi() {
+    if (
+        typeof window !== 'undefined' &&
+        (window.__SUBTRACK_DEMO_DASHBOARD__ || window.__SUBTRACK_DEMO_ANALYTICS__)
+    ) {
+        return Promise.resolve();
+    }
     if (typeof fetch === 'undefined' || typeof subscriptions === 'undefined') {
         return Promise.resolve();
     }
@@ -391,4 +414,8 @@ function showToast(msg, type) {
             toast.remove();
         }, 320);
     }, 2800);
+}
+
+if (typeof window !== 'undefined') {
+    window.subtrackReloadSubscriptionsFromBootstrap = subtrackReloadSubscriptionsFromBootstrap;
 }

@@ -5,6 +5,7 @@ import { getSupabasePublicConfig } from "@/lib/supabase/env";
 const PROTECTED_PREFIXES = [
   "/dashboard",
   "/analytics",
+  "/subscribe",
   "/settings",
   "/change-password",
   "/admin",
