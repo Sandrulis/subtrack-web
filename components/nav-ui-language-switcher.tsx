@@ -107,11 +107,13 @@ export function NavUiLanguageSwitcher({ layout = "topbar" }: { layout?: Layout }
     setOpen((v) => {
       const next = !v;
       if (next) {
-        try {
-          window.dispatchEvent(new CustomEvent(SUBTRACK_LANG_MENU_OPENED));
-        } catch {
-          /* ignore */
-        }
+        queueMicrotask(() => {
+          try {
+            window.dispatchEvent(new CustomEvent(SUBTRACK_LANG_MENU_OPENED));
+          } catch {
+            /* ignore */
+          }
+        });
       }
       return next;
     });

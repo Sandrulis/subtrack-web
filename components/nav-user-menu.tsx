@@ -96,11 +96,15 @@ export function NavUserMenu({
           setOpen((v) => {
             const next = !v;
             if (next) {
-              try {
-                window.dispatchEvent(new CustomEvent(SUBTRACK_USER_MENU_OPENED));
-              } catch {
-                /* ignore */
-              }
+              queueMicrotask(() => {
+                try {
+                  window.dispatchEvent(
+                    new CustomEvent(SUBTRACK_USER_MENU_OPENED),
+                  );
+                } catch {
+                  /* ignore */
+                }
+              });
             }
             return next;
           })

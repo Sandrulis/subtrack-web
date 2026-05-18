@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { MobileBottomNavItem } from "@/components/mobile-bottom-nav-item";
 import { usePathname } from "next/navigation";
 import { useLayoutEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { NavUiLanguageSwitcher } from "@/components/nav-ui-language-switcher";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 
 type MobileBottomNavProps = {
@@ -32,6 +31,57 @@ function demoSegment(pathname: string): "dashboard" | "analytics" | "" {
   return "";
 }
 
+const iconDashboard = (
+  <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
+    <path
+      fill="currentColor"
+      d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"
+    />
+  </svg>
+);
+
+const iconAnalytics = (
+  <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
+    <path
+      fill="currentColor"
+      d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8h8c0 4.41-3.59 8-8 8z"
+    />
+  </svg>
+);
+
+const iconAdmin = (
+  <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
+    <path
+      fill="currentColor"
+      d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"
+    />
+  </svg>
+);
+
+const iconHome = (
+  <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z" />
+  </svg>
+);
+
+const iconFeatures = (
+  <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
+    <path
+      fill="currentColor"
+      d="M4 11h7V4H4v7zm0 9h7v-7H4v7zm9 0h7v-7h-7v7zm0-11h7V4h-7v7z"
+    />
+  </svg>
+);
+
+const iconFaq = (
+  <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
+    <path
+      fill="currentColor"
+      d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-6h2v6zm0-8h-2V7h2v2z"
+    />
+  </svg>
+);
+
 /**
  * Portāls uz document.body, lai position:fixed vienmēr balstītos pret viewport
  * (citādi dažos izkārtojumos / pārlūkos elements „pārvietojas” kopā ar vecāku).
@@ -57,86 +107,39 @@ export function MobileBottomNav({
   );
 
   useLayoutEffect(() => {
-    queueMicrotask(() => setPortalTarget(document.body));
+    setPortalTarget(document.body);
   }, []);
 
   const nav =
     mode === "demo" ? (
       <nav className="mobile-bottom-nav" aria-label={t("demo.nav.aria")}>
         <div className="mobile-bottom-nav-pill">
-          <Link
+          <MobileBottomNavItem
             href="/demo/dashboard"
-            className={
-              "mobile-bottom-nav-link" +
-              (demoSegmentKey === "dashboard" ? " is-route-active" : "")
-            }
-            aria-current={
-              demoSegmentKey === "dashboard" ? "page" : undefined
-            }
-            aria-label={t("nav.dashboard")}
-          >
-            <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
-              <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"
-                />
-              </svg>
-            </span>
-          </Link>
-          <Link
+            label={t("nav.dashboard")}
+            active={demoSegmentKey === "dashboard"}
+            icon={iconDashboard}
+          />
+          <MobileBottomNavItem
             href="/demo/analytics"
-            className={
-              "mobile-bottom-nav-link" +
-              (demoSegmentKey === "analytics" ? " is-route-active" : "")
-            }
-            aria-current={
-              demoSegmentKey === "analytics" ? "page" : undefined
-            }
-            aria-label={t("nav.analytics")}
-          >
-            <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
-              <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8h8c0 4.41-3.59 8-8 8z"
-                />
-              </svg>
-            </span>
-          </Link>
+            label={t("nav.analytics")}
+            active={demoSegmentKey === "analytics"}
+            icon={iconAnalytics}
+          />
           {isAdmin ? (
-            <Link
+            <MobileBottomNavItem
               href="/admin"
               prefetch={false}
-              className="mobile-bottom-nav-link"
-              aria-label={t("nav.admin")}
-            >
-              <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
-                <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"
-                  />
-                </svg>
-              </span>
-            </Link>
+              label={t("nav.admin")}
+              icon={iconAdmin}
+            />
           ) : (
-            <Link
+            <MobileBottomNavItem
               href="/"
-              className="mobile-bottom-nav-link"
-              aria-label={t("demo.mobile.aria_home")}
-            >
-              <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
-                <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z"
-                  />
-                </svg>
-              </span>
-            </Link>
+              label={t("mobile.nav.home")}
+              icon={iconHome}
+            />
           )}
-          <NavUiLanguageSwitcher layout="mobile" />
         </div>
       </nav>
     ) : mode === "guest" ? (
@@ -145,126 +148,57 @@ export function MobileBottomNav({
         aria-label={t("mobile.nav.guest_sections")}
       >
         <div className="mobile-bottom-nav-pill">
-          <Link
+          <MobileBottomNavItem
             href="/#features"
-            className="mobile-bottom-nav-link"
+            label={t("nav.features")}
+            icon={iconFeatures}
             data-landing-anchor="features"
-            aria-label={t("mobile.aria.features")}
-          >
-            <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
-              <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M4 11h7V4H4v7zm0 9h7v-7H4v7zm9 0h7v-7h-7v7zm0-11h7V4h-7v7z"
-                />
-              </svg>
-            </span>
-          </Link>
-          <Link
+          />
+          <MobileBottomNavItem
             href="/#demo"
-            className="mobile-bottom-nav-link"
+            label={t("nav.demo")}
+            icon={iconAnalytics}
             data-landing-anchor="demo"
-            aria-label={t("mobile.aria.demo")}
-          >
-            <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
-              <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8h8c0 4.41-3.59 8-8 8z"
-                />
-              </svg>
-            </span>
-          </Link>
-          <Link
+          />
+          <MobileBottomNavItem
             href="/#faq"
-            className="mobile-bottom-nav-link"
+            label={t("nav.faq_nav")}
+            icon={iconFaq}
             data-landing-anchor="faq"
-            aria-label={t("mobile.aria.faq")}
-          >
-            <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
-              <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-6h2v6zm0-8h-2V7h2v2z"
-                />
-              </svg>
-            </span>
-          </Link>
-          <NavUiLanguageSwitcher layout="mobile" />
+          />
         </div>
       </nav>
     ) : (
       <nav className="mobile-bottom-nav" aria-label={t("mobile.nav.authed_primary")}>
         <div className="mobile-bottom-nav-pill">
-          <Link
+          <MobileBottomNavItem
             href="/dashboard"
-            className={
-              "mobile-bottom-nav-link" +
-              (authedSegmentKey === "dashboard" ? " is-route-active" : "")
-            }
-            aria-current={
-              authedSegmentKey === "dashboard" ? "page" : undefined
-            }
-            aria-label={t("nav.dashboard")}
-          >
-            <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
-              <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"
-                />
-              </svg>
-            </span>
-          </Link>
+            label={t("nav.dashboard")}
+            active={authedSegmentKey === "dashboard"}
+            icon={iconDashboard}
+          />
           {showAnalytics ? (
-            <Link
+            <MobileBottomNavItem
               href={analyticsHref}
+              label={t("nav.analytics")}
+              active={authedSegmentKey === "analytics"}
               className={
-                "mobile-bottom-nav-link" +
-                (authedSegmentKey === "analytics" ? " is-route-active" : "") +
-                (analyticsHref.startsWith("/demo/")
-                  ? " mobile-bottom-nav-link--analytics-demo"
-                  : "")
+                analyticsHref.startsWith("/demo/")
+                  ? "mobile-bottom-nav-link--analytics-demo"
+                  : ""
               }
-              aria-current={
-                authedSegmentKey === "analytics" ? "page" : undefined
-              }
-              aria-label={t("nav.analytics")}
-            >
-              <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
-                <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8v8h8c0 4.41-3.59 8-8 8z"
-                  />
-                </svg>
-              </span>
-            </Link>
+              icon={iconAnalytics}
+            />
           ) : null}
           {isAdmin ? (
-            <Link
+            <MobileBottomNavItem
               href="/admin"
               prefetch={false}
-              className={
-                "mobile-bottom-nav-link" +
-                (authedSegmentKey === "admin" ? " is-route-active" : "")
-              }
-              aria-current={
-                authedSegmentKey === "admin" ? "page" : undefined
-              }
-              aria-label={t("nav.admin")}
-            >
-              <span className="mobile-bottom-nav-icon-slot" aria-hidden="true">
-                <svg className="mobile-bottom-nav-icon" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"
-                  />
-                </svg>
-              </span>
-            </Link>
+              label={t("nav.admin")}
+              active={authedSegmentKey === "admin"}
+              icon={iconAdmin}
+            />
           ) : null}
-          <NavUiLanguageSwitcher layout="mobile" />
         </div>
       </nav>
     );

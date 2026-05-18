@@ -1777,48 +1777,9 @@ body.landing-page .landing-cta {
         justify-content: center;
     }
 
-    /* Īsts panelis – viena kolonna arī iPhone landscape (platums >768px) */
-    .dashboard-overview-main {
-        grid-template-columns: 1fr;
-        gap: 22px;
-    }
-
-    .dashboard-overview-right-col {
-        display: contents;
-    }
-
-    .dashboard-overview-head-col {
-        grid-column: 1;
-        grid-row: 1;
-    }
-
-    .dashboard-overview-stats-row {
-        grid-column: 1;
-        grid-row: 2;
-    }
-
-    .dashboard-overview-next-slot {
-        grid-column: 1;
-        grid-row: 3;
-    }
-
-    .dashboard-overview-calendar-col {
-        grid-column: 1;
-        grid-row: 4;
-        height: auto;
-    }
-
-    .dashboard-overview-main .dashboard-overview-calendar-col .pay-calendar-card {
-        flex: none;
-        height: auto;
-    }
-
-    .dashboard-overview-main .dashboard-overview-calendar-col .pay-calendar {
-        flex: none;
-    }
-
-    .mobile-bottom-nav {
-        display: flex;
+    /* Lietotāja panelī mobilajā nav vajadzīgs landing footer (aizņem vietu, pārklāj apakšējo nav). */
+    .app-layout > .landing-footer {
+        display: none;
     }
 
     header.dash-topbar .dash-nav-links {
@@ -2838,12 +2799,6 @@ a.dash-nav-link--cta.is-active .dash-icon {
     flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
-    .dash-lang-wrap--topbar {
-        display: none;
-    }
-}
-
 .dash-lang-trigger {
     display: inline-flex;
     align-items: center;
@@ -2878,7 +2833,7 @@ a.dash-nav-link--cta.is-active .dash-icon {
 .dash-lang-menu-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 140;
+    z-index: 205;
     border: none;
     padding: 0;
     margin: 0;
@@ -2897,7 +2852,7 @@ a.dash-nav-link--cta.is-active .dash-icon {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow-lg);
-    z-index: 150;
+    z-index: 210;
     padding: 6px;
 }
 
@@ -2964,7 +2919,7 @@ a.dash-nav-link--cta.is-active .dash-icon {
 .dash-lang-mob-scrim {
     position: fixed;
     inset: 0;
-    z-index: 186;
+    z-index: 206;
     border: none;
     padding: 0;
     margin: 0;
@@ -2979,7 +2934,33 @@ a.dash-nav-link--cta.is-active .dash-icon {
     top: auto;
     max-height: min(52vh, 360px);
     overflow-y: auto;
-    z-index: 190;
+    z-index: 210;
+}
+
+@media (max-width: 768px) {
+    .dash-lang-wrap--topbar .dash-lang-trigger {
+        min-width: 38px;
+        height: 38px;
+        padding: 0 6px;
+    }
+
+    .dash-lang-wrap--topbar .dash-lang-trigger-caret {
+        display: none;
+    }
+
+    .dash-lang-wrap--topbar.dash-lang-wrap-is-open .dash-lang-menu-backdrop {
+        background: rgba(15, 23, 42, 0.35);
+    }
+
+    .dash-lang-wrap--topbar .dash-lang-dropdown {
+        position: fixed;
+        left: var(--app-shell-pad-x);
+        right: var(--app-shell-pad-x);
+        top: calc(58px + env(safe-area-inset-top, 0px));
+        bottom: auto;
+        max-height: min(52vh, 360px);
+        overflow-y: auto;
+    }
 }
 
 .dash-notify-wrap {
@@ -3630,33 +3611,68 @@ button.dash-exit {
     margin-bottom: 15px;
 }
 
-.dashboard-overview-main {
-    display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.22fr);
-    gap: 18px 28px;
-    align-items: stretch;
-}
+@media (min-width: 961px) {
+    .dashboard-overview-main {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.22fr);
+        gap: 18px 28px;
+        align-items: stretch;
+    }
 
-/* Bez kalendāra (brīvais līmenis, kad ieslēgts maksas plāns): viena kolonna */
-.dashboard-overview-main.dashboard-overview-main--no-calendar {
-    grid-template-columns: 1fr;
-}
+    /* Bez kalendāra (brīvais līmenis, kad ieslēgts maksas plāns): viena kolonna */
+    .dashboard-overview-main.dashboard-overview-main--no-calendar {
+        grid-template-columns: 1fr;
+    }
 
-.dashboard-overview-main.dashboard-overview-main--no-calendar .dashboard-overview-right-col {
-    grid-column: 1;
+    .dashboard-overview-main.dashboard-overview-main--no-calendar .dashboard-overview-right-col {
+        grid-column: 1;
+    }
+
+    .dashboard-overview-calendar-col {
+        grid-column: 1;
+        grid-row: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .dashboard-overview-right-col {
+        grid-column: 2;
+        grid-row: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .dashboard-overview-main .dashboard-overview-calendar-col .dashboard-top-calendar {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        min-width: 0;
+    }
+
+    .dashboard-overview-main .dashboard-overview-calendar-col .pay-calendar-card {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .dashboard-overview-main .dashboard-overview-calendar-col .pay-calendar {
+        flex: 1;
+        min-height: 0;
+    }
 }
 
 .dashboard-overview-calendar-col {
-    grid-column: 1;
-    grid-row: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
 }
 
 .dashboard-overview-right-col {
-    grid-column: 2;
-    grid-row: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -3682,26 +3698,6 @@ button.dash-exit {
 
 .dashboard-next-pay-slot .stat-card--next-pay {
     flex: 1;
-}
-
-.dashboard-overview-main .dashboard-overview-calendar-col .dashboard-top-calendar {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    min-width: 0;
-}
-
-.dashboard-overview-main .dashboard-overview-calendar-col .pay-calendar-card {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.dashboard-overview-main .dashboard-overview-calendar-col .pay-calendar {
-    flex: 1;
-    min-height: 0;
 }
 
 .dashboard-top-calendar {
@@ -6330,7 +6326,7 @@ button.dash-exit {
     position: fixed;
     bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     inset-inline: 0;
-    z-index: 185;
+    z-index: 195;
     justify-content: center;
     align-items: center;
     pointer-events: none;
@@ -6341,10 +6337,10 @@ button.dash-exit {
 
 .mobile-bottom-nav-pill {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
     gap: 6px;
-    padding: 8px 12px;
+    padding: 7px clamp(20px, 5.5vw, 28px) 6px;
     border-radius: 9999px;
     pointer-events: auto;
     background: rgba(15, 23, 42, 0.62);
@@ -6354,7 +6350,7 @@ button.dash-exit {
         0 1px 0 rgba(255, 255, 255, 0.06) inset;
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    max-width: min(440px, 100%);
+    max-width: min(480px, 100%);
 }
 
 .mobile-bottom-nav-link {
@@ -6363,12 +6359,40 @@ button.dash-exit {
     justify-content: center;
     flex: 1 1 auto;
     min-width: 0;
-    min-height: 48px;
-    padding: 0 10px;
+    min-height: 52px;
+    padding: 4px 10px 2px;
     color: rgba(255, 255, 255, 0.95);
     text-decoration: none;
     border-radius: 999px;
     -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.mobile-bottom-nav-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.78);
+    max-width: 76px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mobile-bottom-nav-link.is-route-active .mobile-bottom-nav-label {
+    color: rgba(255, 255, 255, 0.98);
 }
 
 .mobile-bottom-nav-link:hover {
@@ -6380,10 +6404,11 @@ button.dash-exit {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     transition: background 0.15s ease;
+    flex-shrink: 0;
 }
 
 .mobile-bottom-nav-icon {
@@ -6893,7 +6918,8 @@ button.dash-exit {
         display: none;
     }
 
-    .landing-footer--with-legal {
+    .legal-page .landing-footer--with-legal,
+    .auth-page .landing-footer--with-legal {
         display: block;
         padding-bottom: calc(20px + 96px + env(safe-area-inset-bottom, 0px));
         font-size: 12px;
@@ -7064,4 +7090,60 @@ button.dash-exit {
 
 .admin-email-design-steps-list li + li {
     margin-top: 8px;
+}
+
+/* =============================================
+   Mobilais panelis + apakšējā navigācija (≤960px)
+   Jābūt faila beigās – citādi vēlāki desktop noteikumi tos pārraksta.
+   ============================================= */
+@media (max-width: 960px) {
+    .mobile-bottom-nav {
+        display: flex;
+    }
+
+    .dashboard-overview-main {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+    }
+
+    .dashboard-overview-right-col {
+        order: 1;
+        width: 100%;
+    }
+
+    .dashboard-overview-calendar-col {
+        order: 2;
+        width: 100%;
+        height: auto;
+        flex: none;
+    }
+
+    .dashboard-overview-main .dashboard-overview-calendar-col .dashboard-top-calendar,
+    .dashboard-overview-main .dashboard-overview-calendar-col .pay-calendar-card,
+    .dashboard-overview-main .dashboard-overview-calendar-col .pay-calendar {
+        flex: none;
+        height: auto;
+        min-height: 0;
+    }
+
+    .dashboard-overview-stats-row {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-overview-head-col .page-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+    }
+
+    .dashboard-overview-head-col .page-header-actions-column {
+        align-items: stretch;
+        width: 100%;
+    }
+
+    .dashboard-overview-head-col .page-header-actions-column .btn {
+        width: 100%;
+        justify-content: center;
+    }
 }

@@ -181,6 +181,15 @@ export const FALLBACK_PHRASES = {
     pt: "Navegação principal",
     ru: "Основная навигация",
   },
+  "mobile.nav.home": {
+    lv: "Sākums",
+    en: "Home",
+    fr: "Accueil",
+    de: "Start",
+    es: "Inicio",
+    pt: "Início",
+    ru: "Главная",
+  },
   "admin.sidebar.title": {
     lv: "Administrācija",
     en: "Administration",

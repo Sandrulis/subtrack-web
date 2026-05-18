@@ -190,6 +190,14 @@ function subtrackAddPaidCalendarDay(isoDay) {
     subtrackWritePaidCalendarCounts(map);
 }
 
+/** Notīra kalendāra „samaksāts” vēsturi (localStorage), ja aktīvo ierakstu vairs nav. */
+function subtrackClearPaidCalendarMarks() {
+    if (typeof localStorage === 'undefined') return;
+    try {
+        localStorage.removeItem(SUBTRACK_CAL_PAID_LS_KEY);
+    } catch (e) {}
+}
+
 function subtrackPaidCalendarDayMapForMonth(y, m) {
     var map = subtrackReadPaidCalendarCounts();
     var out = {};

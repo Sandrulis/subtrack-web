@@ -45,9 +45,12 @@ function renderList(scrollToItemId) {
     }
 
     updateStats();
-    renderPaymentCalendar();
 
     if (subscriptions.length === 0) {
+        if (typeof subtrackClearPaidCalendarMarks === 'function') {
+            subtrackClearPaidCalendarMarks();
+        }
+        renderPaymentCalendar();
         list.innerHTML = '';
         empty.classList.remove('hidden');
         if (typeof refreshDashNotifications === 'function') {
@@ -56,6 +59,8 @@ function renderList(scrollToItemId) {
         subtrackRefreshFreeTierAddButtons();
         return;
     }
+
+    renderPaymentCalendar();
 
     empty.classList.add('hidden');
     var sorted = subscriptions.slice().sort(function (a, b) {
@@ -186,6 +191,7 @@ function renderPaymentCalendar() {
     var m = calendarView.m;
     var payMap = getPaymentsByDateInMonth(y, m);
     var includePaidMarks =
+        subscriptions.length > 0 &&
         typeof subtrackCalendarIncludePaidMarks === 'function' &&
         subtrackCalendarIncludePaidMarks();
     var paidPastMap = {};
