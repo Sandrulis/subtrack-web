@@ -79,9 +79,17 @@ export function LoginSocialButtons({
             disabled={busy !== null}
             onClick={() => void signInWithOAuth("google")}
           >
-            <i className="fa-brands fa-google" aria-hidden="true" />
-            <span className="btn-social-label">
-              {busy === "google" ? "…" : t("auth.social.google_label")}
+            <span className="btn-social-label auth-submit-btn-inner">
+              <span
+                className={`btn-spinner auth-submit-spinner${busy === "google" ? "" : " hidden"}`}
+                aria-hidden="true"
+              />
+              <i className="fa-brands fa-google" aria-hidden="true" />
+              <span>
+                {busy === "google"
+                  ? t("auth.status.login_pending")
+                  : t("auth.social.google_label")}
+              </span>
             </span>
           </button>
         ) : null}
@@ -93,9 +101,17 @@ export function LoginSocialButtons({
             disabled={busy !== null}
             onClick={() => void signInWithOAuth("apple")}
           >
-            <i className="fa-brands fa-apple" aria-hidden="true" />
-            <span className="btn-social-label">
-              {busy === "apple" ? "…" : t("auth.social.apple_label")}
+            <span className="btn-social-label auth-submit-btn-inner">
+              <span
+                className={`btn-spinner auth-submit-spinner${busy === "apple" ? "" : " hidden"}`}
+                aria-hidden="true"
+              />
+              <i className="fa-brands fa-apple" aria-hidden="true" />
+              <span>
+                {busy === "apple"
+                  ? t("auth.status.login_pending")
+                  : t("auth.social.apple_label")}
+              </span>
             </span>
           </button>
         ) : null}

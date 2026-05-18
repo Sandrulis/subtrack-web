@@ -124,7 +124,7 @@ a:hover { text-decoration: underline; }
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 24px 16px;
+    padding: 48px 20px 56px;
     min-height: 0;
 }
 
@@ -187,16 +187,39 @@ a:hover { text-decoration: underline; }
  * Auth / iestatījumu kartes ar formām: vienotas atstarpes starp laukiem
  * (login, signup, forgot, change-password, settings)
  */
+.auth-card--form h1 {
+    margin-bottom: 10px;
+}
+
 .auth-card--form .auth-subtitle {
-    margin-bottom: 32px;
+    margin-bottom: 36px;
+}
+
+.auth-card--form form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.auth-card--form form fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
 }
 
 .auth-card--form form > .form-group,
-.auth-card--form form > .form-row {
-    margin-bottom: 24px;
+.auth-card--form form > .form-row,
+.auth-card--form form fieldset > .form-group,
+.auth-card--form form fieldset > .form-row {
+    margin-bottom: 0;
 }
 
-.auth-card--form form > .form-row .form-group {
+.auth-card--form form > .form-row .form-group,
+.auth-card--form form fieldset > .form-row .form-group {
     margin-bottom: 0;
 }
 
@@ -204,9 +227,49 @@ a:hover { text-decoration: underline; }
     gap: 16px;
 }
 
-.auth-card--form .auth-submit-wrap {
+.auth-card--form .form-hint {
     margin-top: 8px;
     margin-bottom: 0;
+}
+
+.auth-card--form .password-strength {
+    margin-top: 10px;
+}
+
+.auth-card--form .auth-submit-wrap {
+    margin-top: 4px;
+    margin-bottom: 0;
+}
+
+.auth-card--form .auth-legal-note {
+    margin-top: 20px;
+}
+
+.auth-submit-btn-inner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.auth-submit-spinner {
+    width: 18px;
+    height: 18px;
+}
+
+.auth-submit-wrap .btn-primary.is-loading,
+.auth-submit-wrap .btn-primary:disabled {
+    cursor: wait;
+    transform: none;
+    box-shadow: none;
+}
+
+.auth-submit-status {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.45;
 }
 
 /* Ieejas karte: nedaudz mūsdienīgāks reljefs (tikai .auth-card--login) */
@@ -238,12 +301,16 @@ a:hover { text-decoration: underline; }
 }
 
 .auth-card--login .auth-footer {
+    margin-top: 32px;
+}
+
+.auth-card--form .auth-footer {
     margin-top: 28px;
 }
 
 /* Sociālo kontu pogas ieejā (UI; OAuth vēlāk) */
 .auth-social {
-    margin-top: 32px;
+    margin-top: 36px;
     padding-top: 0;
     border-top: none;
 }
@@ -4788,6 +4855,16 @@ button.dash-exit {
     }
     .form-row { grid-template-columns: 1fr; }
     .auth-card { padding: 28px 22px; }
+    .auth-page-inner {
+        padding: 32px 16px 40px;
+    }
+    .auth-card--form .auth-subtitle {
+        margin-bottom: 28px;
+    }
+    .auth-card--form form,
+    .auth-card--form form fieldset {
+        gap: 18px;
+    }
     .sub-actions { opacity: 1; }
     .main-content { padding: 20px 16px 32px; }
 

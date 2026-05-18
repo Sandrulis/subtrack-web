@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AuthFormPendingFieldset } from "@/components/auth/auth-form-pending-fieldset";
+import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { signUpAction, signupEmailExistsAction } from "@/lib/auth/actions";
 import {
@@ -119,6 +121,7 @@ export function SignupForm() {
 
   return (
     <form action={signUpAction} noValidate>
+      <AuthFormPendingFieldset>
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="first_name">{t("auth.field.first_name")}</label>
@@ -277,15 +280,15 @@ export function SignupForm() {
           </p>
         ) : null}
       </div>
+      </AuthFormPendingFieldset>
 
       <div className="auth-submit-wrap">
-        <button
-          type="submit"
-          className="btn btn-primary btn-block"
+        <AuthSubmitButton
+          labelKey="auth.signup.submit"
+          pendingLabelKey="auth.status.signup_pending"
+          statusDetailKey="auth.status.signup_detail"
           disabled={submitDisabled}
-        >
-          {t("auth.signup.submit")}
-        </button>
+        />
       </div>
 
       <p className="auth-legal-note">

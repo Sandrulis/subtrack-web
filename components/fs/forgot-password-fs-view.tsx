@@ -1,25 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useActionState } from "react";
+import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { SiteStandardCopyrightNotice } from "@/components/site-standard-copyright-notice";
+import {
+  requestPasswordResetAction,
+  type ForgotPasswordFormState,
+} from "@/lib/auth/actions";
+
+const initialState: ForgotPasswordFormState = { ok: false };
 
 export function ForgotPasswordFsView() {
-
-  const [step, setStep] = useState<"request" | "success">("request");
-
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const email = String(fd.get("email") ?? "").trim();
-    if (!email) return;
-    setStep("success");
-  }
+  const [state, formAction, pending] = useActionState(
+    requestPasswordResetAction,
+    initialState,
+  );
 
   return (
     <>
       <div className="auth-page-inner">
-        {step === "request" ? (
+        {!state.ok ? (
           <div className="auth-card auth-card--form" id="card-request">
             <div style={{ marginBottom: 16, color: "var(--primary)" }}>
               <i className="fa-solid fa-lock fa-2x" />
@@ -30,23 +31,34 @@ export function ForgotPasswordFsView() {
               atjaunošanai.
             </p>
 
-            <form onSubmit={handleSubmit} id="forgot-form" noValidate>
-              <div className="form-group">
-                <label htmlFor="email">E-pasts</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  placeholder="jusu@epasts.lv"
-                  autoComplete="email"
-                  required
-                />
-              </div>
+            <form action={formAction} id="forgot-form" noValidate>
+              <fieldset disabled={pending}>
+                <div className="form-group">
+                  <label htmlFor="email">E-pasts</label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="jusu@epasts.lv"
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+              </fieldset>
+
+              {state.error ? (
+                <p className="form-hint form-hint--error" role="alert">
+                  {state.error}
+                </p>
+              ) : null}
 
               <div className="auth-submit-wrap">
-                <button type="submit" className="btn btn-primary btn-block">
-                  Nosūtīt atjaunošanas saiti
-                </button>
+                <AuthSubmitButton
+                  label="Nosūtīt atjaunošanas saiti"
+                  pendingLabelKey="auth.status.forgot_pending"
+                  statusDetailKey="auth.status.forgot_detail"
+                  pending={pending}
+                />
               </div>
             </form>
 
@@ -89,20 +101,9 @@ export function ForgotPasswordFsView() {
               }}
             >
               Nesaņēmāt e-pastu? Pārbaudiet surogātpastu vai{" "}
-              <button
-                type="button"
-                className="forgot-link"
-                style={{
-                  background: "none",
-                  border: "none",
-                  padding: 0,
-                  cursor: "pointer",
-                  font: "inherit",
-                }}
-                onClick={() => setStep("request")}
-              >
+              <Link href="/forgot-password" className="forgot-link">
                 mēģiniet vēlreiz
-              </button>
+              </Link>
               .
             </p>
           </div>

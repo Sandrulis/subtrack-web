@@ -134,6 +134,41 @@ export async function signUpAction(formData: FormData) {
   );
 }
 
+export type ForgotPasswordFormState = {
+  ok: boolean;
+  error?: string;
+};
+
+export async function requestPasswordResetAction(
+  _prev: ForgotPasswordFormState,
+  formData: FormData,
+): Promise<ForgotPasswordFormState> {
+  const cfg = getSupabasePublicConfig();
+  if (!cfg) {
+    return {
+      ok: false,
+      error:
+        "Supabase nav konfigurēts. Pievieno .env.local ar URL un anon atslēgu.",
+    };
+  }
+
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) {
+    return { ok: false, error: "Ievadiet e-pastu." };
+  }
+
+  const site =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
+    "http://localhost:3000";
+
+  const supabase = await createServerSupabaseClient();
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${site}/auth/callback?next=${encodeURIComponent("/change-password")}`,
+  });
+
+  return { ok: true };
+}
+
 export async function signOutAction() {
   const cfg = getSupabasePublicConfig();
   if (!cfg) {
