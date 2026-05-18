@@ -16,14 +16,5 @@ export function BodyLandingPageClass({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  return (
-    <>
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `document.body.classList.add("${LANDING_BODY_CLASS}");`,
-        }}
-      />
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }

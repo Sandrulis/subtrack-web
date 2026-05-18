@@ -1282,12 +1282,20 @@ body.landing-page .landing-cta {
 .landing-hero-dashboard-mock .dashboard-overview-main {
     gap: clamp(10px, 2vw, 14px) clamp(10px, 2vw, 16px);
     margin-bottom: 12px;
-    align-items: start;
+    align-items: stretch;
     grid-template-columns: minmax(252px, 1.02fr) minmax(0, 1fr);
 }
 
 .landing-hero-dashboard-mock .dashboard-overview-right-col {
     gap: clamp(10px, 2vw, 14px);
+    min-height: 100%;
+}
+
+.landing-hero-dashboard-mock .dashboard-overview-next-slot {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .landing-hero-dashboard-mock .dashboard-overview-calendar-col {
@@ -1437,13 +1445,14 @@ body.landing-page .landing-cta {
 .landing-hero-dashboard-mock .dashboard-next-pay-slot .stat-card--next-pay {
     display: flex;
     flex-direction: column;
-    height: auto;
+    flex: 1;
+    min-height: 0;
     gap: 2px;
     justify-content: flex-start;
 }
 
 .landing-hero-dashboard-mock .stat-card--next-pay .stat-next-body {
-    flex: none;
+    flex: 1;
     margin-top: 6px;
     padding-top: 0;
     align-items: center;
@@ -3643,6 +3652,18 @@ button.dash-exit {
         display: flex;
         flex-direction: column;
         gap: 18px;
+        min-height: 100%;
+    }
+
+    .dashboard-overview-next-slot {
+        flex: 1;
+        min-height: 0;
+    }
+
+    .dashboard-next-pay-slot .stat-card--next-pay {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
     }
 
     .dashboard-overview-main .dashboard-overview-calendar-col .dashboard-top-calendar {
@@ -3694,10 +3715,6 @@ button.dash-exit {
     min-width: 0;
     display: flex;
     flex-direction: column;
-}
-
-.dashboard-next-pay-slot .stat-card--next-pay {
-    flex: 1;
 }
 
 .dashboard-top-calendar {
@@ -7101,49 +7118,117 @@ button.dash-exit {
         display: flex;
     }
 
-    .dashboard-overview-main {
+    /* Tikai īstais panelis – ne landing hero mock */
+    .app-layout .dashboard-overview-main {
         display: flex;
         flex-direction: column;
         gap: 22px;
+        align-items: stretch;
     }
 
-    .dashboard-overview-right-col {
+    .app-layout .dashboard-overview-right-col {
         order: 1;
         width: 100%;
     }
 
-    .dashboard-overview-calendar-col {
+    .app-layout .dashboard-overview-calendar-col {
         order: 2;
         width: 100%;
         height: auto;
         flex: none;
     }
 
-    .dashboard-overview-main .dashboard-overview-calendar-col .dashboard-top-calendar,
-    .dashboard-overview-main .dashboard-overview-calendar-col .pay-calendar-card,
-    .dashboard-overview-main .dashboard-overview-calendar-col .pay-calendar {
+    .app-layout .dashboard-overview-main .dashboard-overview-calendar-col .dashboard-top-calendar,
+    .app-layout .dashboard-overview-main .dashboard-overview-calendar-col .pay-calendar-card,
+    .app-layout .dashboard-overview-main .dashboard-overview-calendar-col .pay-calendar {
         flex: none;
         height: auto;
         min-height: 0;
     }
 
-    .dashboard-overview-stats-row {
+    .app-layout .dashboard-overview-stats-row {
         grid-template-columns: 1fr;
     }
 
-    .dashboard-overview-head-col .page-header {
+    .app-layout .dashboard-overview-head-col .page-header {
         flex-direction: column;
         align-items: stretch;
         gap: 14px;
     }
 
-    .dashboard-overview-head-col .page-header-actions-column {
+    .app-layout .dashboard-overview-head-col .page-header-actions-column {
         align-items: stretch;
         width: 100%;
     }
 
-    .dashboard-overview-head-col .page-header-actions-column .btn {
+    .app-layout .dashboard-overview-head-col .page-header-actions-column .btn {
         width: 100%;
         justify-content: center;
+    }
+
+    /* Sākumlapas hero mock – viena kolonna, pilns platums (ne display:contents + align-items:start) */
+    .landing-hero-dashboard-mock .dashboard-overview-main {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: clamp(10px, 2vw, 14px);
+    }
+
+    .landing-hero-dashboard-mock .dashboard-overview-right-col {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(10px, 2vw, 14px);
+        width: 100%;
+    }
+
+    .landing-hero-dashboard-mock .dashboard-overview-calendar-col {
+        width: 100%;
+    }
+
+    .landing-hero-dashboard-mock .dashboard-overview-stats-row {
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
+    .landing-hero-dashboard-mock .dashboard-overview-next-slot,
+    .landing-hero-dashboard-mock .stat-card {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .landing-hero-dashboard-mock .dashboard-overview-next-slot {
+        flex: none;
+    }
+
+    .app-layout .dashboard-overview-next-slot {
+        flex: none;
+    }
+
+    .stat-card--next-pay {
+        min-height: 0;
+        gap: 6px;
+    }
+
+    .stat-card--next-pay .stat-next-body {
+        flex: none;
+        padding-top: 0;
+        margin-top: 0;
+    }
+
+    .landing-hero-dashboard-mock .dashboard-next-pay-slot .stat-card--next-pay {
+        flex: none;
+        min-height: 0;
+        gap: 6px;
+        padding: 10px 12px;
+    }
+
+    .landing-hero-dashboard-mock .stat-card--next-pay .stat-next-body {
+        margin-top: 0;
+        padding-top: 0;
+    }
+
+    .app-layout .dashboard-overview-next-slot .stat-card--next-pay {
+        flex: none;
+        min-height: 0;
     }
 }
