@@ -260,6 +260,7 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 
 ### 0.3.43 (2026-05-18)
 
+- **Sākumlapas SEO** – Open Graph, Twitter Card (`summary_large_image`), `canonical` (`metadataBase` no **`NEXT_PUBLIC_SITE_URL`**), JSON-LD **`WebApplication`**; dinamisks **`/opengraph-image`** (1200×630). Faili: **`app/page.tsx`**, **`app/layout.tsx`**, **`app/opengraph-image.tsx`**, **`lib/seo/landing-seo.ts`**, **`lib/site-url.ts`**, **`components/seo/landing-web-app-json-ld.tsx`**.
 - **„Nākamais maksājums” izkārtojums** – desktop: karte stiepjas līdz kalendāra apakšai (**`styles/subtrack.css`**, `flex` labajā kolonnā); mobilajā – bez liekā tukšuma apakšā, vienādas atstarpes kā citām stat kartēm. Sākumlapas hero mock – tā pati kolonnu līdzināšana; mobilais mock **viena kolonna** (ne `display: contents`).
 - **Sākumlapa** – noņemts `<script>` no **`body-landing-class.tsx`** (React brīdinājums par skriptu klienta komponentā); `body` klase joprojām caur **`useLayoutEffect`**.
 

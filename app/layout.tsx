@@ -8,6 +8,7 @@ import { getLanguagesCatalog } from "@/lib/languages-catalog";
 import { localeCodeToHtmlLang } from "@/lib/html-lang";
 import { getPublicSiteTranslationsMerged } from "@/lib/site-translations-public";
 import { getPublicSystemSettings } from "@/lib/system-settings-public";
+import { getPublicSiteOrigin } from "@/lib/site-url";
 import { resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
 
 const inter = Inter({
@@ -24,6 +25,7 @@ export const viewport: Viewport = {
 export async function generateMetadata(): Promise<Metadata> {
   const { systemName } = await getPublicSystemSettings();
   return {
+    metadataBase: getPublicSiteOrigin(),
     title: {
       default: systemName,
       template: `%s | ${systemName}`,

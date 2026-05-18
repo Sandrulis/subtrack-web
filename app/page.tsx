@@ -4,24 +4,25 @@ import { BodyLandingPageClass } from "@/components/body-landing-class";
 import { LandingNavSync } from "@/components/landing-nav-sync";
 import { LandingPageContent } from "@/components/landing-page";
 import { NavLanding } from "@/components/nav-landing";
+import { LandingWebAppJsonLd } from "@/components/seo/landing-web-app-json-ld";
 import { getSessionUserDisplaySafe } from "@/lib/auth/user-display";
+import { buildLandingPageMetadata } from "@/lib/seo/landing-seo";
 import { getSystemSiteName } from "@/lib/system-settings-public";
 
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getSystemSiteName();
-  return {
-    title: `${brand} – abonementu un periodisko maksājumu pārvaldība`,
-    description:
-      "Pārvaldi abonementus, rēķinus un citus periodiskos maksājumus vienuviet. Kalendārs, analītika un atgādinājumi vienkāršā un modernā panelī.",
-  };
+  return buildLandingPageMetadata(brand);
 }
 
 export default async function HomePage() {
   const userDisplay = await getSessionUserDisplaySafe();
   if (userDisplay) redirect("/dashboard");
 
+  const brand = await getSystemSiteName();
+
   return (
     <BodyLandingPageClass>
+      <LandingWebAppJsonLd brand={brand} />
       {/* Pirms React hydration – body.landing-page fons (CSS ritms vairs no tā nav atkarīgs) */}
       <script
         dangerouslySetInnerHTML={{
