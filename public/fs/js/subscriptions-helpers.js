@@ -454,6 +454,58 @@ function subtrackSetMarkPaidPending(rawId, pending) {
         });
 }
 
+/** Aktīvie dzēšanas pieprasījumi (subscription id). */
+var subtrackDeletePending = {};
+
+function subtrackIsDeletePending(rawId) {
+    return !!subtrackDeletePending[String(rawId)];
+}
+
+function subtrackDeleteButtonInnerHtml() {
+    return (
+        '<i class="fa-solid fa-trash delete-icon" aria-hidden="true"></i>' +
+        '<span class="delete-spinner btn-spinner hidden" aria-hidden="true"></span>'
+    );
+}
+
+function subtrackApplyDeleteButtonPending(btn, pending) {
+    if (!btn) return;
+    var icon = btn.querySelector('.delete-icon');
+    var spinner = btn.querySelector('.delete-spinner');
+    btn.disabled = !!pending;
+    btn.setAttribute('aria-busy', pending ? 'true' : 'false');
+    if (icon) icon.classList.toggle('hidden', !!pending);
+    if (spinner) spinner.classList.toggle('hidden', !pending);
+    btn.classList.toggle('delete--pending', !!pending);
+}
+
+function subtrackSyncDeleteButtonsPending() {
+    var ids = Object.keys(subtrackDeletePending);
+    if (!ids.length) return;
+    ids.forEach(function (id) {
+        if (!subtrackDeletePending[id]) return;
+        document
+            .querySelectorAll('.icon-btn.delete[data-subscription-id]')
+            .forEach(function (btn) {
+                if (String(btn.getAttribute('data-subscription-id')) !== String(id)) return;
+                subtrackApplyDeleteButtonPending(btn, true);
+            });
+    });
+}
+
+function subtrackSetDeletePending(rawId, pending) {
+    var id = String(rawId);
+    if (pending) {
+        subtrackDeletePending[id] = true;
+    } else {
+        delete subtrackDeletePending[id];
+    }
+    document.querySelectorAll('.icon-btn.delete[data-subscription-id]').forEach(function (btn) {
+        if (String(btn.getAttribute('data-subscription-id')) !== id) return;
+        subtrackApplyDeleteButtonPending(btn, pending);
+    });
+}
+
 /** Toast ziņojumi (lapā nepieciešams elements #toast-container). */
 function showToast(msg, type) {
     var container = document.getElementById('toast-container');

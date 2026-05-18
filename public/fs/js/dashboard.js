@@ -73,6 +73,9 @@ function renderList(scrollToItemId) {
     if (typeof subtrackSyncMarkPaidButtonsPending === 'function') {
         subtrackSyncMarkPaidButtonsPending();
     }
+    if (typeof subtrackSyncDeleteButtonsPending === 'function') {
+        subtrackSyncDeleteButtonsPending();
+    }
 }
 
 function pad2Cal(n) {
@@ -660,13 +663,17 @@ function buildItem(s) {
                         '" onclick=\'openEditModal(' +
                         JSON.stringify(String(s.id)) +
                         ')\'><i class="fa-solid fa-pen"></i></button>' +
-                        '<button type="button" class="icon-btn delete" data-tooltip="' +
+                        '<button type="button" class="icon-btn delete" data-subscription-id="' +
+                        escAttr(String(s.id)) +
+                        '" data-tooltip="' +
                         escAttr(FsT('fs.dashboard.tooltip_delete')) +
                         '" aria-label="' +
                         escAttr(FsT('fs.dashboard.aria_delete')) +
                         '" onclick=\'openDeleteModal(' +
                         JSON.stringify(String(s.id)) +
-                        ')\'><i class="fa-solid fa-trash"></i></button>' +
+                        ')\'>' +
+                        subtrackDeleteButtonInnerHtml() +
+                        '</button>' +
                     '</div>' +
                     '<div class="sub-amount-wrap">' +
                         '<div class="sub-amount">€' + displayTotal.toFixed(2) + '</div>' +
@@ -1092,7 +1099,28 @@ function saveSubscription() {
 }
 
 /* ---- Delete ---- */
+function isDeleteModalBusy() {
+    var confirmBtn = document.getElementById('delete-confirm-btn');
+    return !!(confirmBtn && confirmBtn.getAttribute('aria-busy') === 'true');
+}
+
+function setDeleteModalPending(pending) {
+    var confirmBtn = document.getElementById('delete-confirm-btn');
+    var cancelBtn = document.getElementById('delete-cancel-btn');
+    if (confirmBtn) {
+        var spinner = confirmBtn.querySelector('.dash-delete-spinner');
+        confirmBtn.disabled = !!pending;
+        confirmBtn.setAttribute('aria-busy', pending ? 'true' : 'false');
+        if (spinner) spinner.classList.toggle('hidden', !pending);
+    }
+    if (cancelBtn) {
+        cancelBtn.disabled = !!pending;
+    }
+}
+
 function openDeleteModal(id) {
+    if (subtrackIsDeletePending(id)) return;
+    setDeleteModalPending(false);
     deletingId = String(id);
     var s = subscriptions.find(function(x) { return x.id === id; });
     document.getElementById('delete-confirm-name').textContent = FsT(
@@ -1102,22 +1130,33 @@ function openDeleteModal(id) {
 }
 
 function closeDeleteModal() {
+    if (isDeleteModalBusy()) return;
     document.getElementById('delete-overlay').classList.remove('open');
     deletingId = null;
 }
 
 function handleDeleteOverlayClick(e) {
+    if (isDeleteModalBusy()) return;
     if (e.target === document.getElementById('delete-overlay')) closeDeleteModal();
 }
 
 function confirmDelete() {
     var id = deletingId;
-    if (id == null) return;
+    if (id == null || isDeleteModalBusy()) return;
+
+    setDeleteModalPending(true);
+    subtrackSetDeletePending(id, true);
+
+    function finishDeletePending() {
+        setDeleteModalPending(false);
+        subtrackSetDeletePending(id, false);
+    }
 
     if (typeof window !== 'undefined' && window.__SUBTRACK_DEMO_DASHBOARD__) {
         subscriptions = subscriptions.filter(function (x) {
             return String(x.id) !== String(id);
         });
+        finishDeletePending();
         closeDeleteModal();
         renderList();
         showToast(FsT('fs.dashboard.toast_deleted'), 'success');
@@ -1134,11 +1173,13 @@ function confirmDelete() {
             subscriptions = subscriptions.filter(function (x) {
                 return String(x.id) !== String(id);
             });
+            finishDeletePending();
             closeDeleteModal();
             renderList();
             showToast(FsT('fs.dashboard.toast_deleted'), 'success');
         })
         .catch(function () {
+            finishDeletePending();
             showToast(FsT('fs.dashboard.toast_api_delete_failed'), 'error');
         });
 }

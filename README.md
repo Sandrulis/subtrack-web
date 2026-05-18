@@ -1,6 +1,6 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.3.34` (skatīt lapas lejas daļā **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**).
+**Versija:** `0.3.35` (skatīt lapas lejas daļā **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**).
 
 **SubTrack** ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, RLS); CRUD notiek caur **Route Handlers** (`app/api/subscriptions/*`) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
@@ -246,6 +246,10 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 ## Izmaiņu žurnāls
 
 Šeit īss pieraksts par izlaistām izmaiņām; detalizētākās funkcijas un SQL skatīt augšējās sadaļās.
+
+### 0.3.35 (2026-05-18)
+
+- **Panelis – dzēšana** – dzēšanas modālī un saraksta ikonā: **spinneris**, poga **disabled**, **`aria-busy`**, dubultklikšķis bloķēts; Atcelt un overlay aizvēršana atspējota DELETE laikā. **`dashboard.js`**, **`subscriptions-helpers.js`**, **`dashboard-fs-view.tsx`**, **`subtrack.css`**.
 
 ### 0.3.34 (2026-05-18)
 

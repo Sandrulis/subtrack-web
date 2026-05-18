@@ -528,11 +528,22 @@ export function DashboardFsView({
             <p id="delete-confirm-name">&nbsp;</p>
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={() => window.closeDeleteModal?.()}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              id="delete-cancel-btn"
+              onClick={() => window.closeDeleteModal?.()}
+            >
               {t("fs.dashboard.btn_cancel")}
             </button>
-            <button type="button" className="btn btn-danger" onClick={() => window.confirmDelete?.()}>
-              {t("fs.dashboard.btn_delete")}
+            <button
+              type="button"
+              className="btn btn-danger"
+              id="delete-confirm-btn"
+              onClick={() => window.confirmDelete?.()}
+            >
+              <span className="btn-spinner dash-delete-spinner hidden" aria-hidden="true" />
+              <span className="dash-delete-label">{t("fs.dashboard.btn_delete")}</span>
             </button>
           </div>
         </div>

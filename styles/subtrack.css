@@ -924,6 +924,48 @@ a:hover { text-decoration: underline; }
     opacity: 0.55;
 }
 
+.delete-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(220, 38, 38, 0.22);
+    border-top-color: var(--danger, #dc2626);
+}
+
+.delete-spinner.hidden,
+.delete-icon.hidden {
+    display: none !important;
+}
+
+.icon-btn.delete:disabled,
+.icon-btn.delete.delete--pending {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.icon-btn.delete.delete--pending:hover {
+    background: transparent;
+    color: var(--text-muted);
+}
+
+#delete-confirm-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+#delete-confirm-btn .dash-delete-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.38);
+    border-top-color: #fff;
+}
+
+#delete-confirm-btn:disabled {
+    cursor: wait;
+    opacity: 0.92;
+}
+
 .btn-outline {
     background: transparent;
     color: var(--primary);
