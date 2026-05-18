@@ -124,6 +124,7 @@ Pat salīdzinoši mazā lietotnē **`App Router`** maršruta maiņa parasti nav 
    - **`database/supabase/055_email_design_migrations_combined.sql`** – apvienots skripts **`051`–`053`** (e-pasta dizains admin). Ja jau palaisti atsevišķi, nav obligāti.
    - **`database/supabase/049_site_translations_legal.sql`** – **`/terms`**, **`/privacy`**, **`/cookies`**, cookie banner. Pēc **`012`**.
    - **`database/supabase/056_site_translations_mobile_nav_home.sql`** – **`mobile.nav.home`** (īss virsraksts demo apakšējā navigācijā). Pēc **`012`**.
+   - **`database/supabase/057_site_translations_landing_hero_cta_signup_lv.sql`** – **`landing.hero.cta_signup`** (visas lokāles: „Sākt lietot” / „Start using” u.c.). Pēc **`012`**.
    - Opcionāli **`002_migrate_profiles_to_users.sql`**, ja projektā bijusi vecā `profiles` shēma.
    - **`database/supabase/003_admin_users_select_policy.sql`** - **`current_user_is_admin()`** (sākotnēji **SECURITY DEFINER**; pēc **`023`** – **SECURITY INVOKER**) + SELECT politika **`users_select_all_if_admin`**. Tas ļauj adminiem (`is_admin > 0`) lasīt visu `public.users` sarakstu **bez** RLS rekursijas. Vecais variants ar `EXISTS (SELECT … FROM public.users …)` politikā izraisīja kļūdu `infinite recursion detected in policy for relation users` - ja to redzi, palaid šo failu **pilnībā** vēlreiz. Bez `003` anon sesijā admin lapa redz tikai savu rindu. **Pēc `022`/`023` politikas un grants atbilst jaunajai kārtībai** (Atkārtota palaišana ir idempotenta, ja izmanto jaunākos failus.)
    - **`database/supabase/004_signup_email_exists_rpc.sql`** - sākotnēja `signup_email_exists` (`SECURITY DEFINER`). **Pēc `023`:** `EXECUTE` tikai **`service_role`**; aplikācija izsauc caur **`signupEmailExistsAction`** ar **`SUPABASE_SERVICE_ROLE_KEY`**. Bez migrācijas **`023`** un bez atslēgas – vecais anon izsaukums var vairs nedarboties pēc grants maiņas.
@@ -263,6 +264,7 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 - **Sākumlapas SEO** – Open Graph, Twitter Card (`summary_large_image`), `canonical` (`metadataBase` no **`NEXT_PUBLIC_SITE_URL`**), JSON-LD **`WebApplication`**; dinamisks **`/opengraph-image`** (1200×630). Faili: **`app/page.tsx`**, **`app/layout.tsx`**, **`app/opengraph-image.tsx`**, **`lib/seo/landing-seo.ts`**, **`lib/site-url.ts`**, **`components/seo/landing-web-app-json-ld.tsx`**.
 - **„Nākamais maksājums” izkārtojums** – desktop: karte stiepjas līdz kalendāra apakšai (**`styles/subtrack.css`**, `flex` labajā kolonnā); mobilajā – bez liekā tukšuma apakšā, vienādas atstarpes kā citām stat kartēm. Sākumlapas hero mock – tā pati kolonnu līdzināšana; mobilais mock **viena kolonna** (ne `display: contents`).
 - **Sākumlapa** – noņemts `<script>` no **`body-landing-class.tsx`** (React brīdinājums par skriptu klienta komponentā); `body` klase joprojām caur **`useLayoutEffect`**.
+- **Sākumlapas CTA** – **`landing.hero.cta_signup`**: „Sākt lietot” / „Start using” (visas lokāles; **`057_site_translations_landing_hero_cta_signup_lv.sql`**, **`fallback-phrases.ts`**).
 
 ### 0.3.42 (2026-05-18)
 
