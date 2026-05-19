@@ -861,6 +861,14 @@ function subtrackRefreshFreeTierAddButtons() {
     });
 }
 
+function syncBodyModalScrollLock() {
+    var openOverlay = document.querySelector('.modal-overlay.open');
+    var root = document.documentElement;
+    if (!root) return;
+    if (openOverlay) root.classList.add('subtrack-modal-open');
+    else root.classList.remove('subtrack-modal-open');
+}
+
 /* ---- Add Modal ---- */
 function openAddModal() {
     if (subtrackIsFreeTierAddBlocked()) {
@@ -885,6 +893,7 @@ function openAddModal() {
     selectIcon('fa-solid fa-film');
     selectColor('#0d9488');
     document.getElementById('modal-overlay').classList.add('open');
+    syncBodyModalScrollLock();
     requestAnimationFrame(function () {
         requestAnimationFrame(function () {
             renderIconPickerHints();
@@ -924,6 +933,7 @@ function openEditModal(id) {
     selectIcon(s.icon || 'fa-solid fa-film');
     selectColor(s.color || '#0d9488');
     document.getElementById('modal-overlay').classList.add('open');
+    syncBodyModalScrollLock();
     requestAnimationFrame(function () {
         requestAnimationFrame(function () {
             renderIconPickerHints();
@@ -935,6 +945,7 @@ function openEditModal(id) {
 function closeModal() {
     setModalSavePending(false);
     document.getElementById('modal-overlay').classList.remove('open');
+    syncBodyModalScrollLock();
     collapseIconPicker();
     collapseModalAdvanced();
 }
@@ -1133,11 +1144,13 @@ function openDeleteModal(id) {
         'fs.dashboard.delete_body',
     ).replace(/\{name\}/g, s ? s.name : '');
     document.getElementById('delete-overlay').classList.add('open');
+    syncBodyModalScrollLock();
 }
 
 function closeDeleteModal() {
     if (isDeleteModalBusy()) return;
     document.getElementById('delete-overlay').classList.remove('open');
+    syncBodyModalScrollLock();
     deletingId = null;
 }
 
