@@ -4825,6 +4825,31 @@ button.dash-exit {
     margin-top: 18px;
 }
 
+/* Safari / iOS: date lauks nereti pārsniedz .form-group platumu */
+#modal-main .form-group {
+    min-width: 0;
+}
+
+#modal-main input[type="date"] {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+#modal-main input[type="date"]::-webkit-date-and-time-value {
+    text-align: left;
+    min-width: 0;
+}
+
+#modal-main input[type="date"]::-webkit-datetime-edit {
+    min-width: 0;
+    overflow: hidden;
+}
+
 .modal-overlay.open .modal {
     transform: translateY(0) scale(1);
 }
@@ -5023,9 +5048,9 @@ html.subtrack-modal-open body {
         justify-content: center;
         padding:
             max(8px, env(safe-area-inset-top, 0px))
-            max(8px, env(safe-area-inset-right, 0px))
+            max(13px, env(safe-area-inset-right, 0px))
             max(8px, env(safe-area-inset-bottom, 0px))
-            max(8px, env(safe-area-inset-left, 0px));
+            max(13px, env(safe-area-inset-left, 0px));
     }
 
     #modal-overlay .modal,
@@ -7201,6 +7226,12 @@ html.subtrack-modal-open body {
    Jābūt faila beigās – citādi vēlāki desktop noteikumi tos pārraksta.
    ============================================= */
 @media (max-width: 960px) {
+    html,
+    body {
+        touch-action: pan-x pan-y;
+        overscroll-behavior: none;
+    }
+
     .mobile-bottom-nav {
         display: flex;
     }
