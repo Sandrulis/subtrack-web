@@ -72,6 +72,7 @@ export const FS_DASHBOARD_DEMO_EXTRA_KEYS = [
   "fs.dashboard.aria_remove_device_row",
   "fs.dashboard.toast_device_name_when_term",
   "fs.dashboard.toast_device_term_order",
+  "ui.modal.confirm_close_backdrop",
   "fs.dashboard.btn_cancel",
   "fs.dashboard.btn_save",
   "fs.dashboard.btn_delete",

@@ -1,6 +1,6 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.3.45` (skatīt lapas lejas daļā **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**).
+**Versija:** `0.3.47` (skatīt lapas lejas daļā **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**).
 
 **SubTrack** ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, RLS); CRUD notiek caur **Route Handlers** (`app/api/subscriptions/*`) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
@@ -258,6 +258,14 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 ## Izmaiņu žurnāls
 
 Šeit īss pieraksts par izlaistām izmaiņām; detalizētākās funkcijas un SQL skatīt augšējās sadaļās.
+
+### 0.3.47 (2026-05-20)
+
+- **Tulkojumi** – aizpildīti trūkstošie `fr`/`de`/`es`/`pt`/`ru` `lib/i18n/legal-fallback-phrases.ts` (66 atslēgas) un daļa `fallback-phrases.ts` (admin e-pasts, `fs.dashboard.btn_save` u.c.); SQL **`049_site_translations_legal.sql`** (atjaunināts), **`059_site_translations_i18n_gaps.sql`**. Palīgs: **`scripts/fill_missing_fallback_locales.py`**.
+
+### 0.3.46 (2026-05-20)
+
+- **Modāļi** – klikšķis uz fona neaizver uzreiz: **apstiprinājuma modālis** (virs atvērtā loga, **`z-index: 260`**) ar **`ui.modal.confirm_close_*`**, ne **`window.confirm`**. **`ModalBackdropCloseConfirmHost`** (`app/layout.tsx`), **`modal-backdrop-close-confirm-bus.ts`**, **`public/fs/js/modal-overlay-guard.js`**, panelis un admin tulkojumu modāļi. SQL **`058_site_translations_modal_backdrop_confirm.sql`**.
 
 ### 0.3.45 (2026-05-19)
 

@@ -4,6 +4,10 @@
 
 var selectedIcon = 'fa-solid fa-film';
 var selectedColor = '#0d9488';
+/** Pievienošanā: lietotājs manuāli izvēlējās ikonu/krāsu (netiek pārrakstīts no nosaukuma). */
+var userPickedIcon = false;
+var userPickedColor = false;
+var visualSuggestBootstrap = null;
 var editingId = null;
 var deletingId = null;
 var calendarView = null;
@@ -890,8 +894,9 @@ function openAddModal() {
     document.getElementById('sub-term-start').value = '';
     document.getElementById('sub-term-end').value = '';
     setDefaultDate();
-    selectIcon('fa-solid fa-film');
-    selectColor('#0d9488');
+    userPickedIcon = false;
+    userPickedColor = false;
+    applyAutoVisualForAdd('');
     document.getElementById('modal-overlay').classList.add('open');
     syncBodyModalScrollLock();
     requestAnimationFrame(function () {
@@ -951,6 +956,12 @@ function closeModal() {
 }
 
 function handleOverlayClick(e) {
+    if (typeof subtrackHandleModalOverlayClick === 'function') {
+        subtrackHandleModalOverlayClick(e, document.getElementById('modal-overlay'), closeModal, {
+            isBusy: isModalSaveBusy,
+        });
+        return;
+    }
     if (e.target !== document.getElementById('modal-overlay')) return;
     if (isModalSaveBusy()) return;
     closeModal();
@@ -1155,6 +1166,12 @@ function closeDeleteModal() {
 }
 
 function handleDeleteOverlayClick(e) {
+    if (typeof subtrackHandleModalOverlayClick === 'function') {
+        subtrackHandleModalOverlayClick(e, document.getElementById('delete-overlay'), closeDeleteModal, {
+            isBusy: isDeleteModalBusy,
+        });
+        return;
+    }
     if (isDeleteModalBusy()) return;
     if (e.target === document.getElementById('delete-overlay')) closeDeleteModal();
 }
@@ -1201,6 +1218,92 @@ function confirmDelete() {
             finishDeletePending();
             showToast(FsT('fs.dashboard.toast_api_delete_failed'), 'error');
         });
+}
+
+/* ---- Ikonas/krāsa: nejauši + nosaukums (zīmoli, meklēšana) ---- */
+function loadVisualSuggestBootstrap() {
+    if (visualSuggestBootstrap !== null) return;
+    visualSuggestBootstrap = { icons: [], colors: [], brandRules: [] };
+    var raw =
+        typeof subtrackReadBootstrapJsonTextById === 'function'
+            ? subtrackReadBootstrapJsonTextById('subtrack-visual-suggest-bootstrap')
+            : '';
+    if (!raw) return;
+    try {
+        var parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.icons)) visualSuggestBootstrap.icons = parsed.icons;
+        if (parsed && Array.isArray(parsed.colors)) visualSuggestBootstrap.colors = parsed.colors;
+        if (parsed && Array.isArray(parsed.brandRules)) {
+            visualSuggestBootstrap.brandRules = parsed.brandRules;
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function matchBrandVisualFromName(rawName) {
+    loadVisualSuggestBootstrap();
+    var norm = normalizeForSearchIco(rawName);
+    if (!norm || !visualSuggestBootstrap.brandRules.length) return null;
+    var rules = visualSuggestBootstrap.brandRules;
+    var ri;
+    var pi;
+    for (ri = 0; ri < rules.length; ri++) {
+        var rule = rules[ri];
+        if (!rule || !rule.patterns || !rule.icon) continue;
+        for (pi = 0; pi < rule.patterns.length; pi++) {
+            var p = normalizeForSearchIco(rule.patterns[pi]);
+            if (p && norm.indexOf(p) !== -1) {
+                return { icon: rule.icon, color: rule.color || null };
+            }
+        }
+    }
+    return null;
+}
+
+function pickRandomSubscriptionIcon() {
+    loadVisualSuggestBootstrap();
+    loadFsIconSearchBootstrap();
+    var icons = visualSuggestBootstrap.icons;
+    if (!icons || !icons.length) icons = fsIconFullOrderClsFromBootstrap();
+    if (!icons || !icons.length) return 'fa-solid fa-film';
+    return icons[Math.floor(Math.random() * icons.length)];
+}
+
+function pickRandomSubscriptionColor() {
+    loadVisualSuggestBootstrap();
+    var colors = visualSuggestBootstrap.colors;
+    if (!colors || !colors.length) colors = ['#0d9488', '#e50914', '#1db954', '#3b82f6', '#f59e0b'];
+    return colors[Math.floor(Math.random() * colors.length)];
+}
+
+function resolveIconForAddName(rawName) {
+    var brand = matchBrandVisualFromName(rawName);
+    if (brand && brand.icon) return brand.icon;
+    var norm = normalizeForSearchIco(rawName);
+    if (norm) {
+        var candidates = fsIconCandidateClassesForHints(norm);
+        if (candidates.length) return candidates[0];
+    }
+    return pickRandomSubscriptionIcon();
+}
+
+function resolveColorForAddName(rawName, iconCls) {
+    var brand = matchBrandVisualFromName(rawName);
+    if (brand && brand.color) return brand.color;
+    return pickRandomSubscriptionColor();
+}
+
+/** Tikai pievienošanas modālī; respektē userPickedIcon / userPickedColor. */
+function applyAutoVisualForAdd(rawName) {
+    if (editingId != null) return;
+    var name = typeof rawName === 'string' ? rawName : '';
+    if (!userPickedIcon) {
+        selectIcon(resolveIconForAddName(name), true);
+    }
+    if (!userPickedColor) {
+        selectColor(resolveColorForAddName(name, selectedIcon), true);
+    }
 }
 
 /* ---- Icon picker (hintu rinda + „Parādīt visas“ ar meklēšanu) ---- */
@@ -1370,7 +1473,7 @@ function renderIconPickerHints() {
 
     host.innerHTML = fsIconBtnsHtml(trimmed);
     syncIconPickerHintMessage(false);
-    selectIcon(selectedIcon);
+    selectIcon(selectedIcon, true);
 }
 
 function renderIconPickerExpanded() {
@@ -1402,7 +1505,7 @@ function renderIconPickerExpanded() {
         expandedEmpty.textContent = '';
         expandedEmpty.classList.add('hidden');
     }
-    selectIcon(selectedIcon);
+    selectIcon(selectedIcon, true);
 }
 
 function bindIconPickerNameInputOnce() {
@@ -1410,6 +1513,7 @@ function bindIconPickerNameInputOnce() {
     if (!nameEl || nameEl.dataset.subtrackIconHint === '1') return;
     nameEl.dataset.subtrackIconHint = '1';
     nameEl.addEventListener('input', function () {
+        applyAutoVisualForAdd(nameEl.value.trim());
         renderIconPickerHints();
     });
 }
@@ -1449,8 +1553,9 @@ function initIconPicker() {
     renderIconPickerHints();
 }
 
-function selectIcon(iconClass) {
+function selectIcon(iconClass, programmatic) {
     selectedIcon = iconClass;
+    if (programmatic !== true && editingId == null) userPickedIcon = true;
     document.querySelectorAll('#icon-picker .icon-opt').forEach(function (btn) {
         btn.classList.toggle('selected', btn.getAttribute('data-icon') === iconClass);
     });
@@ -1680,8 +1785,9 @@ function initColorPicker() {
     });
 }
 
-function selectColor(color) {
+function selectColor(color, programmatic) {
     selectedColor = color;
+    if (programmatic !== true && editingId == null) userPickedColor = true;
     document.querySelectorAll('.color-dot').forEach(function(dot) {
         dot.classList.toggle('selected', dot.dataset.color === color);
     });

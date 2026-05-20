@@ -15,6 +15,7 @@ import {
 } from "@/lib/admin/translation-key-normalize";
 import { AdminTranslationsIntro } from "@/components/admin/admin-intros";
 import { pushDomToast } from "@/lib/push-dom-toast";
+import { handleModalBackdropMouseDown } from "@/lib/ui/modal-overlay-guard";
 import { SubtrackTooltip } from "@/components/subtrack-tooltip";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
@@ -163,15 +164,20 @@ function AdminI18nModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, busy, onClose]);
 
+  const backdropCloseConfirm = t("ui.modal.confirm_close_backdrop");
+
   if (!open) return null;
 
   return (
     <div
       className="modal-overlay open"
       role="presentation"
-      onMouseDown={(e) => {
-        if (!busy && e.target === e.currentTarget) onClose();
-      }}
+      onMouseDown={(e) =>
+        handleModalBackdropMouseDown(e, onClose, {
+          busy,
+          confirmMessage: backdropCloseConfirm,
+        })
+      }
     >
       <div
         className="modal modal--wide admin-i18n-modal"

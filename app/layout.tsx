@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { HtmlLangBridge } from "@/components/html-lang-bridge";
 import { CookieConsentRoot } from "@/components/legal/cookie-consent-root";
+import { ModalBackdropCloseConfirmHost } from "@/components/ui/modal-backdrop-close-confirm-host";
 import { SubtrackIntlProvider } from "@/components/subtrack-intl-provider";
 import { getLanguagesCatalog } from "@/lib/languages-catalog";
 import { localeCodeToHtmlLang } from "@/lib/html-lang";
@@ -78,6 +79,7 @@ export default async function RootLayout({
           dbMap={dbMap}
         >
           {children}
+          <ModalBackdropCloseConfirmHost />
           <CookieConsentRoot />
         </SubtrackIntlProvider>
       </body>

@@ -5033,6 +5033,43 @@ button.dash-exit {
 .delete-modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
 .delete-modal p { font-size: 14px; color: var(--text-muted); }
 
+/* Apstiprinājums pirms aizvēršanas (klikšķis uz fona) */
+.modal-backdrop-close-confirm-overlay {
+    z-index: 260;
+}
+
+.modal-backdrop-close-confirm.modal {
+    max-width: 400px;
+}
+
+.modal-backdrop-close-confirm .modal-footer {
+    justify-content: center;
+    gap: 12px;
+}
+
+.modal-backdrop-close-confirm .modal-body {
+    text-align: center;
+    padding: 28px 24px 22px;
+}
+
+.modal-backdrop-close-confirm-icon {
+    font-size: 2.25rem;
+    margin-bottom: 12px;
+    color: var(--primary);
+}
+
+.modal-backdrop-close-confirm h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.modal-backdrop-close-confirm p {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+
 /* Modālis atvērts: fons neritina (īpaši iOS Safari) */
 html.subtrack-modal-open,
 html.subtrack-modal-open body {

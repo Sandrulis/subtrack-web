@@ -10,6 +10,7 @@ import {
 import { FsDemoDashboardWindowFlag } from "@/components/fs/fs-demo-window-flags";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { getFsIconPickerSearchBootstrap } from "@/lib/fs-icon-picker-search";
+import { getSubscriptionVisualSuggestBootstrap } from "@/lib/subscription-visual-suggest";
 import { FA_ICONS_ALL, FS_COLOR_DOTS } from "@/lib/fs-icons";
 import type { SubscriptionClient } from "@/lib/subscriptions/subscription-client";
 import type { DashboardFreeTierGatePayload } from "@/lib/subscriptions/dashboard-free-tier-gate";
@@ -20,6 +21,10 @@ import Link from "next/link";
 const SUBTRACK_ICON_SEARCH_BOOTSTRAP = JSON.stringify({
   icons: getFsIconPickerSearchBootstrap(),
 }).replace(/</g, "\\u003c");
+
+const SUBTRACK_VISUAL_SUGGEST_BOOTSTRAP = JSON.stringify(
+  getSubscriptionVisualSuggestBootstrap(),
+).replace(/</g, "\\u003c");
 
 export function DashboardFsView({
   userDisplay,
@@ -52,6 +57,8 @@ export function DashboardFsView({
       try {
         await ensureAuthedNotifyScriptsLoaded();
         if (cancelled) return;
+        await loadScriptOnce("/fs/js/modal-overlay-guard.js");
+        if (cancelled) return;
         await loadScriptOnce("/fs/js/dashboard.js");
         if (cancelled) return;
         window.fsBootDashboard?.();
@@ -76,6 +83,10 @@ export function DashboardFsView({
       <template
         id="subtrack-icon-search-bootstrap"
         dangerouslySetInnerHTML={{ __html: SUBTRACK_ICON_SEARCH_BOOTSTRAP }}
+      />
+      <template
+        id="subtrack-visual-suggest-bootstrap"
+        dangerouslySetInnerHTML={{ __html: SUBTRACK_VISUAL_SUGGEST_BOOTSTRAP }}
       />
       <template
         id="subtrack-free-tier-gate-json"

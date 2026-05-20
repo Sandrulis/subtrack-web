@@ -13,8 +13,25 @@ SQL_OUT = ROOT / "database" / "supabase" / "049_site_translations_legal.sql"
 LOCALES = ("lv", "en", "fr", "de", "es", "pt", "ru")
 
 
-def loc(lv: str, en: str) -> dict[str, str]:
-    return {code: en if code != "lv" else lv for code in LOCALES}
+def loc(
+    lv: str,
+    en: str,
+    fr: str | None = None,
+    de: str | None = None,
+    es: str | None = None,
+    pt: str | None = None,
+    ru: str | None = None,
+) -> dict[str, str]:
+    """Ja fr/de/es/pt/ru nav norādīts, lieto `en` (pēc ģenerēšanas palaid fill_missing_fallback_locales.py --file legal)."""
+    return {
+        "lv": lv,
+        "en": en,
+        "fr": fr if fr is not None else en,
+        "de": de if de is not None else en,
+        "es": es if es is not None else en,
+        "pt": pt if pt is not None else en,
+        "ru": ru if ru is not None else en,
+    }
 
 
 def esc_sql(s: str) -> str:
