@@ -2,6 +2,10 @@
 
 import { pickFallbackPhrase } from "@/lib/i18n/fallback-lookup";
 import { applySystemNamePlaceholders } from "@/lib/system-name-placeholder";
+import { DEFAULT_SYSTEM_NAME } from "@/lib/pwa/defaults";
+import type { PublicBrandLogoAssets } from "@/lib/brand/logo-assets";
+import type { PublicPwaSettings } from "@/lib/pwa/public-pwa-settings";
+import { normalizePwaRow } from "@/lib/pwa/public-pwa-settings";
 import type { SubtrackPublicPaidPlan } from "@/lib/system-settings-public";
 import {
   createContext,
@@ -16,8 +20,11 @@ type SubtrackIntlCtx = {
   locale: string;
   /** `public.system_settings.system_name` (bez vietturiem; zīmolam un vietturu aizpildei tulkošanā). */
   systemSiteName: string;
+  /** Augšupielādēts logo; `null` = ģenerētā ikona `/icon`. */
+  brandLogo: PublicBrandLogoAssets | null;
   /** Maksas plāna pitch no `system_settings` (cena, limits, ieslēgšana). */
   paidPlan: SubtrackPublicPaidPlan;
+  pwa: PublicPwaSettings;
   /** Valodu izvēlne globālajam slēdzim (no `public.languages`). */
   languageOptions: LanguageOption[];
   t: (key: string) => string;
@@ -31,8 +38,10 @@ const PAID_PLAN_CTX_DEFAULT: SubtrackPublicPaidPlan = {
 
 const SubtrackIntlReactContext = createContext<SubtrackIntlCtx>({
   locale: "lv",
-  systemSiteName: "SubTrack",
+  systemSiteName: DEFAULT_SYSTEM_NAME,
+  brandLogo: null,
   paidPlan: PAID_PLAN_CTX_DEFAULT,
+  pwa: normalizePwaRow(null, DEFAULT_SYSTEM_NAME),
   languageOptions: [],
   t: (k) => k,
 });
@@ -40,21 +49,27 @@ const SubtrackIntlReactContext = createContext<SubtrackIntlCtx>({
 export function SubtrackIntlProvider({
   locale,
   systemSiteName,
+  brandLogo: brandLogoProp,
   paidPlan,
+  pwa: pwaProp,
   languageOptions = [],
   dbMap,
   children,
 }: {
   locale: string;
   systemSiteName: string;
+  brandLogo?: PublicBrandLogoAssets | null;
   paidPlan?: SubtrackPublicPaidPlan | null;
+  pwa?: PublicPwaSettings | null;
   languageOptions?: LanguageOption[];
   dbMap: Record<string, string>;
   children: ReactNode;
 }) {
   const lc = locale.trim().toLowerCase();
-  const brand = systemSiteName.trim() || "SubTrack";
+  const brand = systemSiteName.trim() || DEFAULT_SYSTEM_NAME;
+  const brandLogo = brandLogoProp ?? null;
   const plan = paidPlan ?? PAID_PLAN_CTX_DEFAULT;
+  const pwa = pwaProp ?? normalizePwaRow(null, brand);
 
   const t = useCallback(
     (key: string) => {
@@ -77,11 +92,13 @@ export function SubtrackIntlProvider({
     () => ({
       locale: lc,
       systemSiteName: brand,
+      brandLogo,
       paidPlan: plan,
+      pwa,
       languageOptions: langs,
       t,
     }),
-    [brand, lc, langs, plan, t],
+    [brand, brandLogo, lc, langs, plan, pwa, t],
   );
 
   return (

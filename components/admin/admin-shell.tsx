@@ -15,6 +15,7 @@ export type AdminNavActive =
   | "languages"
   | "translations"
   | "email_design"
+  | "pwa"
   | "";
 
 function navActiveFromPath(pathname: string): AdminNavActive {
@@ -30,6 +31,7 @@ function navActiveFromPath(pathname: string): AdminNavActive {
   if (pathname.startsWith("/admin/languages")) return "languages";
   if (pathname.startsWith("/admin/translations")) return "translations";
   if (pathname.startsWith("/admin/email-design")) return "email_design";
+  if (pathname.startsWith("/admin/pwa")) return "pwa";
   return "";
 }
 
@@ -47,7 +49,8 @@ const navItems: {
     | "admin.nav.translations"
     | "admin.nav.integrations"
     | "admin.nav.system"
-    | "admin.nav.email_design";
+    | "admin.nav.email_design"
+    | "admin.nav.pwa";
 }[] = [
   { href: "/admin/users", key: "users", labelKey: "admin.nav.users" },
   {
@@ -66,6 +69,7 @@ const navItems: {
     labelKey: "admin.nav.integrations",
   },
   { href: "/admin/system", key: "system", labelKey: "admin.nav.system" },
+  { href: "/admin/pwa", key: "pwa", labelKey: "admin.nav.pwa" },
   {
     href: "/admin/email-design",
     key: "email_design",

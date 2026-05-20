@@ -1,3 +1,5 @@
+import { attachToastHoverDismiss } from "@/lib/dom-toast-hover-dismiss";
+
 /**
  * Neliels floating toast uz `#toast-container` (Font Awesome ikonas globālajā layout).
  * Admin (`AdminShell`), FS settings, dashboard utml. satur šo konteineru.
@@ -29,9 +31,5 @@ export function pushDomToast(
       .replace(/'/g, "&#39;");
   toast.innerHTML = prefix + esc(message);
   container.appendChild(toast);
-  setTimeout(() => {
-    toast.style.opacity = "0";
-    toast.style.transition = "opacity .3s";
-    setTimeout(() => toast.remove(), 320);
-  }, type === "info" ? 1600 : 2800);
+  attachToastHoverDismiss(toast, type === "info" ? 1600 : 2800);
 }

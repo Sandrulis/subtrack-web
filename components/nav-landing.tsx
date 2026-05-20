@@ -1,6 +1,7 @@
 "use client";
 
 import { NavUiLanguageSwitcher } from "@/components/nav-ui-language-switcher";
+import { DashBrandLink } from "@/components/brand/dash-brand-link";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
@@ -19,7 +20,7 @@ type NavLandingProps = {
 };
 
 export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
-  const { t, systemSiteName, paidPlan } = useSubtrackIntl();
+  const { t, paidPlan } = useSubtrackIntl();
   const pathname = usePathname() ?? "";
   const showAuthedAnalytics =
     Boolean(userDisplay) && canAccessAnalytics(paidPlan, userDisplay);
@@ -31,12 +32,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
       <div className="dash-topbar-shell">
         <div className="dash-topbar-inner">
           <div className="dash-topbar-left">
-            <Link
-              href={userDisplay ? "/dashboard" : "/"}
-              className="dash-brand"
-            >
-              <span className="dash-brand-text">{systemSiteName}</span>
-            </Link>
+            <DashBrandLink href={userDisplay ? "/dashboard" : "/"} />
             <span className="dash-topbar-rule" aria-hidden="true" />
             <nav
               className="dash-nav-links"

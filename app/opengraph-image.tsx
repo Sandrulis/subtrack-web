@@ -1,12 +1,13 @@
 import { ImageResponse } from "next/og";
-import { getSystemSiteName } from "@/lib/system-settings-public";
+import { RepazyBrandMark } from "@/lib/pwa/brand-mark";
+import { getPublicSystemSettings } from "@/lib/system-settings-public";
 
-export const alt = "SubTrack – abonementu un periodisko maksājumu pārvaldība";
+export const alt = "repazy – abonementu un periodisko maksājumu pārvaldība";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function OpenGraphImage() {
-  const brand = await getSystemSiteName();
+  const { systemName: brand, brandLogo } = await getPublicSystemSettings();
 
   return new ImageResponse(
     (
@@ -30,22 +31,18 @@ export default async function OpenGraphImage() {
             marginBottom: 36,
           }}
         >
-          <div
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: 18,
-              background: "linear-gradient(145deg, #00a38d 0%, #008a78 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontSize: 36,
-              fontWeight: 700,
-            }}
-          >
-            S
-          </div>
+          {brandLogo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={brandLogo.icon192}
+              alt=""
+              width={72}
+              height={72}
+              style={{ borderRadius: 18, objectFit: "cover" }}
+            />
+          ) : (
+            <RepazyBrandMark />
+          )}
           <div
             style={{
               fontSize: 52,

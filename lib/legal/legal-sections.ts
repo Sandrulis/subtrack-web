@@ -27,6 +27,7 @@ export const LEGAL_DOC_SECTIONS: Record<LegalDocId, LegalSectionDef[]> = {
     { titleKey: "legal.cookies.s2.title", bodyKey: "legal.cookies.s2.body" },
     { titleKey: "legal.cookies.s3.title", bodyKey: "legal.cookies.s3.body" },
     { titleKey: "legal.cookies.s4.title", bodyKey: "legal.cookies.s4.body" },
+    { titleKey: "legal.cookies.s5.title", bodyKey: "legal.cookies.s5.body" },
   ],
 };
 

@@ -679,6 +679,44 @@ function subtrackSetDeletePending(rawId, pending) {
 }
 
 /** Toast ziņojumi (lapā nepieciešams elements #toast-container). */
+function attachToastHoverDismiss(toast, dismissMs) {
+    var hovering = false;
+    var hideTimer = null;
+    var fadeTimer = null;
+
+    function clearTimers() {
+        if (hideTimer !== null) clearTimeout(hideTimer);
+        if (fadeTimer !== null) clearTimeout(fadeTimer);
+        hideTimer = null;
+        fadeTimer = null;
+    }
+
+    function startDismiss() {
+        clearTimers();
+        hideTimer = setTimeout(function () {
+            if (hovering) return;
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity .3s';
+            fadeTimer = setTimeout(function () {
+                toast.remove();
+            }, 320);
+        }, dismissMs);
+    }
+
+    toast.classList.add('toast--dismiss-hover');
+    toast.addEventListener('pointerenter', function () {
+        hovering = true;
+        clearTimers();
+        toast.style.opacity = '1';
+        toast.style.transition = '';
+    });
+    toast.addEventListener('pointerleave', function () {
+        hovering = false;
+        startDismiss();
+    });
+    startDismiss();
+}
+
 function showToast(msg, type) {
     var container = document.getElementById('toast-container');
     if (!container) return;
@@ -689,13 +727,7 @@ function showToast(msg, type) {
     else if (type === 'error') prefix = '<i class="fa-solid fa-circle-exclamation"></i> ';
     toast.innerHTML = prefix + escHtml(msg);
     container.appendChild(toast);
-    setTimeout(function () {
-        toast.style.opacity = '0';
-        toast.style.transition = 'opacity .3s';
-        setTimeout(function () {
-            toast.remove();
-        }, 320);
-    }, 2800);
+    attachToastHoverDismiss(toast, type === 'info' ? 1600 : 2800);
 }
 
 if (typeof window !== 'undefined') {

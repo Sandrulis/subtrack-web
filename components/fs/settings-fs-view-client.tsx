@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PwaSettingsInstall } from "@/components/pwa/pwa-settings-install";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavDash } from "@/components/nav-dash";
@@ -387,6 +388,8 @@ export function SettingsFsViewClient({
               <span id="settings-preview-body">{previewText}</span>
             </div>
           </form>
+
+          <PwaSettingsInstall />
 
           <p className="auth-footer">
             <Link href="/dashboard">{t("settings.link_dashboard")}</Link>

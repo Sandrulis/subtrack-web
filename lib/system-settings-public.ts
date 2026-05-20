@@ -2,11 +2,22 @@ import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import {
+  resolvePublicBrandLogoAssets,
+  type PublicBrandLogoAssets,
+} from "@/lib/brand/logo-assets";
+import { DEFAULT_SYSTEM_NAME } from "@/lib/pwa/defaults";
+import {
+  normalizePwaRow,
+  type PublicPwaSettings,
+} from "@/lib/pwa/public-pwa-settings";
+import {
   DISPLAY_PREFERENCES_DEFAULTS,
   mergeDisplayPreferences,
   sanitizeDisplayPreferencesPartial,
   type DisplayPreferences,
 } from "@/lib/user-display-preferences";
+
+export type { PublicPwaSettings } from "@/lib/pwa/public-pwa-settings";
 
 /** Publiska maksas plāna pitch (landing + API limits); `enabled` no `system_settings`. */
 export type SubtrackPublicPaidPlan = {
@@ -15,11 +26,16 @@ export type SubtrackPublicPaidPlan = {
   freeSubscriptionLimit: number;
 };
 
+export type { PublicBrandLogoAssets } from "@/lib/brand/logo-assets";
+
 export type PublicSystemSettings = {
   systemName: string;
+  /** Augšupielādēts logo; `null` = ģenerētais noklusējuma zīmols (`/icon`). */
+  brandLogo: PublicBrandLogoAssets | null;
   /** Pilns `DisplayPreferences`: koda `DISPLAY_PREFERENCES_DEFAULTS` + `default_display_preferences` no DB */
   displayPreferenceDefaults: DisplayPreferences;
   paidPlan: SubtrackPublicPaidPlan;
+  pwa: PublicPwaSettings;
 };
 
 const PAID_PLAN_DEFAULTS: SubtrackPublicPaidPlan = {
@@ -64,9 +80,11 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) {
     return {
-      systemName: "SubTrack",
+      systemName: DEFAULT_SYSTEM_NAME,
+      brandLogo: null,
       displayPreferenceDefaults: DISPLAY_PREFERENCES_DEFAULTS,
       paidPlan: { ...PAID_PLAN_DEFAULTS },
+      pwa: normalizePwaRow(null, DEFAULT_SYSTEM_NAME),
     };
   }
 
@@ -74,21 +92,29 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
   const { data, error } = await supabase
     .from("system_settings")
     .select(
-      "system_name, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit",
+      "system_name, logo_revision, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, pwa_enabled, pwa_install_banner_enabled, pwa_install_settings_enabled, pwa_cache_revision, pwa_theme_color, pwa_background_color, pwa_short_name",
     )
     .eq("id", 1)
     .maybeSingle();
 
   if (error || !data) {
     return {
-      systemName: "SubTrack",
+      systemName: DEFAULT_SYSTEM_NAME,
+      brandLogo: null,
       displayPreferenceDefaults: DISPLAY_PREFERENCES_DEFAULTS,
       paidPlan: { ...PAID_PLAN_DEFAULTS },
+      pwa: normalizePwaRow(null, DEFAULT_SYSTEM_NAME),
     };
   }
 
   const systemNameRaw = String((data as { system_name?: string }).system_name ?? "").trim();
-  const systemName = systemNameRaw || "SubTrack";
+  const systemName = systemNameRaw || DEFAULT_SYSTEM_NAME;
+  const logoRevisionRaw = (data as { logo_revision?: unknown }).logo_revision;
+  const logoRevision =
+    typeof logoRevisionRaw === "number"
+      ? Math.max(0, Math.trunc(logoRevisionRaw))
+      : Number.parseInt(String(logoRevisionRaw ?? "0"), 10) || 0;
+  const brandLogo = resolvePublicBrandLogoAssets(logoRevision);
   const partial = sanitizeDisplayPreferencesPartial(
     (data as { default_display_preferences?: unknown }).default_display_preferences,
   );
@@ -98,8 +124,9 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
   );
 
   const paidPlan = normalizePaidPlanRow(data);
+  const pwa = normalizePwaRow(data, systemName);
 
-  return { systemName, displayPreferenceDefaults, paidPlan };
+  return { systemName, brandLogo, displayPreferenceDefaults, paidPlan, pwa };
 }
 
 /**
@@ -107,7 +134,7 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
  * Pēc `/admin/system` saglabāšanas: `revalidateTag("system-settings")`.
  */
 export async function getPublicSystemSettings(): Promise<PublicSystemSettings> {
-  return unstable_cache(fetchPublicSystemSettings, ["subtrack-system-settings-v2"], {
+  return unstable_cache(fetchPublicSystemSettings, ["subtrack-system-settings-v4"], {
     revalidate: 3600,
     tags: ["system-settings"],
   })();

@@ -31,6 +31,9 @@ export function SubtrackTooltip({ label, children, wrapperClassName }: SubtrackT
   const [open, setOpen] = useState(false);
   const [anchorPt, setAnchorPt] = useState<AnchorPoint | null>(null);
   const anchorRef = useRef<HTMLSpanElement>(null);
+  const hoverAnchorRef = useRef(false);
+  const hoverBubbleRef = useRef(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const text = label.trim();
   const active = supports && text.length > 0;
@@ -41,14 +44,32 @@ export function SubtrackTooltip({ label, children, wrapperClassName }: SubtrackT
 
   function openTooltip() {
     if (!active) return;
+    cancelScheduledClose();
     const pt = measureAnchor(anchorRef.current);
     if (pt) setAnchorPt(pt);
     setOpen(true);
   }
 
+  function cancelScheduledClose() {
+    if (closeTimerRef.current !== null) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }
+
   function closeTooltip() {
+    cancelScheduledClose();
     setOpen(false);
     setAnchorPt(null);
+  }
+
+  function scheduleCloseIfNotHovered(delayMs = 80) {
+    cancelScheduledClose();
+    closeTimerRef.current = setTimeout(() => {
+      if (!hoverAnchorRef.current && !hoverBubbleRef.current) {
+        closeTooltip();
+      }
+    }, delayMs);
   }
 
   function syncAnchorFromDom() {
@@ -71,6 +92,8 @@ export function SubtrackTooltip({ label, children, wrapperClassName }: SubtrackT
     };
   }, [open, active]);
 
+  useEffect(() => () => cancelScheduledClose(), []);
+
   const portalBubble =
     open &&
     active &&
@@ -83,6 +106,15 @@ export function SubtrackTooltip({ label, children, wrapperClassName }: SubtrackT
             role="tooltip"
             className="subtrack-tooltip-bubble is-visible"
             style={{ left: anchorPt.left, top: anchorPt.top }}
+            onMouseEnter={() => {
+              hoverBubbleRef.current = true;
+              cancelScheduledClose();
+              openTooltip();
+            }}
+            onMouseLeave={() => {
+              hoverBubbleRef.current = false;
+              scheduleCloseIfNotHovered();
+            }}
           >
             {label}
           </span>,
@@ -95,8 +127,14 @@ export function SubtrackTooltip({ label, children, wrapperClassName }: SubtrackT
       <span
         ref={anchorRef}
         className={wrapClass}
-        onMouseEnter={openTooltip}
-        onMouseLeave={closeTooltip}
+        onMouseEnter={() => {
+          hoverAnchorRef.current = true;
+          openTooltip();
+        }}
+        onMouseLeave={() => {
+          hoverAnchorRef.current = false;
+          scheduleCloseIfNotHovered();
+        }}
         onFocusCapture={openTooltip}
         onBlurCapture={(e) => {
           const next = e.relatedTarget as Node | null;

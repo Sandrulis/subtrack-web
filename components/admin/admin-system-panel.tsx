@@ -8,11 +8,14 @@ import {
 import { pushDomToast } from "@/lib/push-dom-toast";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
+import { AdminSystemLogoUpload } from "@/components/admin/admin-system-logo-upload";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 export type AdminSystemPanelProps = {
   loadError: string | null;
   initialSystemName: string;
+  initialLogoRevision: number;
+  brandStoragePublicBase: string | null;
   initialDefaults: DisplayPreferences;
   initialPaidPlan: {
     enabled: boolean;
@@ -90,6 +93,8 @@ function fdSignature(fd: FormData): string {
 export function AdminSystemPanel({
   loadError,
   initialSystemName,
+  initialLogoRevision,
+  brandStoragePublicBase,
   initialDefaults,
   initialPaidPlan,
 }: AdminSystemPanelProps) {
@@ -263,6 +268,12 @@ export function AdminSystemPanel({
               }}
             />
           </div>
+
+          <AdminSystemLogoUpload
+            initialLogoRevision={initialLogoRevision}
+            brandStoragePublicBase={brandStoragePublicBase}
+            disabled={loadError !== null}
+          />
 
           <p className="form-section-label" style={{ marginTop: "20px" }}>
             {t("admin.forms.section_paid_plan")}

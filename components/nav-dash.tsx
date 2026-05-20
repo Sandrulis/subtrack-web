@@ -1,5 +1,6 @@
 "use client";
 
+import { DashBrandLink } from "@/components/brand/dash-brand-link";
 import Link from "next/link";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { canAccessAnalytics } from "@/lib/subscriptions/analytics-access";
@@ -22,7 +23,7 @@ type NavDashProps = {
 };
 
 export function NavDash({ active = "", userDisplay, demoMode = false }: NavDashProps) {
-  const { t, systemSiteName, paidPlan } = useSubtrackIntl();
+  const { t, paidPlan } = useSubtrackIntl();
   const analyticsHref = demoMode ? "/demo/analytics" : "/analytics";
   const dashboardHref = demoMode ? "/demo/dashboard" : "/dashboard";
   const showAnalyticsNav =
@@ -37,9 +38,7 @@ export function NavDash({ active = "", userDisplay, demoMode = false }: NavDashP
       <div className="dash-topbar-shell">
         <div className="dash-topbar-inner">
           <div className="dash-topbar-left">
-            <Link href={dashboardHref} className="dash-brand">
-              <span className="dash-brand-text">{systemSiteName}</span>
-            </Link>
+            <DashBrandLink href={dashboardHref} />
             {demoMode ? (
               <span
                 className="subtrack-demo-topbar-badge"

@@ -1,0 +1,8 @@
+// @ts-check
+const { serwist } = require("@serwist/next/config");
+
+module.exports = serwist({
+  swSrc: "app/sw.ts",
+  swDest: "public/sw.js",
+  precachePrerendered: false,
+});

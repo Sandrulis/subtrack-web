@@ -1,5 +1,6 @@
 "use client";
 
+import { DashBrandLink } from "@/components/brand/dash-brand-link";
 import Link from "next/link";
 import { AuthedNotifyBootstrap } from "@/components/authed-notify-bootstrap";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
@@ -16,7 +17,7 @@ export function DemoTopbar({
   active: "dashboard" | "analytics";
   userDisplay?: NavUserDisplay | null;
 }) {
-  const { t, systemSiteName } = useSubtrackIntl();
+  const { t } = useSubtrackIntl();
 
   return (
     <>
@@ -25,9 +26,7 @@ export function DemoTopbar({
         <div className="dash-topbar-shell">
           <div className="dash-topbar-inner">
             <div className="dash-topbar-left">
-              <Link href="/" className="dash-brand">
-                <span className="dash-brand-text">{systemSiteName}</span>
-              </Link>
+              <DashBrandLink href="/" />
               <span
                 className="subtrack-demo-topbar-badge"
                 title={t("demo.banner")}

@@ -8,6 +8,7 @@ import {
 } from "@/lib/user-display-preferences";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
+import { getSupabasePublicConfig } from "@/lib/supabase/env";
 import { normalizePaidPlanRow } from "@/lib/system-settings-public";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -22,7 +23,7 @@ export default async function AdminSystemPage() {
   const { data, error } = await supabase
     .from("system_settings")
     .select(
-      "system_name, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit",
+      "system_name, logo_revision, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit",
     )
     .eq("id", 1)
     .maybeSingle();
@@ -32,9 +33,20 @@ export default async function AdminSystemPage() {
   const initialSystemName =
     typeof data?.system_name === "string" && data.system_name.trim()
       ? data.system_name.trim()
-      : "SubTrack";
+      : "repazy";
 
   const initialPaidPlan = normalizePaidPlanRow(data);
+
+  const logoRevisionRaw = data?.logo_revision;
+  const initialLogoRevision =
+    typeof logoRevisionRaw === "number"
+      ? Math.max(0, Math.trunc(logoRevisionRaw))
+      : Number.parseInt(String(logoRevisionRaw ?? "0"), 10) || 0;
+
+  const supabaseCfg = getSupabasePublicConfig();
+  const brandStoragePublicBase = supabaseCfg
+    ? `${supabaseCfg.url.replace(/\/$/, "")}/storage/v1/object/public/brand`
+    : null;
 
   return (
     <div className="admin-page">
@@ -42,6 +54,8 @@ export default async function AdminSystemPage() {
       <AdminSystemPanel
         loadError={error?.message ?? null}
         initialSystemName={initialSystemName}
+        initialLogoRevision={initialLogoRevision}
+        brandStoragePublicBase={brandStoragePublicBase}
         initialDefaults={initialDefaults}
         initialPaidPlan={initialPaidPlan}
       />
