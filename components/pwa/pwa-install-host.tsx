@@ -17,8 +17,13 @@ const BANNER_PATHS = new Set(["/dashboard", "/analytics", "/settings"]);
 export function PwaInstallHost() {
   const { pwa } = useSubtrackIntl();
   const pathname = usePathname() ?? "";
+  const [mounted, setMounted] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissVersion, setDismissVersion] = useState(0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const onBip = (e: Event) => {
@@ -35,6 +40,7 @@ export function PwaInstallHost() {
   );
 
   const visible =
+    mounted &&
     BANNER_PATHS.has(pathname) &&
     shouldShowPwaBanner({
       installBannerEnabled: pwa.installBannerEnabled,

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PwaPushSettings } from "@/components/pwa/pwa-push-settings";
 import { PwaSettingsInstall } from "@/components/pwa/pwa-settings-install";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -390,6 +391,7 @@ export function SettingsFsViewClient({
           </form>
 
           <PwaSettingsInstall />
+          <PwaPushSettings />
 
           <p className="auth-footer">
             <Link href="/dashboard">{t("settings.link_dashboard")}</Link>

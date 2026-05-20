@@ -1,6 +1,6 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.3.59` (skatīt lapas lejas daļā **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**).
+**Versija:** `0.4.8` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (repazy)](#pwa-repazy)**).
 
 **repazy** (repozitorijs `subtrack-web`) ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, **`public.subscription_payments`** maksājumu žurnālam, RLS); CRUD notiek caur **Route Handlers** (`app/api/subscriptions/*`) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
@@ -12,8 +12,8 @@
 - **Pro iepazīšanās** (`/subscribe`) – **`SubscribeProView`**: **`subscribe.hero.*`**, **`subscribe.free_tier.note`** ar **`{price}`** / **`{n}`** (EUR formātēts, brīvā līmeņa limits); **`subscribe.coffee.line`** noņemts (**`032_remove_subscribe_coffee_line.sql`** DB). Tulkošanas **`029`**, **`028`** / **`031`**, **`030`**, **`032`**, **`033`** (hero lead teksta precizējums).
 - **Demonstrācijas** (`/demo/dashboard`, `/demo/analytics`) – **publiski** (nav **`proxy`** aizsargātas kā `/dashboard`); **`/demo/dashboard`** lieto to pašu **`DashboardFsView`** + **`public/fs/js/dashboard.js`** kā **`/dashboard`** (kalendārs, modāļi, CRUD pogas); **API netiek izsaukti** (`window.__SUBTRACK_DEMO_DASHBOARD__`). **Paziņojumu zvans** (`DashNotifyDropdown`) rāda parauga sarakstu arī viesiem; analītikas demo `window.__SUBTRACK_DEMO_ANALYTICS__`. Papildu parauga maksājumi (kavētie, šodien, nākamajā nedēļā) un analītikas kopsavilkums veidojas no tiem pašiem datiem. **`/demo/analytics`** – izkārtojums kā analītika (kopsavilkumi, kategorijas; **nav** izmaksu tendences/prognozes diagrammas). Ar **`paid_plan_enabled`** sākumlapas hero rāda **`landing.hero.calendar_mock_paid_note`**. Tulkošanas **`034`**, **`036`**, **`037`**, **`041`**, **`demo.*`**.
 - **Analītika** (`/analytics`) - kopsavilkumi, kategoriju joslas un **CSS donut** sadalījums (`demo-analytics-*`, kā demo; bez Chart.js CDN); **`FsI18nBootstrap`** + **`public/fs/js/analytics.js`** (**`app/analytics/page.tsx`**). Ja **`paid_plan_enabled`**, maršruts **`/analytics`** tikai ar **`users.paid_plan_active`** (**`canAccessAnalytics`**, citādi **`redirect('/dashboard')`**). Brīvā līmenī **nav** analītikas saites augšējā joslā un mobilajā navigācijā (**`nav-dash.tsx`**, **`nav-landing.tsx`**, **`mobile-bottom-nav.tsx`** – **`showAnalytics`**). Publiskā **`/demo/analytics`** paliek viesiem; sākumlapas **„Explore”** kartē – **`landing.explore.analytics.pro_hint`** un **`/demo/analytics`**.
-- **PWA (Progressive Web App)** – instalējama web lietotne (**repazy**): **`manifest.webmanifest`**, service worker (**Serwist**, `serwist.config.js`, `app/sw.ts` → `public/sw.js`; **`proxy.ts`** izņem **`sw.js`** / **`manifest.webmanifest`**), fallback **`/offline`** ( **`components/pwa/offline-page-view.tsx`** ); ikonas/favicon no Storage **`brand`** ja **`logo_revision > 0`** (**`071`–`073`**), citādi ģenerētās **`app/icon.tsx`**; instalācijas banneris mobilajā un sadaļa **`/settings`**; admin **`/admin/pwa`** (slēdži, manifest krāsas, logo priekšskatījums, keša revīzija). SQL **`067`–`070`**, **`074_*`** (admin PWA + logo hinti). Build: **`npm run build`**; dev: **`npm run dev`** (Serwist watch) vai **`npm run dev:next-only`**.
-- **Iestatījumi** (`/settings`) - preferences: **`public.users.display_preferences`** (JSON), DB sinhronizācija + dublējums `localStorage` (kad ir migrācija `006_*`). Forma **`components/fs/settings-fs-view-client.tsx`** ar **`useSubtrackIntl`**; saglabāšanas toast (**`pushDomToast`**) ar hover apturētu auto-aizvēršanu; **`app/settings/page.tsx`** kārto **`languages`** atlasi ar **`Intl.Collator`** pēc **`resolveRequestUiLocales`** (nevis fiksētu `lv-LV`). **Saskarnes valoda** – pēc izvēles tiek uzreiz **`applyUiLocaleInBrowser`** + **`writeDisplayPreferencesToLocalStorage`** + **`updateSessionDisplayPreferences`** (`lib/auth/display-preferences-client.ts`) + **`router.refresh()`**, lai **`app/layout.tsx`** (**`SubtrackIntlProvider`**, tulkošanas `dbMap`) atbilstu jaunajai lokālei. **Ielogots:** SSR lokāle no profila (`interface_language_code`), nevis sīkdatnes; **`mergeDisplayPreferencesFromSources`** ar **`prioritizeDbInterfaceLanguage`** – profila valoda pār **`localStorage`**. **Viesis:** sīkdatne **`subtrack_ui_locale`**. **Nav josla** (`NavUiLanguageSwitcher`) ielogotam lietotājam saglabā to pašu profila JSON. Bāzes noklusējumi no **`public.system_settings`** (`012`), ja nav lietotāja ieraksta; `/admin/system` ietekmē jaunos kontus un formas bāzi.
+- **PWA (Progressive Web App)** – instalējama **repazy** lietotne: Serwist SW, manifest, **`/offline`**, mobilais instalācijas banneris, **`/settings`** instalācijas bloks, admin **`/admin/pwa`**. Pilns apraksts: **[PWA (repazy)](#pwa-repazy)**.
+- **Iestatījumi** (`/settings`) - preferences: **`public.users.display_preferences`** (JSON), DB sinhronizācija + dublējums `localStorage` (kad ir migrācija `006_*`). Forma **`components/fs/settings-fs-view-client.tsx`** ar **`useSubtrackIntl`**; saglabāšanas toast (**`pushDomToast`**) ar hover apturētu auto-aizvēršanu; **`app/settings/page.tsx`** kārto **`languages`** atlasi ar **`Intl.Collator`** pēc **`resolveRequestUiLocales`** (nevis fiksētu `lv-LV`). **Saskarnes valoda** – pēc izvēles tiek uzreiz **`applyUiLocaleInBrowser`** + **`writeDisplayPreferencesToLocalStorage`** + **`updateSessionDisplayPreferences`** (`lib/auth/display-preferences-client.ts`) + **`router.refresh()`**, lai **`app/layout.tsx`** (**`SubtrackIntlProvider`**, tulkošanas `dbMap`) atbilstu jaunajai lokālei. **Ielogots:** SSR lokāle no profila (`interface_language_code`), nevis sīkdatnes; **`mergeDisplayPreferencesFromSources`** ar **`prioritizeDbInterfaceLanguage`** – profila valoda pār **`localStorage`**. **Viesis:** sīkdatne **`subtrack_ui_locale`**. **Nav josla** (`NavUiLanguageSwitcher`) ielogotam lietotājam saglabā to pašu profila JSON. Bāzes noklusējumi no **`public.system_settings`** (`012`), ja nav lietotāja ieraksta; `/admin/system` ietekmē jaunos kontus un formas bāzi. Ja ieslēgts **`pwa_install_settings_enabled`**, rāda **`PwaSettingsInstall`**; **`PwaPushSettings`** (Web Push: kavētie + šodien) – skatīt **[PWA](#pwa-repazy)**.
 - **Administrācija** (`/admin`, `/admin/users`, `/admin/languages`, `/admin/translations`, `/admin/integrations`, `/admin/system`, **`/admin/pwa`**) - tikai ar `public.users.is_admin > 0`: paneļa josla + sānizvēlne. **Ikonu tooltipi** admin tabulās – **`SubtrackTooltip`** (`components/subtrack-tooltip.tsx`): melns burbulis, teksts portalā uz **`document.body`** (`position: fixed`), lai **`admin-table-wrap`** `overflow` to neapgriež; burbulis paliek atvērts, kamēr kursors virs pogas vai burbuļa; uz **touch / coarse pointer** nerāda (**`useSupportsHoverTooltip`**). **Peldošie toast** – **`lib/push-dom-toast.ts`** + **`lib/dom-toast-hover-dismiss.ts`** (tā pati hover loģika kā auth **`HoverPauseToast`**). **Lietotāji** – servera lapa **`app/admin/users/page.tsx`** atlasa datus; **`components/admin/admin-users-view.tsx`** (klienta): **`IERAKSTI`** kolonna rāda **kopējo abonementu skaitu** uz lietotāju (bez sadalījuma pa kategorijām); ja **`paid_plan_enabled`**, arī **VIP** slēdzis (`users.pro_vip`, **`POST /api/admin/users/pro-vip`** – admin sesijas pārbaude, RPC **`admin_set_user_pro_vip`** ar **`service_role`**, **`080_*`**); **Pro** vizuāli – **kronītis** pie avatāra; **Administrators** birka zem e-pasta; **`Intl`** datumi. Admin kopsavilkumi (RLS + **`008`**). **Vadteksti** (īsi intro, bez tabulu `<code>` un liekiem hintiem) – **`components/admin/admin-intros.tsx`**, **`045_*`**. **Sistēma** – panelis **`AdminSystemPanel`** (tulkošanu atslēgas formas virsrakstiem un kļūdām; dažu **`<select>` opciju** iekšējā teksta vēl var atšķirties). **Sistēma** (`/admin/system`) dati: **`012_system_settings.sql`**, Server Actions **`lib/admin/system-actions.ts`**, **`lib/admin/logo-actions.ts`**, publiskā lasīšana **`lib/system-settings-public.ts`** (**`brandLogo`**, **`logo_revision`**). Drag-and-drop logo (**`admin-system-logo-upload.tsx`**) → Storage **`brand`**; topbar, favicon, manifest un **`/offline`** rāda ikonu tikai ja **`logo_revision > 0`** (**`SiteBrandLogo`**, **`DashBrandLink`**). **Valodas** – CRUD pret **`public.languages`**, noklusējuma valoda jaunajiem apmeklētājiem (**`010`**; Server Actions **`lib/admin/languages-actions.ts`**, **`components/admin/admin-languages-panel.tsx`**; pamatā **`007`**); saraksta **`Intl.Collator`** – pēc pašreizējās UI lokāļa. **Integrācijas** – **`public.integrations`** (tehniska atslēga, nosaukums, `enabled`), Server Actions **`lib/admin/integrations-actions.ts`**, **`app/admin/integrations/page.tsx`**, **`components/admin/admin-integrations-panel.tsx`**; migrācija **`024_integrations.sql`**; **SELECT** visa pasaule (lasāms arī no API/feature flagām), rakstīt tikai admins; pēc mutācijas – **`revalidatePath`** arī **`/login`** un **`/signup`**. SSO karodziņas: **`login_google`**, **`login_apple`** (skatīt **Autentifikācija** augšā). **Tulkojumi** - **`public.site_translations`**: **`components/admin/admin-translations-panel.tsx`** + **`AdminTranslationsIntro`** (`titleActions`: poga vienā rindā ar virsrakstu); **modāļi** jaunai atslēgai un labošanai; tabulā **atslēga + teksts tikai aktīvajai UI lokālei**; **meklētājs** pilnā platuma rindā; **bez meklēšanas** papildu rindas ar **IntersectionObserver** (lazy DOM), **ar meklēšanu** filtrs pār **visu** servera ielasīto katalogu (`loadAdminTranslationsData`). Migrācija **`011`**; publiskā **SELECT** – **`012_site_translations_select_public.sql`**; sēkla – **`013_site_translations_seed_subtrack_ui.sql`**, skatīt **[UI tulkošana](#ui-tulkošana)** (**`python scripts/export_site_translations_sql.py`** pēc **`fallback-phrases.ts`** izmaiņām). Atšķiras **prototipa paneļu** vai citu **`components/fs/*`** vietu līmenis par fiksētām virknēm – papildināšana vienmēr ar **`t('…')`**. Admin pazīme: RLS un RPC **`current_user_is_admin`** (pēc **`023`** – **`SECURITY INVOKER`**). Piešķirt tiesības, piem.: `update public.users set is_admin = 1 where email = '...';`
 
 ### Mobilā vide (līdz ~960 px platums)
@@ -26,6 +26,85 @@
 
 **Paziņojumi (`@media (max-width: 768px)`)** – **`public/fs/js/dash-alerts.js`** paneli pozicionē ar `position: fixed` pret viewport un platuma **clamp**, lai karte neaizslīd malā. **`components/nav-session-actions.tsx`** satur pogu **`#dash-notify-backdrop`**; kad panelis ir vaļā, tiek lietots tas pats slāņošanas modelis kā lietotāja izvēlnei (`z-index` fons **188**, karte **200**, `styles/subtrack.css`). Fona slānim ir **`backdrop-filter: blur(12px)`** (un **`prefers-reduced-motion`** – bez blur). **`components/nav-user-menu.tsx`** un **`dash-alerts.js`** savstarpēji aizver otras izvēlnes, izmantojot `CustomEvent` (`subtrack:notify-opened` / `subtrack:user-menu-opened`), lai nepārlietotu divus pilnekrāna overlay. **Visās platēm:** zvana poga strādā arī pēc React klienta navigācijas un ātrās skriptu ielādes – klikšķa delegēšana uz **`document` (capture)** un pēc ielādes **`components/authed-notify-bootstrap.tsx`** izsauc globālo **`window.fsBootDashAlerts()`**, lai sakristu ar DOM.
 
+**PWA instalācijas banneris** – virs apakšējās navigācijas (`z-index` **185**); tikai **≤960 px** un ceļos **`/dashboard`**, **`/analytics`**, **`/settings`** (skatīt **[PWA](#pwa-repazy)**).
+
+## PWA (repazy)
+
+Produkta **Progressive Web App** slānis (pamats **0.3.51**–**0.3.53**; **0.4.x** līnija no **0.4.0**, agrāk žurnāls **0.3.54**).
+
+### Tehniskā bāze
+
+| Elements | Kur |
+|----------|-----|
+| Manifest | **`app/manifest.ts`** → **`/manifest.webmanifest`** |
+| Service worker | **`app/sw.ts`**, build **`serwist.config.js`** → **`public/sw.js`** |
+| SW reģistrācija | **`components/pwa/pwa-sw-register.tsx`** (saknes layout) |
+| Middleware | **`proxy.ts`** – **`sw.js`** un manifest **nav** sesijas redirect ceļā |
+| Offline | **`app/offline/page.tsx`**, **`components/pwa/offline-page-view.tsx`** |
+| Ikonas / favicon | Storage **`brand`** ja **`logo_revision > 0`** (**`071`–`073`**); citādi **`app/icon.tsx`**, **`app/apple-icon.tsx`** |
+| Publiskā konfigurācija | **`getPublicSystemSettings().pwa`** (**`lib/system-settings-public.ts`**, **`lib/pwa/public-pwa-settings.ts`**) |
+
+**Build / dev:** **`npm run build`** (`next build && serwist build`); **`npm run dev`** (Serwist watch + Next); **`npm run dev:next-only`** – bez SW (ātrāka UI izstrāde, instalācija/PWA pilnībā pēc **`build`**).
+
+### Datubāze un admin
+
+- **`068_system_settings_pwa.sql`** – **`pwa_enabled`**, **`pwa_install_banner_enabled`**, **`pwa_install_settings_enabled`**, **`pwa_cache_revision`**, **`pwa_theme_color`**, **`pwa_background_color`**, **`pwa_short_name`**.
+- Tulkošanas **`067_*`** (lietotāja teksti), **`069_*`** (admin forma), **`074_*`** (logo ↔ manifest hinti); **`070_*`** produkta nosaukums **repazy**.
+- **`/admin/pwa`** – **`components/admin/admin-pwa-panel.tsx`**, Server Actions **`lib/admin/pwa-actions.ts`**: ieslēgt PWA, banneri, iestatījumu sadaļu, manifest krāsas, **keša revīzija** (pēc maiņas lietotājiem atjauninās SW kešu).
+- Logo manifestam/faviconam nāk no **`/admin/system`** (ne atsevišķa PWA logo augšupielāde).
+
+### Instalācijas UX (lietotājs)
+
+| Vieta | Komponents | Kad rāda |
+|-------|------------|----------|
+| Mobilais banneris | **`PwaInstallHost`** → **`PwaInstallBanner`** | **`pwa_install_banner_enabled`**, platums zem **961px**, ceļi **`/dashboard`**, **`/analytics`**, **`/settings`**, nav **standalone** |
+| Iestatījumi | **`PwaSettingsInstall`** | **`pwa_install_settings_enabled`**, nav standalone |
+| Iestatījumi | **`PwaPushSettings`** | PWA ieslēgts; lietotājs ieslēdz push (**`/settings`**) |
+| Chrome / Edge | Poga **Instalēt** | **`beforeinstallprompt`** (klausītājs host + settings) |
+| iOS Safari | Teksta norāde | **`pwa.banner.ios_hint`** (bez native prompt) |
+
+### Push paziņojumi tālrunī (0.4.8)
+
+- **Kad sūta:** cron **`GET /api/cron/payment-push-notifications`** (tāds pats **`CRON_SECRET`** kā e-pastiem) – **viens kopsavilkums dienā** uz lietotāju, ja ir **kavētie** vai **šodien jāmaksā** (bez gaidāmo 7 dienu – kā zvana panelī bez upcoming).
+- **Loģika:** **`lib/push/payment-due-alerts.ts`** + **`lib/subscriptions/due-active.ts`** (termiņš, `term_end`); „šodiena” pēc lietotāja **`display_preferences.timezone`**.
+- **Ieslēgšana:** **`/settings`** → **Paziņojumi tālrunī** → atļauja pārlūkā → **`POST /api/push/subscribe`** (`push_subscriptions`).
+- **ENV:** `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (**`supabase.env.template`**; `npx web-push generate-vapid-keys`).
+- **SQL:** **`081_push_subscriptions.sql`**, **`082_site_translations_push.sql`**.
+
+**Bannera uzvedība (0.4.7):**
+
+- **X** („Ne tagad”, `pwa.banner.dismiss`) – **`localStorage`** atslēga **`subtrack_pwa_install_dismissed_v1`** ar **timestamp**; banneris atkal pēc **3 dienām** (**`PWA_INSTALL_DISMISS_COOLDOWN_MS`** – **`lib/pwa/defaults.ts`**). Vecais ieraksts **`"1"`** tiek ignorēts (rāda banneri atkal).
+- Pēc veiksmīgas instalācijas vai atteikuma dialogā – tā pati noraidīšanas atzīme (kamēr nav standalone, banneris vairs nerāda).
+- **Hidrācija:** host renderē banneri tikai pēc **`mounted`** (**`pwa-install-host.tsx`**), lai serveris un klients nesadalītos.
+- **UI:** logo no **`brandLogo`**, fons no **`pwa.background_color`** (admin; ja logo balts kvadrāts – iestati **`#ffffff`** **`/admin/pwa`**), bez atsevišķas logo ēnas; izteiktāka kartes **apmale un ēna**; stili **`styles/subtrack.css`** (`.pwa-install-*`).
+
+### Faili (īsumā)
+
+```
+app/layout.tsx              # PwaInstallHost, PwaSwRegister, SubtrackIntlProvider
+app/manifest.ts, app/sw.ts, app/offline/page.tsx
+components/pwa/pwa-sw-register.tsx
+components/pwa/pwa-install-host.tsx
+components/pwa/pwa-install-banner.tsx
+components/pwa/pwa-settings-install.tsx
+components/pwa/pwa-push-settings.tsx
+components/pwa/offline-page-view.tsx, offline-wifi-icon.tsx
+lib/pwa/install-prompt.ts, defaults.ts, public-pwa-settings.ts, brand-mark.tsx
+lib/push/push-client.ts, payment-due-alerts.ts, send-web-push.ts, vapid-config.ts
+lib/subscriptions/due-active.ts
+app/api/push/subscribe, app/api/push/unsubscribe
+app/api/cron/payment-push-notifications
+lib/i18n/pwa-fallback-phrases.ts
+```
+
+### Pārbaude pēc izmaiņām
+
+1. Supabase: **`067`–`070`**, **`074`**, **`081`**, **`082`**; admin **`/admin/pwa`** – PWA ieslēgts.
+2. ENV: VAPID atslēgas + **`SUPABASE_SERVICE_ROLE_KEY`** (cron).
+3. **`npm run build`** – **`public/sw.js`** ar push handleriem.
+4. **`/settings`** → ieslēgt paziņojumus; cron (vai manuāli): **`/api/cron/payment-push-notifications?secret=…`** ar testa kavēto/šodienas abonementu.
+5. Mobilā: banneris, instalācija, push uz lock screen (Android/instalēta PWA; iOS atbalsts atkarīgs no Safari/PWA).
+
 ## Tehniskais steks
 
 | Slānis | Tehnoloģijas |
@@ -37,7 +116,7 @@
 | Demo paneļi | `public/fs/js/*.js` (kalendārs, modāļi, paziņojumi; **`/dashboard`** CRUD pret `/api/subscriptions`; **`/demo/dashboard`** – tas pats UI, bez API; analītika – **`/fs/js/analytics.js`** kategoriju donut kā demo) |
 
 | Backend (pamats) | [Supabase](https://supabase.com) - `lib/supabase/*`, `proxy.ts`, `database/supabase/*.sql` |
-| PWA / logo | [Serwist](https://serwist.pages.dev) (`serwist.config.js`, `app/sw.ts`); produkta logo – **`sharp`** + Storage buckets **`brand`** (`lib/brand/process-logo.ts`, `lib/admin/logo-actions.ts`) |
+| PWA / logo | [Serwist](https://serwist.pages.dev) (`serwist.config.js`, `app/sw.ts` → `public/sw.js`); instalācijas UX – **`components/pwa/*`**; logo – **`sharp`** + Storage **`brand`** (`lib/brand/process-logo.ts`). Skatīt **[PWA (repazy)](#pwa-repazy)** |
 
 ## Maršrutu aizsardzība (`proxy.ts` → `lib/supabase/middleware.ts`)
 
@@ -153,6 +232,8 @@ Pat salīdzinoši mazā lietotnē **`App Router`** maršruta maiņa parasti nav 
    - **`database/supabase/078_system_settings_email_templates_split.sql`** – **`system_settings_email_templates`** (admin RLS); noņem **`system_settings_public`**. Pēc **`051`** (un **`076`**, ja bija). **Obligāti** pēc drošības audita.
    - **`database/supabase/079_email_reminder_log_rls_policies.sql`** – RLS politikas **`email_reminder_log`** (Advisor). Pēc **`052`**.
    - **`database/supabase/080_security_advisor_warnings.sql`** – **`storage.brand`** bez bucket listing; **`admin_set_user_pro_vip`** tikai **`service_role`**. Pēc **`043`**, **`072`**.
+   - **`database/supabase/081_push_subscriptions.sql`** – Web Push endpointi + **`push_notification_log`** (deduplikācija). Pēc **`001`**.
+   - **`database/supabase/082_site_translations_push.sql`** – push un **`settings.push.*`** teksti. Pēc **`012`**.
    - Opcionāli **`002_migrate_profiles_to_users.sql`**, ja projektā bijusi vecā `profiles` shēma.
    - **`database/supabase/003_admin_users_select_policy.sql`** - **`current_user_is_admin()`** (sākotnēji **SECURITY DEFINER**; pēc **`023`** – **SECURITY INVOKER**) + SELECT politika **`users_select_all_if_admin`**. Tas ļauj adminiem (`is_admin > 0`) lasīt visu `public.users` sarakstu **bez** RLS rekursijas. Vecais variants ar `EXISTS (SELECT … FROM public.users …)` politikā izraisīja kļūdu `infinite recursion detected in policy for relation users` - ja to redzi, palaid šo failu **pilnībā** vēlreiz. Bez `003` anon sesijā admin lapa redz tikai savu rindu. **Pēc `022`/`023` politikas un grants atbilst jaunajai kārtībai** (Atkārtota palaišana ir idempotenta, ja izmanto jaunākos failus.)
    - **`database/supabase/004_signup_email_exists_rpc.sql`** - sākotnēja `signup_email_exists` (`SECURITY DEFINER`). **Pēc `023`:** `EXECUTE` tikai **`service_role`**; aplikācija izsauc caur **`signupEmailExistsAction`** ar **`SUPABASE_SERVICE_ROLE_KEY`**. Bez migrācijas **`023`** un bez atslēgas – vecais anon izsaukums var vairs nedarboties pēc grants maiņas.
@@ -206,9 +287,9 @@ components/admin/         # admin-shell, admin-users-view, admin-intros, paneļu
 components/fs/            # Paneļa / analītikas skati; `fs-i18n-bootstrap.tsx` – servera inlīnas `window.__SUBTRACK_*` pirms /fs/js
 lib/admin/                # Server Actions: `system-actions.ts`, `logo-actions.ts`, `pwa-actions.ts`, `languages-actions.ts`, …
 lib/brand/                # Storage URL, logo resize (`logo-assets.ts`, `process-logo.ts`); noklusējuma zīmols – `lib/pwa/brand-mark.tsx`
-lib/pwa/                  # instalācijas prompts, noklusējumi (`install-prompt.ts`, `defaults.ts`, `public-pwa-settings.ts`)
+lib/pwa/                  # `install-prompt.ts`, `defaults.ts` (3 dienu dismiss), `public-pwa-settings.ts`, `brand-mark.tsx`
 components/brand/         # `site-brand-logo.tsx`, `dash-brand-link.tsx`
-components/pwa/           # SW reģistrācija, instalācijas banneris, `offline-page-view.tsx` (+ inline SVG)
+components/pwa/           # `pwa-sw-register`, `pwa-install-host`, `pwa-install-banner`, `pwa-settings-install`, `offline-page-view`
 lib/system-name-placeholder.ts # {SYSTEM_NAME} aizvietošana `t()` ceļā
 lib/system-settings-public.ts  # anon kešots: nosaukums, `brandLogo`, `pwa`, display prefs (`system-settings`)
 lib/i18n/pwa-fallback-phrases.ts  # PWA + admin PWA fallback (papildus `fallback-phrases.ts`)
@@ -224,6 +305,7 @@ lib/fs-icon-picker-search.ts  # ikonu meklēšanas baiti / bootstrap (`haystack`
 lib/i18n/                 # FALLBACK_PHRASES (`fallback-phrases.ts`) un apkārtējā palīgfunkcionalitāte
 lib/auth/                 # user-display, is-admin, password-strength, require-admin, actions (ieskaitot changePassword)
 lib/subscriptions/        # `analytics-access.ts`, `dashboard-free-tier-gate.ts`, `subscription-payment.ts`, `fetch-paid-calendar-server.ts`, `fetch-subscriptions-server.ts`, `subscription-map.ts`
+lib/security/             # `auth-rate-limit.ts` (proxy), `server-action-rate-limit.ts` (signup e-pasta pārbaude)
 lib/emails/               # admin e-pasta šabloni, Resend cron, Supabase Auth eksports
 app/api/cron/             # `overdue-payment-emails` (CRON_SECRET, Resend)
 lib/integrations/       # SSR lasāmas funkciju karodziņas (OAuth: `login-social-flags.ts`)
@@ -231,7 +313,7 @@ lib/user-display-preferences.ts  # display_preferences forma + **`mergeDisplayPr
 lib/languages-catalog.ts  # kešots valodu katalogs + noklusējuma `code` (anon lasījums)
 lib/supabase/             # anon/server klienti, `service-role-client.ts` (service_role tikai serverim), sesijas loģika (+ **rate limit** – skatīt `proxy.ts`)
 proxy.ts                  # **rate limit** auth ceļiem, tad `updateSession` + redirecti; sk. **[Navigācija un veiktspēja](#navigācija-un-veiktspēja-kopīgas-sajūtas)**
-database/supabase/        # Postgres + RLS (`001` … `074` utt.)
+database/supabase/        # Postgres + RLS (`001` … `080` utt.; PWA **`067`–`070`**, logo **`071`–`075`**, drošība **`078`–`080`**)
 serwist.config.js         # Serwist build (CommonJS; ģenerē `public/sw.js`)
 scripts/                  # `export_site_translations_sql.py`; **`security-*.mjs`** (smoke, regression, migration-checklist)
 public/fs/js/             # FS demo JS (subscriptions, dash-alerts …)
@@ -250,6 +332,8 @@ npm run dev
 ```
 
 [http://localhost:3000](http://localhost:3000).
+
+**PWA:** izstrādē **`npm run dev`** ģenerē/uzrauga **`public/sw.js`**; pilnai instalācijas plūsmai pirms deploy – **`npm run build`**. Detalizēti – **[PWA (repazy)](#pwa-repazy)**.
 
 **Ja izstrādē konsolē vai pārlūkā parādās:** `Router action dispatched before initialization` (**`use-action-queue`**, **`hmrRefresh`**) vai **`ChunkLoadError` / `Failed to load chunk`** (`/_next/static/chunks/...`) – tipiska **Next.js 16 Turbopack** HMR / fragmentu sacīkste (parasti tikai **`next dev`** bez **`--webpack`**). **Risinājums:** apturēt serveri, izdzēst mapi **`.next`**, palaist **`npm run dev`** no jauna un **cietā pārlādēšana**; ja atkārtojas – **`npm run dev:webpack`** (stabilāks izstrādes serveris).
 
@@ -272,17 +356,17 @@ npm run security:check    # pēc DB / drošības izmaiņām
 
 1. **`npm install`** – vienmēr pēc pull, ja mainījies `package.json` vai `package-lock.json`; ja šaubies, atkārto arī tad, kad lock fails nav mainījies (ātri un novērš „missing dependency’’ lokāli).
 2. **Žurnāls** – salīdzināt ar **[Izmaiņu žurnālu](#izmaiņu-žurnāls)** un rindiņu **`Versija:`** README augšā: tur tiek apkopotas būtiskākās izmaiņas (Auth, proxy/sesija, SQL, ENV, paneļa FS slānis).
-3. **Supabase un ENV** – salīdzināt **`database/supabase/`** (līdz **`080_*`**) un **`supabase.env.template`** ar **`.env.local`**. **Drošība (2026-05):** **`078`**, **`079`**, **`080`**; **`SUPABASE_SERVICE_ROLE_KEY`** – signup, VIP, cron. Logo: **`071`–`074`**, **`072`**, **`077`**. Pēc SQL: **`npm run security:smoke`**. Migrācijas secība – **Supabase iestatīšana** un **`npm run security:migration-checklist`**. PWA: **`npm run build`** / **`npm run dev`** (`public/sw.js`).
-4. **Pārbaude** – pēc lielākām atkarību vai tipu izmaiņām ieteicams **`npm run lint`** un **`npm run build`**; ikdienas darbam **`npm run dev`**. Ja Turbopack rāda **`CssSyntaxError: Missing opening {`** ar trace uz **`globals.css`** / **`subtrack.css`** – izdzēst mapi **`.next`**, restartēt **`npm run dev`** (vai **`npm run dev:webpack`**); līdzvērtīgi žurnālā **[0.3.8](#izmaiņu-žurnāls)**.
+3. **Supabase un ENV** – salīdzināt **`database/supabase/`** (līdz **`080_*`**) un **`supabase.env.template`** ar **`.env.local`**. **Drošība (2026-05):** **`078`**, **`079`**, **`080`**; **`SUPABASE_SERVICE_ROLE_KEY`** – signup, VIP, cron. Logo: **`071`–`074`**, **`072`**, **`077`**. PWA SQL: **`067`–`070`**, **`074`**. Pēc SQL: **`npm run security:smoke`**. Migrācijas secība – **Supabase iestatīšana** un **`npm run security:migration-checklist`**. PWA: **`npm run build`** (ģenerē **`public/sw.js`**) vai **`npm run dev`** – skatīt **[PWA](#pwa-repazy)**.
+4. **Pārbaude** – **`npm run lint`** un **`npm run build`** pēc lielākām izmaiņām; ikdienas **`npm run dev`**. Ja mainīta drošība/DB: **`npm run security:check`**. Mobilā: PWA banneris + **`/offline`** (**[PWA](#pwa-repazy)**). Turbopack **`CssSyntaxError`** – dzēst **`.next`**, restartēt dev (žurnāls **0.3.8**).
 
 ### Ko „pateikt’’ / kā īsi atbildēt pēc jauna Git atjauninājuma
 
-- **Lietotājam vai komandai:** īsi uzskaitīt: vai būtu jāpalaiž `npm install`; vai README žurnālā ir kas jauns (ENV, SQL); vai šķietami mainījušies paneļa faili (`public/fs/js/`, `components/fs/`); tad **`npm run dev`** un manuāli pārbaudīt galvenās lapas (sākumlapa, panelis, auth, admin – skatīt augšāk **Galvenās iespējas**).
+- **Lietotājam vai komandai:** īsi uzskaitīt: vai būtu jāpalaiž `npm install`; vai README žurnālā ir kas jauns (ENV, SQL, PWA); vai šķietami mainījušies paneļa faili (`public/fs/js/`, `components/fs/`, `components/pwa/`); tad **`npm run dev`** un manuāli pārbaudīt galvenās lapas (sākumlapa, panelis, auth, admin, **PWA banneris** mobilā – **[PWA](#pwa-repazy)**).
 - **AI palīgam:** neatkārtot visu README; izmantot šo sadaļu kā čeklisti. Ja žurnālā ir konkrētas jaunās funkcijas – nosaukt tās īsi; ja nav pieraksta žurnālā bet pull saturēja tikai mazus labojumus – to arī norādīt un ieteikt tikai `npm install` / `npm run dev`, ja nav redzamu `package-lock` vai DB izmaiņu.
 
 ### Uzturētājiem
 
-Pie būtiskām izmaiņām **papildināt [Izmaiņu žurnālu](#izmaiņu-žurnāls)** (datums; nepieciešams – jauna apakšversija): jauni SQL faili ja ENV atslēgas, jauni maršruti, lauztās izmaiņas lokālajā prototipa JS.
+Pie būtiskām izmaiņām **papildināt [Izmaiņu žurnāls](#izmaiņu-žurnāls)** (datums; jauna apakšversija): jauni SQL faili, ENV atslēgas, jauni maršruti, lauztās izmaiņas. **Pēc 0.3.54** žurnāla ierakstiem lieto **0.4.x** (skatīt žurnāla augšējo piezīmi); **`package.json`** `version` = jaunākā **0.4.***.
 
 ## Vide un drošība
 
@@ -296,6 +380,7 @@ Pie būtiskām izmaiņām **papildināt [Izmaiņu žurnālu](#izmaiņu-žurnāls
 | Signup e-pasta aizņemtība | **`signupEmailExistsAction`** (`023`, `080`) |
 | Admin VIP slēdzis | **`POST /api/admin/users/pro-vip`** (`080`) |
 | Cron kavētie e-pasti | **`GET /api/cron/overdue-payment-emails`** |
+| Cron PWA push (kavētie + šodien) | **`GET /api/cron/payment-push-notifications`** |
 | Logo augšupielāde | **Nav obligāta** – admin sesija + **`072_brand_storage.sql`** |
 
 ### Drošības migrācijas (kopsavilkums)
@@ -324,6 +409,7 @@ npm run audit
 - **CI:** `.github/workflows/security-audit.yml` (L2 + `npm audit`, iknedēļas), **`security-smoke.yml`**, Dependabot (npm + GitHub Actions).
 - **PR:** checklist `.github/pull_request_template.md`; Cursor rule `.cursor/rules/subtrack-security-l2.mdc`.
 - **Proxy rate limit:** `lib/security/auth-rate-limit.ts`, `proxy.ts` (auth ceļi; **`DISABLE_RATE_LIMIT`**, **`RATE_LIMIT_MULTIPLIER`**).
+- **Signup e-pasta pārbaude:** `signupEmailExistsAction` – `lib/security/server-action-rate-limit.ts` (sliding window).
 - **CSP enforce:** `next.config.ts` (`Content-Security-Policy`).
 
 ### Supabase Dashboard (manuāli)
@@ -339,35 +425,45 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 
 ## Izmaiņu žurnāls
 
-Šeit īss pieraksts par izlaistām izmaiņām; detalizētākās funkcijas un SQL skatīt augšējās sadaļās.
+Šeit īss pieraksts par izlaistām izmaiņām. **PWA** – **[PWA (repazy)](#pwa-repazy)**. **0.4.x** no **0.4.0** (= agrāk **0.3.54**).
 
-### 0.3.59 (2026-05-21)
+### 0.4.8 (2026-05-21)
 
-- **README** – drošības sadaļa (**`078`–`080`**, **`079`**, ENV, `npm run security:*`); migrāciju secība; VIP un e-pasta šabloni atjaunināti.
+- **PWA Web Push** – kavētie + šodienas maksājumi (kā zvana panelis): **`081_*`**, **`082_*`**, **`lib/push/*`**, **`app/sw.ts`** push/click, **`PwaPushSettings`** **`/settings`**, cron **`/api/cron/payment-push-notifications`**, VAPID ENV.
 
-### 0.3.58 (2026-05-21)
+### 0.4.7 (2026-05-21)
+
+- **PWA instalācijas banneris** – UI (`components/pwa/pwa-install-banner.tsx`, **`styles/subtrack.css`**): logo, fons no **`pwa_background_color`**, izteiktāka apmale/ēna; **X** aizvēršana; **3 dienu** cooldown (**`lib/pwa/defaults.ts`**, timestamp **`localStorage`**).
+- **Hidrācija** – **`pwa-install-host.tsx`**: banneris tikai pēc klienta **`mounted`**.
+- **README** – sadaļa **[PWA (repazy)](#pwa-repazy)**; **0.4.x** numerācija (0.4.0 = agrāk 0.3.54); struktūra līdz SQL **080**; pēc **`git pull`** PWA čekliste.
+
+### 0.4.6 (2026-05-21)
+
+- **README** – drošības sadaļa (**`078`–`080`**, **`079`**, ENV, `npm run security:*`); migrācijas secība; VIP un e-pasta šabloni atjaunināti.
+
+### 0.4.5 (2026-05-21)
 
 - **Supabase Advisor** – **`078`**: **`system_settings_email_templates`**; noņemts **`system_settings_public`**. **`079`**: **`email_reminder_log`** RLS. **`080`**: **`brand`** + VIP **`service_role`**.
 
-### 0.3.57 (2026-05-21)
+### 0.4.4 (2026-05-21)
 
 - **Drošība LOW (L1/L2)** – `npm run security:regression-check`, `npm run security:check`; CI audit + L2; PR checklist; **`077_*`** logo kļūdas teksts; **`security_check.md`** atjaunināts.
 
-### 0.3.56 (2026-05-21)
-
-- **Toast un tooltip hover** – peldošie ziņojumi nepazūd, kamēr kursors ir virs tiem: **`lib/dom-toast-hover-dismiss.ts`** (**`pushDomToast`**, **`public/fs/js/subscriptions-helpers.js`** `showToast`); auth jau **`HoverPauseToast`** (**`flash-param-toast.tsx`**). **`SubtrackTooltip`** – burbulis portalā ar **`pointer-events`**, aizkave pārejai no pogas uz burbuli (**`subtrack-tooltip.tsx`**, **`styles/subtrack.css`**).
-
-### 0.3.56 (2026-05-21)
+### 0.4.3 (2026-05-21)
 
 - **Logo `logo_revision`** – vairs ne **`Date.now()`** (integer overflow); katrā augšupielādē `+1` (**`logo-actions.ts`**). Ja jau redzēji kļūdu: SQL **`075_system_settings_logo_revision_fix.sql`**.
 
-### 0.3.55 (2026-05-21)
+### 0.4.2 (2026-05-21)
+
+- **Toast un tooltip hover** – peldošie ziņojumi nepazūd, kamēr kursors ir virs tiem: **`lib/dom-toast-hover-dismiss.ts`** (**`pushDomToast`**, **`public/fs/js/subscriptions-helpers.js`** `showToast`); auth jau **`HoverPauseToast`** (**`flash-param-toast.tsx`**). **`SubtrackTooltip`** – burbulis portalā ar **`pointer-events`**, aizkave pārejai no pogas uz burbuli (**`subtrack-tooltip.tsx`**, **`styles/subtrack.css`**).
+
+### 0.4.1 (2026-05-21)
 
 - **README** – ENV/logo skaidrojums (logo bez **`SUPABASE_SERVICE_ROLE_KEY`**); struktūra **`lib/brand/process-logo.ts`**; tehniskais steks (Serwist, **sharp**). **`logo-actions.ts`** jau izmanto admin sesiju (`createServerSupabaseClient`).
 
-### 0.3.54 (2026-05-21)
+### 0.4.0 (2026-05-21) – 0.4.x sākums
 
-- **Admin PWA + logo** – **`074_site_translations_admin_pwa_logo_hint.sql`**: **`/admin/pwa`** skaidro, ka manifest ikonas/favicon nāk no **`/admin/system`** logo; priekšskatījums, ja **`brandLogo`** ir. **`admin-pwa-panel.tsx`**.
+- **Admin PWA + logo** – **`074_site_translations_admin_pwa_logo_hint.sql`**: **`/admin/pwa`** skaidro, ka manifest ikonas/favicon nāk no **`/admin/system`** logo; priekšskatījums, ja **`brandLogo`** ir. **`admin-pwa-panel.tsx`**. *(Agrāk žurnālā kā **0.3.54**.)*
 
 ### 0.3.53 (2026-05-21)
 
@@ -685,7 +781,7 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 
 - **Supabase** – servera/pārlūka klienti (`lib/supabase/*`), sesijas **`proxy.ts`**, OAuth/apmaiņas maršruts `app/auth/callback/route.ts`, ENV paraugi (`supabase.env.template`, `.env.example`).
 - **Datubāze** – Postgres + RLS skripti `database/supabase/001` … `013` (ieskaitot **`languages.is_default`** un anon kataloga lasīšanu **`010`**, tulkošanu **`011`–`013`**).
-- **Auth UX** – `/login`, `/signup`, `/forgot-password`, `/change-password` ar Server Actions un komponentēm (`signup-form`, `change-password-form`), peldošie toast kļūdām un ziņām (`flash-param-toast`, `auth-toasts-host`, hover aptur auto-aizvēršanu; skat. **0.3.56** visiem toast), sociālo pogu komponente.
+- **Auth UX** – `/login`, `/signup`, `/forgot-password`, `/change-password` ar Server Actions un komponentēm (`signup-form`, `change-password-form`), peldošie toast kļūdām un ziņām (`flash-param-toast`, `auth-toasts-host`, hover aptur auto-aizvēršanu; skat. **0.4.2** visiem toast), sociālo pogu komponente.
 - **Aizsargātie maršruti** – panelis, analītika, iestatījumi, admin; novirzes sesijas stāvoklim atbilstoši saknes **`proxy`** un `lib/supabase/middleware.ts`.
 - **Administrācija** – `/admin` un apakšlapas (`components/admin/*`), piekļuve tikai adminiem; **valodas** – CRUD + **noklusējuma valoda jaunajiem apmeklētājiem** (`public.languages.is_default`, `010` SQL, kolonna „Noklus.“, `lib/languages-catalog.ts`).
 - **Admin lietotāju UI** – `/admin/users`: pilna platuma submenu + saturs mobilajā (`admin-body` stretch), tabulas **kompaktais** variants tikai **≤640 px** (kolonnas „VIP“ / „Reģistrēts“ zem e‑pasta, bez aplīša; administrators birka vienmēr zem e‑pasta); **virs 640 px** – aplis+kronītis, ja **Pro**, un tabulas kolonnas (`styles/subtrack.css`).

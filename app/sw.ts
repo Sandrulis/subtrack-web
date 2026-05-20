@@ -60,3 +60,59 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
+
+type PushPayload = {
+  title?: string;
+  body?: string;
+  url?: string;
+  tag?: string;
+};
+
+self.addEventListener("push", (event) => {
+  const data = (() => {
+    try {
+      return event.data?.json() as PushPayload | undefined;
+    } catch {
+      return undefined;
+    }
+  })();
+
+  const title = data?.title?.trim() || "repazy";
+  const body = data?.body?.trim() || "";
+  const url = data?.url?.trim() || "/dashboard";
+  const tag = data?.tag?.trim() || "repazy-payment";
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      tag,
+      data: { url },
+      icon: "/icon/192",
+      badge: "/icon/192",
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url =
+    typeof event.notification.data?.url === "string"
+      ? event.notification.data.url
+      : "/dashboard";
+
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of all) {
+        if ("focus" in client) {
+          await client.focus();
+          if ("navigate" in client && typeof client.navigate === "function") {
+            await client.navigate(url);
+          }
+          return;
+        }
+      }
+      await self.clients.openWindow(url);
+    })(),
+  );
+});

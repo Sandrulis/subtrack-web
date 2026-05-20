@@ -10,7 +10,16 @@ import { useCallback, useEffect, useState } from "react";
 
 export function PwaSettingsInstall() {
   const { t, pwa } = useSubtrackIntl();
+  const [mounted, setMounted] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [ios, setIos] = useState(false);
+  const [standalone, setStandalone] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setIos(isIosSafariInstallable());
+    setStandalone(isStandaloneDisplayMode());
+  }, []);
 
   useEffect(() => {
     const onBip = (e: Event) => {
@@ -29,9 +38,10 @@ export function PwaSettingsInstall() {
   }, [deferredPrompt]);
 
   if (!pwa.installSettingsEnabled) return null;
-  if (isStandaloneDisplayMode()) return null;
+  if (mounted && standalone) return null;
 
-  const ios = isIosSafariInstallable();
+  const showIosHint = mounted && ios && !deferredPrompt;
+  const showInstallBtn = mounted && Boolean(deferredPrompt);
 
   return (
     <section className="settings-pwa-install" aria-labelledby="settings-pwa-install-heading">
@@ -39,10 +49,10 @@ export function PwaSettingsInstall() {
         {t("pwa.install.section_title")}
       </h2>
       <p className="settings-section-lead">{t("pwa.install.description")}</p>
-      {ios && !deferredPrompt ? (
+      {showIosHint ? (
         <p className="settings-pwa-install-hint">{t("pwa.install.ios_hint")}</p>
       ) : null}
-      {deferredPrompt ? (
+      {showInstallBtn ? (
         <button type="button" className="btn btn-primary" onClick={() => void onInstall()}>
           {t("pwa.install.action")}
         </button>
