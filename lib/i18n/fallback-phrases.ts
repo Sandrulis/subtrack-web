@@ -1,3 +1,5 @@
+import { LEGAL_FALLBACK_PHRASES } from "./legal-fallback-phrases";
+
 export const FALLBACK_PHRASES = {
   "nav.dashboard": {
     lv: "Panelis",
