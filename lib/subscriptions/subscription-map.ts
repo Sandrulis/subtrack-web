@@ -49,6 +49,15 @@ export function mapSubscriptionRowToClient(row: SubscriptionRow): SubscriptionCl
     name: row.name,
     category: row.category,
     amount: Number.isFinite(amt) ? amt : 0,
+    dynamicAmount: row.is_dynamic_amount === true,
+    dueAmountOverride: (() => {
+      if (row.due_amount_override == null || row.due_amount_override === "") {
+        return null;
+      }
+      const n = parseFloat(String(row.due_amount_override));
+      return Number.isFinite(n) ? n : null;
+    })(),
+    dueAmountOverrideFor: row.due_amount_override_for ?? "",
     period: row.period,
     date: row.next_payment_date,
     icon: row.icon,
@@ -83,6 +92,9 @@ export type SubscriptionPayloadInput = {
   termStart?: unknown;
   termEnd?: unknown;
   devices?: unknown;
+  dynamicAmount?: unknown;
+  dueAmountOverride?: unknown;
+  dueDate?: unknown;
 };
 
 type SubscriptionDeviceDbRow = {
@@ -232,10 +244,13 @@ export function parseSubscriptionPayload(
     }
   }
 
+  const dynamicAmount = body.dynamicAmount === true || body.dynamicAmount === "true";
+
   const row: Record<string, unknown> = {
     name,
     category,
     amount: amountNum,
+    is_dynamic_amount: dynamicAmount,
     period,
     next_payment_date: date,
     icon,
@@ -249,8 +264,16 @@ export function parseSubscriptionPayload(
   return { ok: true, row };
 }
 
+function clearDueAmountOverrideFields(
+  row: Record<string, unknown>,
+): void {
+  row.due_amount_override = null;
+  row.due_amount_override_for = null;
+}
+
 export function parseSubscriptionPatch(
   body: SubscriptionPayloadInput | null | undefined,
+  existing?: SubscriptionRow | null,
 ): { ok: false; message: string } | { ok: true; row: Record<string, unknown> } {
   if (!body || typeof body !== "object") {
     return { ok: false, message: "Invalid JSON body" };
@@ -297,6 +320,12 @@ export function parseSubscriptionPatch(
       return { ok: false, message: "date must be YYYY-MM-DD" };
     }
     row.next_payment_date = date;
+    if (existing) {
+      const prevDue = String(existing.next_payment_date ?? "").trim();
+      if (date !== prevDue) {
+        clearDueAmountOverrideFields(row);
+      }
+    }
   }
 
   if (body.icon !== undefined) {
@@ -350,6 +379,57 @@ export function parseSubscriptionPatch(
       return dr;
     }
     row.devices = dr.devices;
+  }
+
+  if (body.dynamicAmount !== undefined) {
+    const isDynamic =
+      body.dynamicAmount === true || body.dynamicAmount === "true";
+    row.is_dynamic_amount = isDynamic;
+    if (!isDynamic) {
+      clearDueAmountOverrideFields(row);
+    }
+  }
+
+  if (body.dueAmountOverride !== undefined && existing) {
+    if (existing.is_dynamic_amount !== true) {
+      return {
+        ok: false,
+        message: "Period amount override only applies to dynamic payments",
+      };
+    }
+    const dueDate = String(
+      body.dueDate ?? existing.next_payment_date ?? "",
+    ).trim();
+    const currentDue = String(existing.next_payment_date ?? "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+      return { ok: false, message: "dueDate must be YYYY-MM-DD" };
+    }
+    if (dueDate !== currentDue) {
+      return {
+        ok: false,
+        message: "dueDate must match current next payment date",
+      };
+    }
+    if (body.dueAmountOverride === null || body.dueAmountOverride === "") {
+      clearDueAmountOverrideFields(row);
+    } else {
+      const amountStr = String(body.dueAmountOverride).trim();
+      const amountNum = amountStr === "" ? 0 : parseFloat(amountStr);
+      if (!Number.isFinite(amountNum) || amountNum < 0) {
+        return {
+          ok: false,
+          message: "dueAmountOverride must be zero or a positive number",
+        };
+      }
+      const baseNum = parseFloat(String(existing.amount ?? 0));
+      const base = Number.isFinite(baseNum) ? baseNum : 0;
+      if (Math.abs(amountNum - base) < 0.0001) {
+        clearDueAmountOverrideFields(row);
+      } else {
+        row.due_amount_override = amountNum;
+        row.due_amount_override_for = dueDate;
+      }
+    }
   }
 
   if (Object.keys(row).length === 0) {

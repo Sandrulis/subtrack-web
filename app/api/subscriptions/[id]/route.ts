@@ -93,14 +93,22 @@ export async function PATCH(
     );
   }
 
+  const existingRow = existing as SubscriptionRow;
+
   const parsed = parseSubscriptionPatch(
     json as Parameters<typeof parseSubscriptionPatch>[0],
+    existingRow,
   );
   if (!parsed.ok) {
     return NextResponse.json(
       { success: false, message: parsed.message },
       { status: 400 },
     );
+  }
+
+  if (isMarkPaidPatchBody(body)) {
+    parsed.row.due_amount_override = null;
+    parsed.row.due_amount_override_for = null;
   }
 
   const { data, error } = await supabase
@@ -121,7 +129,6 @@ export async function PATCH(
     );
   }
 
-  const existingRow = existing as SubscriptionRow;
   let paidCalendarDays: Record<string, number> | undefined;
 
   if (isMarkPaidPatchBody(body) && parsed.row.next_payment_date != null) {

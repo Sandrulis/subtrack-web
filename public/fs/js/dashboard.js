@@ -10,6 +10,7 @@ var userPickedColor = false;
 var visualSuggestBootstrap = null;
 var editingId = null;
 var deletingId = null;
+var amountEditId = null;
 var calendarView = null;
 
 /* ---- Init ----
@@ -21,6 +22,8 @@ function continueDashboardBoot() {
     renderList();
     initCalendarNav();
     initPayCalIncludePaidToggle();
+    initSubDynamicAmountSwitch();
+    initSubAmountInlineEdit();
     initIconPicker();
     initColorPicker();
 }
@@ -84,6 +87,19 @@ function renderList(scrollToItemId) {
     }
     if (typeof subtrackSyncDeleteButtonsPending === 'function') {
         subtrackSyncDeleteButtonsPending();
+    }
+    if (amountEditId != null) {
+        requestAnimationFrame(function () {
+            var item = document.getElementById('item-' + amountEditId);
+            var inp =
+                item && item.querySelector
+                    ? item.querySelector('.sub-amount-inline-input')
+                    : null;
+            if (inp) {
+                inp.focus();
+                if (inp.select) inp.select();
+            }
+        });
     }
 }
 
@@ -161,6 +177,155 @@ function initPayCalIncludePaidToggle() {
         syncUi();
         renderPaymentCalendar();
     });
+}
+
+function subDynamicAmountSwitchOn() {
+    var btn = document.getElementById('sub-dynamic-amount-switch');
+    return !!(btn && btn.classList.contains('is-on'));
+}
+
+function setSubDynamicAmountSwitch(on) {
+    var btn = document.getElementById('sub-dynamic-amount-switch');
+    if (!btn) return;
+    if (on) {
+        btn.classList.add('is-on');
+    } else {
+        btn.classList.remove('is-on');
+    }
+    btn.setAttribute('aria-checked', on ? 'true' : 'false');
+}
+
+function initSubDynamicAmountSwitch() {
+    var btn = document.getElementById('sub-dynamic-amount-switch');
+    if (!btn || btn.dataset.subtrackBound === '1') return;
+    btn.dataset.subtrackBound = '1';
+    btn.addEventListener('click', function () {
+        if (isModalSaveBusy()) return;
+        setSubDynamicAmountSwitch(!subDynamicAmountSwitchOn());
+    });
+}
+
+function initSubAmountInlineEdit() {
+    var list = document.getElementById('sub-list');
+    if (!list || list.dataset.subtrackAmountEditBound === '1') return;
+    list.dataset.subtrackAmountEditBound = '1';
+    list.addEventListener('keydown', function (e) {
+        var inp = e.target;
+        if (!inp || !inp.classList || !inp.classList.contains('sub-amount-inline-input')) {
+            return;
+        }
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            commitSubAmountInline(inp);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelSubAmountInline();
+        }
+    });
+    list.addEventListener(
+        'blur',
+        function (e) {
+            var inp = e.target;
+            if (!inp || !inp.classList || !inp.classList.contains('sub-amount-inline-input')) {
+                return;
+            }
+            commitSubAmountInline(inp);
+        },
+        true,
+    );
+}
+
+function openChangeAmountInline(id) {
+    if (subtrackIsMarkPaidPending(id)) return;
+    amountEditId = String(id);
+    renderList(id);
+}
+
+function cancelSubAmountInline() {
+    if (amountEditId == null) return;
+    amountEditId = null;
+    renderList();
+}
+
+function commitSubAmountInline(inp) {
+    if (!inp) return;
+    var sid = inp.getAttribute('data-subscription-id');
+    if (sid == null || sid === '') return;
+    var idx = subscriptions.findIndex(function (x) {
+        return String(x.id) === String(sid);
+    });
+    if (idx === -1) {
+        cancelSubAmountInline();
+        return;
+    }
+    var raw = inp.value.trim();
+    var amount =
+        typeof parseDecimalAmountInput === 'function'
+            ? parseDecimalAmountInput(raw)
+            : parseFloat(raw);
+    if (raw !== '' && (isNaN(amount) || amount < 0)) {
+        shakeInputEl(inp);
+        return;
+    }
+    if (raw === '' || isNaN(amount)) {
+        amount = 0;
+    }
+    var s = subscriptions[idx];
+    var dueIso = normalizeSubscriptionDateIso(s.date);
+    var devExtra =
+        typeof sumDeviceAmounts === 'function' ? sumDeviceAmounts(s, dueIso) : 0;
+    var baseOverride = amount - devExtra;
+    if (baseOverride < 0) baseOverride = 0;
+    var prev =
+        typeof subscriptionMonthlyTotal === 'function'
+            ? subscriptionMonthlyTotal(s, dueIso)
+            : parseFloat(s.amount) || 0;
+    if (!isNaN(prev) && Math.abs(prev - amount) < 0.0001) {
+        cancelSubAmountInline();
+        return;
+    }
+
+    amountEditId = null;
+
+    if (typeof window !== 'undefined' && window.__SUBTRACK_DEMO_DASHBOARD__) {
+        if (typeof setDuePeriodAmountOverride === 'function') {
+            setDuePeriodAmountOverride(s, baseOverride, dueIso);
+        }
+        renderList(sid);
+        showToast(FsT('fs.dashboard.toast_amount_updated'), 'success');
+        showToast(FsT('fs.dashboard.toast_demo_only'), 'success');
+        return;
+    }
+
+    fetch(apiSubscriptionUrl(sid), {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            dueAmountOverride: baseOverride,
+            dueDate: dueIso,
+        }),
+    })
+        .then(parseApiJson)
+        .then(function (data) {
+            if (data.subscription) mergeSubscriptionFromApi(data.subscription);
+            renderList(sid);
+            showToast(FsT('fs.dashboard.toast_amount_updated'), 'success');
+        })
+        .catch(function (err) {
+            var rawMsg = err && err.message ? String(err.message) : '';
+            showToast(rawMsg || FsT('fs.dashboard.toast_api_save_failed'), 'error');
+            renderList(sid);
+        });
+}
+
+function shakeInputEl(el) {
+    if (!el) return;
+    el.style.borderColor = 'var(--danger)';
+    el.focus();
+    setTimeout(function () {
+        el.style.borderColor = '';
+    }, 1500);
 }
 
 /** Nedēļas dienu galvenes: pirmdiena–svētdiena (kalendārs sākas ar pirmdienu). */
@@ -607,7 +772,12 @@ function buildItem(s) {
         ? '<i class="fa-solid fa-triangle-exclamation"></i> '
         : (urgencyClass === 'soon' ? '<i class="fa-solid fa-hourglass-half"></i> ' : '<i class="fa-regular fa-calendar"></i> ');
     var periodLabel = periodTextUi(s.period);
-    var amountMonth = monthlyAmount(s.amount, s.period);
+    var amountMonth = monthlyAmount(
+        typeof effectiveBaseAmountForDue === 'function'
+            ? effectiveBaseAmountForDue(s, s.date)
+            : s.amount,
+        s.period,
+    );
     var devExtra = sumDeviceAmounts(s);
     var displayTotal = subscriptionMonthlyTotal(s);
     var billingActive =
@@ -630,6 +800,49 @@ function buildItem(s) {
               '</div>'
             : '';
 
+    var isAmountEditing = amountEditId != null && String(amountEditId) === String(s.id);
+    var amountMainHtml;
+    if (isAmountEditing) {
+        var amtIn = !isNaN(displayTotal) ? displayTotal.toFixed(2) : '';
+        amountMainHtml =
+            '<div class="sub-amount sub-amount--editing">' +
+            '<span class="sub-amount-currency" aria-hidden="true">€</span>' +
+            '<input type="text" class="sub-amount-inline-input" inputmode="decimal" autocomplete="off" ' +
+            'data-subscription-id="' +
+            escAttr(String(s.id)) +
+            '" value="' +
+            escAttr(amtIn) +
+            '" aria-label="' +
+            escAttr(FsT('fs.dashboard.aria_change_amount')) +
+            '" />' +
+            '</div>';
+    } else {
+        amountMainHtml =
+            '<div class="sub-amount">€' + displayTotal.toFixed(2) + '</div>';
+    }
+
+    var changeAmountBtn =
+        s.dynamicAmount === true
+            ? '<button type="button" class="icon-btn change-amount" data-subscription-id="' +
+              escAttr(String(s.id)) +
+              '" data-tooltip="' +
+              escAttr(FsT('fs.dashboard.tooltip_change_amount')) +
+              '" aria-label="' +
+              escAttr(FsT('fs.dashboard.aria_change_amount')) +
+              '" onclick=\'openChangeAmountInline(' +
+              JSON.stringify(String(s.id)) +
+              ')\'><i class="fa-solid fa-right-left" aria-hidden="true"></i></button>'
+            : '';
+
+    var dynamicAmountBadge =
+        s.dynamicAmount === true
+            ? '<span class="sub-dynamic-amount-badge" data-tooltip="' +
+              escAttr(FsT('fs.dashboard.label_dynamic_amount')) +
+              '" aria-label="' +
+              escAttr(FsT('fs.dashboard.label_dynamic_amount')) +
+              '"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span>'
+            : '';
+
     return '<div class="sub-item" id="item-' + s.id + '">' +
         '<div class="sub-item-top">' +
             '<div class="sub-icon-col">' +
@@ -642,6 +855,7 @@ function buildItem(s) {
                     '<span class="sub-name">' +
                     escHtml((s.name && String(s.name).trim()) ? String(s.name).trim() : (FsT('fs.dashboard.list_untitled') || '-')) +
                     '</span>' +
+                    dynamicAmountBadge +
                     (s.note ? '<span class="sub-note-inline">' + escHtml(s.note) + '</span>' : '') +
                     '<span class="sub-category-pill">' + escHtml(categoryLabel(s.category)) + '</span>' +
                     '</div>' +
@@ -671,6 +885,7 @@ function buildItem(s) {
                           subtrackMarkPaidButtonInnerHtml() +
                           '</button>'
                         : '') +
+                        changeAmountBtn +
                         '<button type="button" class="icon-btn" data-tooltip="' +
                         escAttr(FsT('fs.dashboard.tooltip_edit')) +
                         '" aria-label="' +
@@ -691,7 +906,7 @@ function buildItem(s) {
                         '</button>' +
                     '</div>' +
                     '<div class="sub-amount-wrap">' +
-                        '<div class="sub-amount">€' + displayTotal.toFixed(2) + '</div>' +
+                        amountMainHtml +
                         amountNote +
                         '<div class="sub-period">' + escHtml(periodLabel) + '</div>' +
                         (s.period !== 'monthly'
@@ -728,6 +943,9 @@ function markPaid(id) {
 
     if (typeof window !== 'undefined' && window.__SUBTRACK_DEMO_DASHBOARD__) {
         s.date = normalizeSubscriptionDateIso(newDate) || newDate;
+        if (typeof clearDuePeriodAmountOverride === 'function') {
+            clearDuePeriodAmountOverride(s);
+        }
         if (paidOnIso && typeof subtrackAddPaidCalendarDay === 'function') {
             subtrackAddPaidCalendarDay(paidOnIso);
         }
@@ -1148,6 +1366,7 @@ function openAddModal() {
     document.getElementById('sub-term-start').value = '';
     document.getElementById('sub-term-end').value = '';
     setDefaultDate();
+    setSubDynamicAmountSwitch(false);
     userPickedIcon = false;
     userPickedColor = false;
     applyAutoVisualForAdd('');
@@ -1191,6 +1410,7 @@ function openEditModal(id) {
     }
     selectIcon(s.icon || 'fa-solid fa-film');
     selectColor(s.color || '#0d9488');
+    setSubDynamicAmountSwitch(s.dynamicAmount === true);
     document.getElementById('modal-overlay').classList.add('open');
     syncBodyModalScrollLock();
     requestAnimationFrame(function () {
@@ -1231,6 +1451,7 @@ function setModalSavePending(pending) {
     var saveBtn = document.getElementById('modal-save-btn');
     var cancelBtn = document.getElementById('modal-cancel-btn');
     var closeBtn = document.getElementById('modal-close-btn');
+    var dynamicSwitch = document.getElementById('sub-dynamic-amount-switch');
     if (saveBtn) {
         var spinner = saveBtn.querySelector('.dash-save-spinner');
         saveBtn.disabled = !!pending;
@@ -1242,6 +1463,9 @@ function setModalSavePending(pending) {
     }
     if (closeBtn) {
         closeBtn.disabled = !!pending;
+    }
+    if (dynamicSwitch) {
+        dynamicSwitch.disabled = !!pending;
     }
 }
 
@@ -1306,6 +1530,7 @@ function saveSubscription() {
         name: name,
         category: category,
         amount: amount,
+        dynamicAmount: subDynamicAmountSwitchOn(),
         period: period,
         date: date,
         icon: selectedIcon,
@@ -2108,6 +2333,10 @@ function selectColor(color, programmatic) {
 /* ---- Keyboard close ---- */
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
+        if (amountEditId != null) {
+            cancelSubAmountInline();
+            return;
+        }
         if (!isModalSaveBusy()) closeModal();
         closeDeleteModal();
     }

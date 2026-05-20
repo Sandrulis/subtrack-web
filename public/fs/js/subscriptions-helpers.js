@@ -122,14 +122,49 @@ function sumDeviceAmounts(s, refDate) {
     }, 0);
 }
 
+/** Bāzes summa periodam: iestatījumu `amount` vai tikai tekošā termiņa pārklājums. */
+function effectiveBaseAmountForDue(s, dueIso) {
+    if (!s || !isSubscriptionDueActive(s, dueIso)) return 0;
+    var due = normalizeSubscriptionDateIso(dueIso);
+    var subDue = normalizeSubscriptionDateIso(s.date);
+    if (
+        s.dynamicAmount === true &&
+        due &&
+        subDue &&
+        due === subDue &&
+        s.dueAmountOverride != null &&
+        !isNaN(parseFloat(s.dueAmountOverride)) &&
+        normalizeSubscriptionDateIso(s.dueAmountOverrideFor) === due
+    ) {
+        return parseFloat(s.dueAmountOverride) || 0;
+    }
+    return parseFloat(s.amount) || 0;
+}
+
+function clearDuePeriodAmountOverride(s) {
+    if (!s) return;
+    s.dueAmountOverride = null;
+    s.dueAmountOverrideFor = '';
+}
+
+function setDuePeriodAmountOverride(s, amount, dueIso) {
+    if (!s) return;
+    var due = normalizeSubscriptionDateIso(dueIso);
+    var subDue = normalizeSubscriptionDateIso(s.date);
+    if (!due || !subDue || due !== subDue) return;
+    var base = parseFloat(s.amount) || 0;
+    if (Math.abs(amount - base) < 0.0001) {
+        clearDuePeriodAmountOverride(s);
+    } else {
+        s.dueAmountOverride = amount;
+        s.dueAmountOverrideFor = due;
+    }
+}
+
 /** Faktiskā / plānotā summa vienam termiņam (abonements + aktīvas papildu rindas). */
 function subscriptionPaymentAmountForDue(s, paidOnIso) {
     if (!s) return 0;
-    var base = 0;
-    if (isSubscriptionDueActive(s, paidOnIso)) {
-        base = parseFloat(s.amount) || 0;
-    }
-    return base + sumDeviceAmounts(s, paidOnIso);
+    return effectiveBaseAmountForDue(s, paidOnIso) + sumDeviceAmounts(s, paidOnIso);
 }
 
 /** PATCH ķermenis „atzīmēt samaksāts” (DB `subscription_payments`). */
@@ -147,9 +182,10 @@ function subtrackMarkPaidPatchBody(s, newDate, paidOnIso) {
 }
 
 function subscriptionMonthlyTotal(s, refDate) {
+    var ref = refDate != null ? refDate : s && s.date;
     var base = 0;
-    if (isSubscriptionDueActive(s, refDate)) {
-        base = monthlyAmount(s.amount, s.period);
+    if (isSubscriptionDueActive(s, ref)) {
+        base = monthlyAmount(effectiveBaseAmountForDue(s, ref), s.period);
     }
     return base + sumDeviceAmounts(s, refDate);
 }
@@ -510,6 +546,12 @@ function mergeSubscriptionFromApi(sub) {
         name: sub.name,
         category: sub.category,
         amount: typeof sub.amount === 'number' ? sub.amount : parseFloat(sub.amount),
+        dynamicAmount: sub.dynamicAmount === true,
+        dueAmountOverride:
+            sub.dueAmountOverride != null && !isNaN(parseFloat(sub.dueAmountOverride))
+                ? parseFloat(sub.dueAmountOverride)
+                : null,
+        dueAmountOverrideFor: sub.dueAmountOverrideFor || '',
         period: sub.period,
         date: normalizeSubscriptionDateIso(sub.date),
         icon: sub.icon || 'fa-solid fa-box',

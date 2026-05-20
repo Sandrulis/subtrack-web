@@ -14,6 +14,11 @@ export type SubscriptionClient = {
   name: string;
   category: string;
   amount: number;
+  /** Summa var mainīties katru periodu (DB `is_dynamic_amount`). */
+  dynamicAmount?: boolean;
+  /** Bāzes summa tikai periodam `dueAmountOverrideFor` (ja dinamisks). */
+  dueAmountOverride?: number | null;
+  dueAmountOverrideFor?: string;
   period: string;
   date: string;
   icon: string | null;
@@ -38,4 +43,7 @@ export type SubscriptionRow = {
   term_start: string | null;
   term_end: string | null;
   devices: unknown;
+  is_dynamic_amount?: boolean;
+  due_amount_override?: number | string | null;
+  due_amount_override_for?: string | null;
 };

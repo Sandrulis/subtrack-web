@@ -49,15 +49,41 @@ function sumDeviceAmountsForPaidOn(
   }, 0);
 }
 
+function resolveBaseAmountForDue(
+  subscription: {
+    amount: unknown;
+    is_dynamic_amount?: boolean;
+    due_amount_override?: unknown;
+    due_amount_override_for?: unknown;
+  },
+  dueIso: string,
+): number {
+  const due = normalizeIsoDate(dueIso);
+  const overrideFor = normalizeIsoDate(subscription.due_amount_override_for);
+  if (
+    subscription.is_dynamic_amount === true &&
+    due &&
+    overrideFor === due &&
+    subscription.due_amount_override != null &&
+    subscription.due_amount_override !== ""
+  ) {
+    return parseAmount(subscription.due_amount_override);
+  }
+  return parseAmount(subscription.amount);
+}
+
 /** Plānotā un faktiskā summa termiņā (abonements + aktīvas papildu rindas). */
 export function computeScheduledPaymentAmount(
   subscription: {
     amount: unknown;
     devices?: unknown;
+    is_dynamic_amount?: boolean;
+    due_amount_override?: unknown;
+    due_amount_override_for?: unknown;
   },
   paidOnIso: string,
 ): number {
-  const base = parseAmount(subscription.amount);
+  const base = resolveBaseAmountForDue(subscription, paidOnIso);
   return base + sumDeviceAmountsForPaidOn(subscription.devices, paidOnIso);
 }
 

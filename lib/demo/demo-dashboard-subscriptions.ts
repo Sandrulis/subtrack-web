@@ -68,6 +68,7 @@ export function buildDemoDashboardSubscriptions(
       name: p.mockWeekBill,
       category: "bill",
       amount: 41.5,
+      dynamicAmount: true,
       period: "monthly",
       date: "2026-05-22",
       icon: "fa-solid fa-bolt",

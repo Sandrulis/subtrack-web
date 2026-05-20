@@ -47,6 +47,12 @@ export function DashboardFsView({
     .filter((s) => typeof s === "string" && s.trim().length > 0)
     .join(" – ");
 
+  const dynamicAmountLabel = t("fs.dashboard.label_dynamic_amount");
+  const dynamicAmountHint = t("fs.dashboard.hint_dynamic_amount");
+  const dynamicAmountToggleTitle = [dynamicAmountLabel, dynamicAmountHint]
+    .filter((s) => typeof s === "string" && s.trim().length > 0)
+    .join(" – ");
+
   const showGetProLink =
     freeTierGate.enforcement === true && freeTierGate.isPaidUser !== true;
 
@@ -513,19 +519,42 @@ export function DashboardFsView({
               </div>
             </div>
           </div>
-          <div className="modal-footer">
-            <button
-              type="button"
-              className="btn btn-ghost"
-              id="modal-cancel-btn"
-              onClick={() => window.closeModal?.()}
-            >
-              {t("fs.dashboard.btn_cancel")}
-            </button>
-            <button type="button" className="btn btn-primary" id="modal-save-btn" onClick={() => window.saveSubscription?.()}>
-              <span className="btn-spinner dash-save-spinner hidden" aria-hidden="true" />
-              <span className="dash-save-label">{t("fs.dashboard.modal_save")}</span>
-            </button>
+          <div className="modal-footer modal-footer--with-dynamic">
+            <div className="modal-footer-dynamic">
+              <SubtrackTooltip label={dynamicAmountToggleTitle}>
+                <button
+                  type="button"
+                  role="switch"
+                  className="admin-switch"
+                  id="sub-dynamic-amount-switch"
+                  aria-label={dynamicAmountToggleTitle}
+                  aria-checked={false}
+                >
+                  <span className="admin-switch-track" aria-hidden="true" />
+                  <span className="admin-switch-thumb" aria-hidden="true" />
+                </button>
+              </SubtrackTooltip>
+              <span className="modal-footer-dynamic-label">{dynamicAmountLabel}</span>
+            </div>
+            <div className="modal-footer-actions">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                id="modal-cancel-btn"
+                onClick={() => window.closeModal?.()}
+              >
+                {t("fs.dashboard.btn_cancel")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                id="modal-save-btn"
+                onClick={() => window.saveSubscription?.()}
+              >
+                <span className="btn-spinner dash-save-spinner hidden" aria-hidden="true" />
+                <span className="dash-save-label">{t("fs.dashboard.modal_save")}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
