@@ -72,4 +72,5 @@ comment on function public.admin_set_user_pro_vip(uuid, boolean) is
   'SECURITY DEFINER: admins (is_admin>0) can toggle Pro VIP for any user row.';
 
 revoke all on function public.admin_set_user_pro_vip(uuid, boolean) from public;
-grant execute on function public.admin_set_user_pro_vip(uuid, boolean) to authenticated;
+revoke all on function public.admin_set_user_pro_vip(uuid, boolean) from anon, authenticated;
+grant execute on function public.admin_set_user_pro_vip(uuid, boolean) to service_role;

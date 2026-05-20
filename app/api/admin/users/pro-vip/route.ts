@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
 const UUID_RE =
@@ -68,7 +69,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const { error: rpcErr } = await supabase.rpc("admin_set_user_pro_vip", {
+  const service = createServiceRoleSupabaseClient();
+  if (!service) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: await getUiPhraseForRequest("api.admin.pro_vip.rpc_failed"),
+      },
+      { status: 500 },
+    );
+  }
+
+  const { error: rpcErr } = await service.rpc("admin_set_user_pro_vip", {
     target_user_id: userId,
     enabled: proVip,
   });

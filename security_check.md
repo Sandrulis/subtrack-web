@@ -1,156 +1,150 @@
 # Drošības pārskats - SubTrack (subtrack-web)
 
-Datums: 2026-05-17.
 
-**Atkārtots pārskats (repo ~0.3.4):** veiktspējas kārtā ir **`loadAuthContext`** + **`react/cache`** RSC slānī. Tas **nemaina tiesību modeli** (saknes **`proxy`**, **`requireAdminUser`**, RLS, API **`user_id`** paliek spēkā) – tikai samazina **dubultus `getUser()` / RPC / tulkošanu** vienā dokumenta servera pieprasījumā.
 
-Atjaunināts: **`015_*.sql`** un **`016_sync_public_users_email_from_auth.sql` šajā Supabase vide jau ir palaisti** (manuāli). Apjoms: Next.js App Router frontend, Supabase Auth + Postgres (RLS), Server Actions, Route Handlers (**`/api/subscriptions`**).
+Datums: 2026-05-21 (LOW sesija).
+
+
+
+**Pēdējā sesija:** **L1** (audit CI + iknedēļas schedule, Dependabot github-actions) un **L2** (statiska regresija, PR veidne, Cursor rule, dokumentācija).
+
+
 
 ---
 
-## Kopsvilnis (ātrie secinājumi)
+
+
+## Kopsvilnis
+
+
 
 | Joma | Piezīme |
+
 |------|--------|
-| Maršruti | Saknes **`proxy.ts`** (**M2** rate limit, tad **`updateSession`**) izsauc **`getUser()`** un novirza aizsargātās prefiksus; **`/admin/*`** layout **`requireAdminUser()`** (**`current_user_is_admin`** RPC + **`users.is_admin`** fallback). **`app/api/subscriptions/*`** piesaista darbības sesijas **`user_id`**. |
-| RSC sesija (0.3.1+) | **`lib/auth/load-auth-context.ts`**: viena **`getUser()`** + viens servera Supabase klients uz **vienu RSC pieprasījumu** starp **`getSessionUserDisplay`**, **`requireAdminUser`**, **`fetchSubscriptionsForSession`**. **Server Actions** un **Route Handlers** joprojām ar atsevišķu **`createServerSupabaseClient()`** – šis **`react/cache`** tur neattiecas. |
-| Atslēgas | Tikai `NEXT_PUBLIC_*` URL + anon key klientā; dokumentācija norāda nedot service role frontendam. |
-| Admin darbības | Server Actions izsauc `requireAdminUser()` pirms rakstīšanas. |
-| RLS un epasts | **`015`** nostiprina **`users.is_admin`** / **`email`** pret patvaļīgu **`UPDATE`**; **`016`** (trigeris **`auth.users` → `public.users.email`**) **`auth`** un **`public`** saskaņošanai. Atlikušie riski zem **Augsta un vidēja prioritātes**.
+
+| Maršruti / admin | `proxy.ts`, `requireAdminUser`, RLS **015** / **078** (e-pasta šabloni atsevišķi) |
+
+| LOW automatizācija | `npm run security:regression-check`, `npm run security:check` |
+
+| CI | `security-audit.yml` (L2 + audit), `security-smoke.yml` |
+
+
 
 ---
+
+
 
 ## Vērtējums (1-10)
 
-**Šī dokumenta tagadējā līnija** (`015` un `016` šajā Supabase vide ir palaisti): **aptuveni 8,5 – 9,0 / 10**. Kritisko **RLS** un **auth ↔ `public.users.email`** plaisu datu slānī būtiski aizvērts; līdz augstākai līnijai (**~8,8 – 9,2**) ieteikts apstiprināt **`H2` smoke** vai roku **`is_admin`** testu un **deploy** ar repo **M2–M3–L1**.
 
-| Situācija | Atzīme | Piezīme |
-|-----------|-------:|---------|
-| **Tagad: `015` + `016` DB** (ša dokumenta pieņēmums), **bez** garantētas **smoke** / bez pārliecības par jaunākā **`npm`** deploy (**M2–M3–L1**) | **~8,5 – 9,0 / 10** | Joprojām: enumerācijas risks, CSP **enforce**, globālais rate-limit; **`H2`** ieteikts laikus. |
-| **`015`** + **`016`** + vietējais **`proxy`** rate limit (**M2**), **`next.config.ts` galvenes** (**M3**, CSP **Report-Only**), CI **`npm run audit`** (**L1**), **`security:smoke-users-rls` OK**, **H3** admin dok. pilnībā ievērots | **~8.8 – 9.2 / 10** | Pret **~10** vēl: globālais rate-limit CDN vai edge, CSP **enforce**, periodiska **L2**. |
-| Vēsturiski: DB **bez** `015_*` (tikai `001_*` **users_update_own**) | **5 / 10** | Bijusi iespējama **`is_admin` / `email` manipulācija** parasto klientu (skatīt „Vēsturiskais trūkums”). |
-| Ilgākā laikā plaši īstenoti MEDIUM / LOW uzlabojumi | **ap 9–10 / 10** | Nav absolūtas „pilnības”; jēga ir mazināt atkāpjamo virsmu un periodiski pārbaudīt (**L2**). |
 
-**Pamats kopumā:** struktūrai (saknes proxy, Server Actions un `requireAdminUser`, bez service-role klienta pārlūkā) ir labs pamats. Šajā vidē **`015_*`** (priviliģētās kolonnas) un **`016_*`** (**`auth.users` → `public.users.email`**) **ir spēkā**. Repozitorijā arī **M2**, **M3**, **L1**, smoke (**H2**) - jāvērtē, vai viss tas ir **deploy** un automatizētā **`H2`** izpildē **OK**.
+| Situācija | Atzīme |
 
----
+|-----------|-------:|
 
-## Vēsturiskais kritiskais trūkums (pirms **`015`**)
+| Repo + **078** DB + smoke OK + deploy | **~8,8 – 9,2** |
 
-Šis apraksts atstāts kontekstam (**pēc `015` vairs nedarbojas** šāds ceļš `users_update_own` ietvaros priviliģētajām kolonnām):
+| Repo bez 078 / smoke | **~8,5 – 8,7** |
 
-**`users_update_own`** (`database/supabase/001_initial_schema.sql`) lika vien `auth.uid() = id`. PostgreSQL UPDATE **WITH CHECK** neliedz kolonņu maiņu: jaunas rindas `id` arī atbilst, tātad bija **pieejams patstāvīgi pacelt `public.users.is_admin` un līdzīgi manipulēt ar `email`**, izmantojot parasto `authenticated` anon REST vai Supabase JS klientu.
 
-**Sekas (vēsturisks):** teorētiski ikviens pierakstījies varēja kļūt par admin un lasīt visas `users`, `subscriptions` (admin politikām).
 
-**Novērsts:** `database/supabase/015_users_rls_protect_privileged_columns.sql` - **ša dokumenta kontekstā jau veikts**.
+**Pret ~10 (ne LOW):** CDN/Redis rate limit, pilns CSP `script-src`, signup enumerācijas UX.
+
+
 
 ---
 
-## Augsta un vidēja prioritātes riski
 
-### 1. E-pasta esamības nodošana (UX vs privātums)
 
-`signup_email_exists` (`SECURITY DEFINER`, pēc **`023_*`** izsauc tikai **`service_role`** no servera) joprojām ļauj **uzminēt e-pasta reģistrāciju** (Server Action). Biežs UX kompromiss.
+## HIGH / MEDIUM
 
-**Pacelt atzīmi:** vienotā atbilde („nav / nevar aprēķināt’’), vai **rate-limit** uz RPC (Supabase edge / Postgres pg_stat / aplikācijas slānis), vai ierobežot izsaukumu tikai signup plūsmā ar CSRF/next token līmeni ja vajag.
 
-### 2. Publiski nolasāmie dati caur anon
 
-- `site_translations` SELECT visiem (`012_site_translations_select_public.sql`).
-- `system_settings` SELECT ar `using (true)` (`012_system_settings.sql`).
-- `languages` SELECT anon/authenticated plašām politikām (`009`, `010`).
+| Grupa | Status |
 
-Nav problēmu, ja saturs ir publiski pieņemams. Lai mazinātu anon atslēgai pakļautos datus, datus labāk lasīt tikai servera SSR slānī un neizmest pilnu katalogu uz klienta tiešo REST.
-
-### 3. Atvērto novirziešanu (`next` parametri)
-
-`signInWithPasswordAction` un `GET /auth/callback` atlaiž tikai ceļus, kas sākas ar **`/`** un nav **`//`**. Tas samazina acīmredzamu open-redirect klasē.
-
-Turpināt validēt `next`, lai nevirzītu uz acīmredzamiem relatīvu ceļu trikiem vai trešām pusēm neparedzētām vietām (šobrīd bloķē `//`).
-
-### 4. Risks no `innerHTML` (FS demoslāņos)
-
-Faili `public/fs/js/dashboard.js`, `analytics.js`, u.c. raksta **innerHTML**. Demo slānim ir `escHtml`; ja dati būs tieši no DB, jāizmanto vienmēr **escape vai DOM text** ceļā.
-
-### 5. SSR skriptš (`FsI18nBootstrap`)
-
-Izmanto **`dangerouslySetInnerHTML`**; teksts sakāpots caur `JSON.stringify` un `<` aizvietots kā `\u003c`, tas samazina `</script>` injekciju risku bootstrap skriptā.
-
-### 6. Izstrādes API `/api/dev-env-check`
-
-Darba tikai **`NODE_ENV === 'development'`**; atslēgas neizsniedz. Produkcijā `404`.
-
-### 7. Trūkumi augstākam vērtējumam (~9-10)
-
-Kodā jau sekots **M2** (vietējais proxy rate limit uz auth ceļiem), **M3** (galvenes + CSP **Report-Only**), **L1** (CI **`npm audit`**, Dependabot); **Secrets** praksē joprojām vadās no hosting/GitHub politikas. Pret **pilnu ~9.5–10**: globālais / edge rate limiting, CSP **enforce** bez regresijas, **L2** periodiski pēc jaunām funkcijām.
-
----
-
-## Ko konkrēti darīt (svarīgums: HIGH / MEDIUM / LOW)
-
-### HIGH
-
-| # | Pasākums |
-|---|----------|
-| H1 | **Jaunās Supabase vidēs** (piem., jauna instance, atkārta DB atjaunošana no dump, jauns **`staging`**), kur **`001_*` joprojām ir bez šī uzlabinājuma, palaid **`015_users_rls_protect_privileged_columns.sql`**. Šajā projekta gadījumā galvenā vide jau sakārtota ar **`015`**. |
-| H2 | Ar **`authenticated`** sesiju (anon atslēga kā frontendā) **mēģināt** `.update({ is_admin: ... })` uz savas **`public.users`** rindas. **Paredzētais iznākums:** kļūda vai nav reālas izmaiņas. Ja **`is_admin` joprojām mainās**, problēmai skatīt **`015`** atkārotu migrāciju katrai videi vai **konkurējošas `users` politikas**. **Repo:** **`SECURITY_SMOKE_EMAIL`**, **`SECURITY_SMOKE_PASSWORD`**, tad **`npm run security:smoke-users-rls`**. |
-| H3 | Sākuma **administratora** līmeni (**`is_admin`**) un jebkurus **`users.is_admin`** / **`email`** labojumus veikt vietās, kur RLS vai platformas politika dod **service / DB** ceļus (Dashboard **SQL** ar **`postgres`**, vadītas migrācijas utt.). Pēc veiksmīga **`015`** ar anon atslēgu pārlūkā **nevajadzētu** mainīt šos laukus; **`auth.users` ↔ `public.users.email`** kārtībai skatīt **MEDIUM M1**. Skatīt README sadaļu **Supabase** (Administratora līmenis). |
-
-### MEDIUM
-
-| # | Pasākums |
-|---|----------|
-| M1 | **`public.users.email`** nedrīkst atšķirties ilgtermiņā no **`auth.users`**; risinājums: **`SECURITY DEFINER`** / webhook / vai **`database/supabase/016_sync_public_users_email_from_auth.sql`**. Šajā **galvenajā vide `016` jau veikts**. **Jaunām vidēm** (staging, dumps) atkāroti **jāimportē** **`016_*`**; nepieciešamas tiesības **`auth.users`** trigera kontekstā. |
-| M2 | **Brute-force** un pārmērīga pieprasījumu slodze: uz **`/login`**, **`/signup`**, **`/forgot-password`**, **`/change-password`**, **`/auth/callback`**. Tipiski arī **CDN / edge** limiti. **Repo:** **`lib/security/auth-rate-limit.ts`**, sakne **`proxy.ts`**. **`signup_email_exists`**: **vēl jāvērtē**, ja paliek publiski ekspluatējams kā sign-up enumerācijas kanāls (Server Action / RPC), un jāpapildina ar Supabase līmeņa robežām. |
-| M3 | **`next.config`** lauks **`headers`** (un/vai CDN): **`X-Content-Type-Options: nosniff`**, **`Referrer-Policy: strict-origin-when-cross-origin`**, **`X-Frame-Options: DENY`**; **Content-Security-Policy** (`Report-Only` ar **`frame-ancestors`**, **`object-src`**, **`base-uri`**, **`form-action`**). Pēc sakārtošanas pāriet uz **enforce**. **Repo:** sakne **`next.config.ts`**. |
-
-### LOW
-
-| # | Pasākums |
-|---|----------|
-| L1 | **Atkarību higiēna:** **`npm audit`**, Dependabot vai līdzvērtīgi **CI** / atskaitēs kā **atkāroti** vai **pie PR**. Neaizvieto SECURITY piezīmes kodā vai DB politikās. **Repo:** **`npm run audit`**, `.github/workflows/security-audit.yml`, `.github/dependabot.yml`. |
-| L2 | **Regresijas atgādinātāji:** līdzvērtīgas piezīmes **README**, šajā failā un (**ja attiecas**) Smoke / CI zemāk.
-
-#### L2 - īsa regresijas checklist (jauna funkcija)
-
-Pēc būtiski jaunas funkcijas ar datiem (admin, subscriptions, billing u.tml.):
-
-1. **`INSERT`/`UPDATE`/`DELETE` politikas**: katram jaunajam vai mainītajam tabulas ceļam - vai **`WITH CHECK`** aizsedz arī **privileged** kolonnas līdzīgi **`015`** paraugam?
-2. **Server Actions**: vai mutācijas sākas ar **`requireAdminUser`** vai citu viennozīmīgu **server-side** autorizāciju?
-3. **Route Handlers (`app/api/*`)**: vai mutācijas/nolasīšana ir piesaistīta **`getUser()`** (vai ekvivalentam) un **`user_id` / RLS**, bez **service_role** anon klientā?
-4. **Klientā**: vai nav jaunu ceļu, kas izsauc **service_role** vai rāda sensitīvos **ENV**?
-
----
-
-### Ieviests kodā šajā repozitorijā (neatceļ DB darbus)
-
-| Joma | Faili / maršruti |
-|------|------------------|
-| **M2** | `lib/security/auth-rate-limit.ts`, sakne `proxy.ts` |
-| **M3** | `next.config.ts` (`headers`, CSP Report-Only) |
-| **RSC dedupe (nav jauna virsma)** | `lib/auth/load-auth-context.ts`; **`react/cache`** arī `lib/auth/user-display.ts`, `lib/auth/is-admin.ts` (RPC), `lib/ui/server-ui-phrases.ts`, `lib/languages-catalog.ts`, `lib/system-settings-public.ts` |
-| **M1 SQL** | `database/supabase/016_sync_public_users_email_from_auth.sql` (ša vide **palaista**; jaunās - atkāroti) |
-| **H2 smoke** | `scripts/security-smoke-users-rls.mjs`, **`npm run security:smoke-users-rls`**, **`supabase.env.template`** (`SECURITY_SMOKE_*`) |
-| **L1** | `.github/workflows/security-audit.yml`, `.github/dependabot.yml`, `package.json` skripts **`audit`** |
-| **H3** | README Supabase Administrators SQL |
-
----
-
-## Dokumentētās saistītās struktūras (ātra navigācija)
-
-| Fails | Mērķis |
 |-------|--------|
-| `proxy.ts` | Matcher, Rate limit (**M2**), izņem statiku/`fs/` |
-| `lib/supabase/middleware.ts` | `getUser()`, aizargātie prefiksi, `guest`-ceļu novirziešana |
-| `lib/security/auth-rate-limit.ts` | Proxy rate limit (**M2**) |
-| `lib/supabase/server.ts` | SSR Supabase tikai anon ar sīkdatēm |
-| `lib/auth/load-auth-context.ts` | Viena **`getUser()`** + klients uz RSC pieprasījumu (`cache`); **Route Handlers / Actions** šeit nepiedalās |
-| `lib/auth/require-admin.ts` | Admin layout guards (`loadAuthContext` + **`resolveSessionIsAdmin`**) |
-| `lib/auth/actions.ts`, `auth/callback` | Sesija un `next` relatīvie ceļi |
-| `lib/admin/*-actions.ts` | `requireAdminUser()` uz mutācijas |
-| `database/supabase/001*` … `023*` | RLS politikām; **`015`**/**`016`** kritiski; **`012`** publiskā **`site_translations`** SELECT; **`022`**/**`023`** Advisor (RPC, DEFINER) |
+
+| H1–H3, M1–M3, M-NEW-1 | **Repo DONE**; DB: **078** (+ **076** aizstāts) + smoke |
+
+
 
 ---
 
-*Nākamo pārskatu ieteicams pēc būtām Auth, Supabase vai UI izmaiņām un pirms produkcijas palaišanas.*
+
+
+## LOW
+
+
+
+| # | Pasākums | Status |
+
+|---|----------|--------|
+
+| **L1** | `npm audit --audit-level=high`, Dependabot (npm + github-actions), CI push/PR + **iknedēļas** schedule | **DONE** |
+
+| **L2** | Regresijas checklist README / PR / Cursor; statiska pārbaude | **DONE:** `scripts/security-regression-check.mjs`, `.github/pull_request_template.md`, `.cursor/rules/subtrack-security-l2.mdc` |
+
+| **L2 FS** | `innerHTML` – brīdinājumi regresijas skriptā | **DONE** (warnings) |
+
+| **Dok.** | `is-admin.ts` komentārs; logo kļūdas teksts (bez service_role) | **DONE** + SQL **077** |
+
+
+
+### L2 checklist (jauna funkcija)
+
+
+
+1. RLS **`WITH CHECK`** privileged kolonnām (kā **015**)
+
+2. Server Actions: **`requireAdminUser`**
+
+3. API: **`getUser()`** + **`user_id`** / admin RPC
+
+4. E-pasta šabloni: **`system_settings_email_templates`**, ne kolonna uz **`system_settings`**
+
+5. Palaid: **`npm run security:check`**
+
+
+
+---
+
+
+
+## Komandas
+
+
+
+```bash
+
+npm run security:regression-check   # L2 statiski (CI)
+
+npm run audit                       # L1
+
+npm run security:smoke              # H2 + 078 (vajag .env)
+
+npm run security:check              # regression + audit + smoke
+
+```
+
+
+
+---
+
+
+
+## Pēc `git pull`
+
+
+
+1. SQL **078** (ja bija **076** – obligāti **078**; logo teksts **077**)
+
+2. `npm run security:check`
+
+
+
+---
+
+
+
+*Pārskats pēc Auth, Supabase, admin vai PWA izmaiņām.*
+

@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
+import { allowServerActionRateLimit } from "@/lib/security/server-action-rate-limit";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
+
+/** Signup e-pasta pārbaude: max pieprasījumi uz IP minūtē (M2 enumerācijas mazināšana). */
+const SIGNUP_EMAIL_EXISTS_MAX_PER_MIN = 24;
 
 /**
  * Klienta formai: vai šis e-pasts jau ir auth.users.
@@ -23,8 +27,20 @@ export async function signupEmailExistsAction(
     return { exists: false };
   }
 
+  const allowed = await allowServerActionRateLimit(
+    "signup-email-exists",
+    SIGNUP_EMAIL_EXISTS_MAX_PER_MIN,
+    60_000,
+  );
+  if (!allowed) {
+    return { exists: false };
+  }
+
   const svc = createServiceRoleSupabaseClient();
-  const supabase = svc ?? (await createServerSupabaseClient());
+  if (!svc) {
+    return { exists: false };
+  }
+  const supabase = svc;
 
   const { data, error } = await supabase.rpc("signup_email_exists", {
     p_email: trimmed,

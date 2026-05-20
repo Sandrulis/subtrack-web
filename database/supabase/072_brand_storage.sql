@@ -1,5 +1,5 @@
 -- Publisks storage buckets augšupielādētajam produkta logo.
--- Augšupielāde notiek serverī ar service_role (lib/admin/logo-actions.ts).
+-- Augšupielāde: admin Server Action ar sesijas klientu (lib/admin/logo-actions.ts).
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -15,9 +15,22 @@ on conflict (id) do update set
   allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists "brand_objects_select_public" on storage.objects;
-create policy "brand_objects_select_public"
+drop policy if exists "brand_objects_select_known_files" on storage.objects;
+create policy "brand_objects_select_known_files"
   on storage.objects for select
-  using (bucket_id = 'brand');
+  to public
+  using (
+    bucket_id = 'brand'
+    and name in (
+      'icon-32.png',
+      'icon-64.png',
+      'icon-180.png',
+      'icon-192.png',
+      'icon-512.png',
+      'icon-512-maskable.png'
+    )
+    and storage.allow_only_operation('object.get')
+  );
 
 drop policy if exists "brand_objects_insert_admin" on storage.objects;
 create policy "brand_objects_insert_admin"

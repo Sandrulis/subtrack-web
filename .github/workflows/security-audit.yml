@@ -5,6 +5,9 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  schedule:
+    # L1 – iknedēļas atkarību pārbaude (pirmdiena 06:00 UTC)
+    - cron: "0 6 * * 1"
 
 jobs:
   npm-audit:
@@ -16,5 +19,7 @@ jobs:
           node-version: "20"
           cache: npm
       - run: npm ci
+      - name: L2 regression (static)
+        run: npm run security:regression-check
       - name: npm audit (--audit-level high)
         run: npm run audit

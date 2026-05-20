@@ -4,8 +4,8 @@ import { loadEnvConfig } from "@next/env";
 // Palīdz, ja .env.local netiek ielādēts (cwd / server puse).
 loadEnvConfig(process.cwd());
 
-/** M3 – CSP kā `report-only` (`frame-ancestors` utt.). Pēc pārbaudes var pastiprināt. */
-const CSP_REPORT_ONLY = [
+/** M3 – CSP enforce (minimāls; bez script-src, lai Next.js bundļi netiktu bloķēti). */
+const CONTENT_SECURITY_POLICY = [
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
@@ -16,7 +16,7 @@ const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Frame-Options", value: "DENY" },
-  { key: "Content-Security-Policy-Report-Only", value: CSP_REPORT_ONLY },
+  { key: "Content-Security-Policy", value: CONTENT_SECURITY_POLICY },
 ];
 
 const nextConfig: NextConfig = {

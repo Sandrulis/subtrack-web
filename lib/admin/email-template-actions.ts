@@ -31,7 +31,7 @@ export async function saveEmailTemplatesAction(
   );
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase
-    .from("system_settings")
+    .from("system_settings_email_templates")
     .update({ email_templates: store })
     .eq("id", 1);
 
@@ -44,10 +44,11 @@ export async function saveEmailTemplatesAction(
 }
 
 export async function loadEmailTemplatesFromDb(): Promise<EmailTemplatesStore> {
+  await requireAdminUser();
   const systemName = await getSystemSiteName();
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase
-    .from("system_settings")
+    .from("system_settings_email_templates")
     .select("email_templates")
     .eq("id", 1)
     .maybeSingle();

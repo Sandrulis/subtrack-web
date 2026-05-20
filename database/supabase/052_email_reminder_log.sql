@@ -24,4 +24,17 @@ comment on table public.email_reminder_log is
 
 alter table public.email_reminder_log enable row level security;
 
--- Nav politiku anon/authenticated – piekļuve tikai caur service_role (cron).
+-- Skaidras „deny” politikas (Advisor); cron izmanto service_role (RLS apiet).
+drop policy if exists "email_reminder_log_deny_anon" on public.email_reminder_log;
+create policy "email_reminder_log_deny_anon"
+  on public.email_reminder_log for all
+  to anon
+  using (false)
+  with check (false);
+
+drop policy if exists "email_reminder_log_deny_authenticated" on public.email_reminder_log;
+create policy "email_reminder_log_deny_authenticated"
+  on public.email_reminder_log for all
+  to authenticated
+  using (false)
+  with check (false);

@@ -1,4 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
+import {
+  effectiveRateLimitMax,
+  isRateLimitDisabled,
+  slidingWindowAllow,
+} from "@/lib/security/sliding-window-rate-limit";
 
 type Rule = { prefix: string; max: number; windowMs: number };
 
@@ -14,8 +19,6 @@ const RULES: Rule[] = [
   { prefix: "/auth/callback", max: 120, windowMs: 60_000 },
 ];
 
-const buckets = new Map<string, number[]>();
-
 function clientIp(request: NextRequest): string {
   const xff = request.headers.get("x-forwarded-for");
   if (xff) {
@@ -27,37 +30,11 @@ function clientIp(request: NextRequest): string {
   return request.headers.get("cf-connecting-ip")?.trim() ?? "unknown";
 }
 
-function allowWindow(
-  key: string,
-  windowMs: number,
-  max: number,
-  now: number,
-): boolean {
-  let stamps = buckets.get(key) ?? [];
-  const cut = now - windowMs;
-  stamps = stamps.filter((t) => t > cut);
-  if (stamps.length >= max) {
-    buckets.set(key, stamps);
-    return false;
-  }
-  stamps.push(now);
-  buckets.set(key, stamps);
-  return true;
-}
-
-function effectiveMax(base: number): number {
-  const multRaw = process.env.RATE_LIMIT_MULTIPLIER?.trim();
-  const mult = multRaw ? Number(multRaw) : 1;
-  const m = Number.isFinite(mult) && mult > 0 ? mult : 1;
-  const devBump = process.env.NODE_ENV === "development" ? 2 : 1;
-  return Math.max(1, Math.ceil(base * m * devBump));
-}
-
 /** Atgriež 429 NextResponse vai null, kad ierobežojums nepieciešams. */
 export function authRateLimitedResponse(
   request: NextRequest,
 ): NextResponse | null {
-  if (process.env.DISABLE_RATE_LIMIT === "true") {
+  if (isRateLimitDisabled()) {
     return null;
   }
   const path = request.nextUrl.pathname;
@@ -67,10 +44,10 @@ export function authRateLimitedResponse(
     if (!(path === rule.prefix || path.startsWith(`${rule.prefix}/`))) {
       continue;
     }
-    const max = effectiveMax(rule.max);
+    const max = effectiveRateLimitMax(rule.max);
     const ip = clientIp(request);
     const key = `${ip}:${rule.prefix}`;
-    if (!allowWindow(key, rule.windowMs, max, now)) {
+    if (!slidingWindowAllow(key, rule.windowMs, max, now)) {
       const sec = Math.max(1, Math.ceil(rule.windowMs / 1000));
       return NextResponse.json(
         { success: false, message: "Too many requests. Try again later." },

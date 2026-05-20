@@ -1,20 +1,20 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.3.56` (skatīt lapas lejas daļā **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**).
+**Versija:** `0.3.59` (skatīt lapas lejas daļā **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**).
 
 **repazy** (repozitorijs `subtrack-web`) ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, **`public.subscription_payments`** maksājumu žurnālam, RLS); CRUD notiek caur **Route Handlers** (`app/api/subscriptions/*`) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
 ## Galvenās iespējas (UI)
 
 - **Sākumlapa** (`/`) - prezentācija, FAQ (navigācijā LV **`BUJ`**, ne angl. „FAQ”), saites uz **publiskajām demonstrācijām** **`/demo/dashboard`** un **`/demo/analytics`**, reģistrāciju un ieeju; **ar aktīvu sesiju** serveris novirza uz **`/dashboard`** (**`app/page.tsx`**, `redirect`). Ja **`/admin/system`** ir ieslēgts **maksas plāns**, viesiem rādās **cenu / brīvā līmeņa** bloks ar kafijas ilustrāciju (`#pricing`), **ievads** no kopīgā **`subscribe.hero.lead`** un **`landing.pricing.blurb`** ar **`{count}`** / **`{price}`**, dati no **`public.system_settings` + `SubtrackIntlProvider`**. Paneļa augšējās joslas **logo** (tikai ja augšupielādēts no **`/admin/system`**) vai teksta nosaukums (**`DashBrandLink`**, **`components/nav-dash.tsx`**) ved uz **`/dashboard`**, nevis **`/`**; lapas **`<title>`** = produkta nosaukums.
-- **Autentifikācija** - ieeja un reģistrācija caur **Supabase Auth** (Server Actions), OAuth (Google / Apple) **tikai tad**, ja **`public.integrations`** ir **`enabled`** uz **`login_google`** un/vai **`login_apple`** (admin: **`/admin/integrations`**; SSR lasīšana **`getLoginSocialIntegrationFlags`** – **`lib/integrations/login-social-flags.ts`**; pogas **`components/login-social-buttons.tsx`**; tulkošanas atslēgas **`auth.social.*`** – migrācija **`025_site_translations_auth_social_login.sql`**). **Aizmirstā parole** (`/forgot-password`), **mainīt paroli** (`/change-password` ar `changePasswordAction`, **`components/fs/change-password-fs-view.tsx`** + **`components/change-password-form.tsx`** – **`t()`** un **`auth.pass_strength.level_*`** kā signup, atkārtojums, paroles rādīšanas poga; vecā parole netiek vērtēta pirms „Saglabāt”). **Pieteikšanās / reģistrācijas** formu virknes un maršruta **`<title>`** seko izvēlētajai lokālei (**`components/auth/auth-login-flow.tsx`**, **`components/auth/auth-signup-flow.tsx`** + **`components/signup-form.tsx`**, **`getUiPhraseForRequest`** no **`lib/ui/server-ui-phrases.ts`**). **Reģistrācija** (`/signup`): e-pasta formāta validācija, paroles stipruma indikators, atkārtotās paroles pārbaude, e-pasta aizņemtība (**`signup_email_exists`**, `004_*`; pēc **`023_*`** izsaukums caur Server Action **`signupEmailExistsAction`** ar **`service_role`**, tāpēc `.env.local` ieteicams **`SUPABASE_SERVICE_ROLE_KEY`**; ja atslēgas nav, kods mēģina anon klientu – **pēc `023`** tā pārbaude parasti **neizdodas**, kamēr nav pievienota **`SUPABASE_SERVICE_ROLE_KEY`**). **Flash ziņojumi** (kļūdas un īsie info teksti no `?error=` / `?message=` un OAuth kļūdas) tiek rādīti kā **peldošie toast** (`components/flash-param-toast.tsx`, `components/auth-toasts-host.tsx`): apmerami auto-aizvēršanās, uzvedot kursoru virs ziņojuma taimeris apstājas, pēc kursora nost no jauna. Query parametri pēc rādīšanas tiek tīrīti ar `history.replaceState`, lai pārlādē neatkārtojas. Izmantošana: `/login`, `/signup`, `/forgot-password` (gatavs nākotnes redirectiem), `/change-password`.
+- **Autentifikācija** - ieeja un reģistrācija caur **Supabase Auth** (Server Actions), OAuth (Google / Apple) **tikai tad**, ja **`public.integrations`** ir **`enabled`** uz **`login_google`** un/vai **`login_apple`** (admin: **`/admin/integrations`**; SSR lasīšana **`getLoginSocialIntegrationFlags`** – **`lib/integrations/login-social-flags.ts`**; pogas **`components/login-social-buttons.tsx`**; tulkošanas atslēgas **`auth.social.*`** – migrācija **`025_site_translations_auth_social_login.sql`**). **Aizmirstā parole** (`/forgot-password`), **mainīt paroli** (`/change-password` ar `changePasswordAction`, **`components/fs/change-password-fs-view.tsx`** + **`components/change-password-form.tsx`** – **`t()`** un **`auth.pass_strength.level_*`** kā signup, atkārtojums, paroles rādīšanas poga; vecā parole netiek vērtēta pirms „Saglabāt”). **Pieteikšanās / reģistrācijas** formu virknes un maršruta **`<title>`** seko izvēlētajai lokālei (**`components/auth/auth-login-flow.tsx`**, **`components/auth/auth-signup-flow.tsx`** + **`components/signup-form.tsx`**, **`getUiPhraseForRequest`** no **`lib/ui/server-ui-phrases.ts`**). **Reģistrācija** (`/signup`): e-pasta formāta validācija, paroles stipruma indikators, atkārtotās paroles pārbaude, e-pasta aizņemtība (**`signup_email_exists`**, `004_*` / **`023_*`**): Server Action **`signupEmailExistsAction`** izsauc RPC tikai ar **`SUPABASE_SERVICE_ROLE_KEY`** (serverī); bez atslēgas pārbaude **nedarbojas**. **Flash ziņojumi** (kļūdas un īsie info teksti no `?error=` / `?message=` un OAuth kļūdas) tiek rādīti kā **peldošie toast** (`components/flash-param-toast.tsx`, `components/auth-toasts-host.tsx`): apmerami auto-aizvēršanās, uzvedot kursoru virs ziņojuma taimeris apstājas, pēc kursora nost no jauna. Query parametri pēc rādīšanas tiek tīrīti ar `history.replaceState`, lai pārlādē neatkārtojas. Izmantošana: `/login`, `/signup`, `/forgot-password` (gatavs nākotnes redirectiem), `/change-password`.
 - **Panelis** (`/dashboard`) - maksājumu kalendārs (ja vienā datumā vairāki maksājumi, šūnā **`+N`** apakšējā labajā stūrī; **šodienas** šūnai indikatora krāsa kā **ring** apmalei; **„atzīmēts samaksāts”** dienas no **`public.subscription_payments`** (**`paidCalendarDays`**, **`061_*`**); slēdzis **`subtrack_cal_include_paid_marks`** – ja atslēgas vēl nav, **noklusējums ieslēgts**; marķējums un skaidrojums **`SubtrackTooltip`** (hover / fokuss; burbulis portalā paliek, kamēr kursors virs pogas vai burbuļa; **bez** pārlūka **`title`**), **`aria-label`** pieejamībai; kājenes **leģenda vienā rindā**); **peldošie toast** (`showToast` **`subscriptions-helpers.js`**) – auto-aizvēršanās aptur, kamēr kursors virs ziņojuma), **kopsavilkums** (kopējā / aktīvie maksājumi; **kategoriju josla** virs saraksta – segmentu tooltip uz desktop, leģenda mobilajā; **Nākamais maksājums** sadalīts kolonnās: **kavētie** / **šodien jāmaksā** / nākamais – krāsainas kartes ar kopējo € un rēķinu skaitu zem summas; trīs kolonnās nākamais kompakts: € + nosaukums, bez datuma labajā; saraksta darbību pogas – diskrētas krāsas: rediģēt, dzēst, samaksāts), abonementu CRUD pret **`public.subscriptions`** (**`GET`/`POST` `/api/subscriptions`**, **`PATCH`/`DELETE` `/api/subscriptions/[id]`** ); ja admin ieslēdz **maksas plāna** ierobežojumu, **`POST`** atgriež **403** brīvā līmeņa **ierakstu skaita** sasniegšanā (**`paid_plan_active`** `public.users` – pašpārvaldei nē, skat. **`027`**); lietotāja izvēlnē pie avatāra **`fa-crown`**, ja **`paid_plan_active`**. Sākuma dati SSR bootstraps (**`#subtrack-subs-bootstrap-json`**); **FS JS** (`public/fs/js/dashboard.js` …) dabū frāzes un **`Intl`** lokāli pirms **`loadScriptOnce`**, jo **`app/dashboard/page.tsx`** renderē **`FsI18nBootstrap`** (skatīt **UI tulkošana**); kalendārā **lv** nedēļas dienu galvenes **Pr … Sv**; **pievienošanas / labošanas modālis** (`#modal-main`) – elpīgākas vertikālās atstarpes galvenajai formai un **Papildu opcijām** (**`styles/subtrack.css`**); augšējā joslā **paziņojumi** (tie paši dati no **`subscriptions`**; **šodienas** un **kavētie** ar **atzīmēšanu kā samaksātu** – API laikā **ielādes riņķis** un **neaktīva** poga, lai nepieļautu dubultklikšķi; tā pati uzvedība abonementu **sarakstā**; kopīga **`subtrackSetMarkPaidPending`** **`subscriptions-helpers.js`**); **gaidāmie** sākas no **nākamās dienas**; mobilajā skatā – pilnekrāna fons ar **backdrop blur**; abas izvēlnes nevar būt atvērtas vienlaikus). **Modālis – IKONA:** izvēlei **`fa-solid`** klases no **`FA_ICONS_ALL`** (`lib/fs-icons.ts`; ~**102** **`fa-solid`** klases – **nav** pilnās Font Awesome Free kopas, Free satur **daudz vairāk** ikonu nekā šīs ~102). Hintu josla un režģis „Parādīt visas“ **tā pati secība**; augšējā rinda – tikai tik pogas, cik **`dashboard.js`** aprēķina pēc **`#icon-picker-hints-shell`** (bez apgriešanas). Meklēšana ar sinonīmiem – **`lib/fs-icon-picker-search.ts`**, JSON **`#subtrack-icon-search-bootstrap`** (**`components/fs/dashboard-fs-view.tsx`**). Ja **maksas plāns** ieslēgts un lietotājam nav **`paid_plan_active`**, zem **„Pievienot”** ir saite **„Iegūt Pro”** uz **`/subscribe`**; šajā gadījumā **kalendāra kolonna** paneļī netiek rādīta (**`dashboard-overview-main--no-calendar`**). **Pievienošanas modālis – ikona:** nejaušā izvēle no **pirmās redzamās** hint rindas; **`Parādīt vairāk`** (LV; SQL **`062_*`**) atver pilnu katalogu.
 - **Pro iepazīšanās** (`/subscribe`) – **`SubscribeProView`**: **`subscribe.hero.*`**, **`subscribe.free_tier.note`** ar **`{price}`** / **`{n}`** (EUR formātēts, brīvā līmeņa limits); **`subscribe.coffee.line`** noņemts (**`032_remove_subscribe_coffee_line.sql`** DB). Tulkošanas **`029`**, **`028`** / **`031`**, **`030`**, **`032`**, **`033`** (hero lead teksta precizējums).
 - **Demonstrācijas** (`/demo/dashboard`, `/demo/analytics`) – **publiski** (nav **`proxy`** aizsargātas kā `/dashboard`); **`/demo/dashboard`** lieto to pašu **`DashboardFsView`** + **`public/fs/js/dashboard.js`** kā **`/dashboard`** (kalendārs, modāļi, CRUD pogas); **API netiek izsaukti** (`window.__SUBTRACK_DEMO_DASHBOARD__`). **Paziņojumu zvans** (`DashNotifyDropdown`) rāda parauga sarakstu arī viesiem; analītikas demo `window.__SUBTRACK_DEMO_ANALYTICS__`. Papildu parauga maksājumi (kavētie, šodien, nākamajā nedēļā) un analītikas kopsavilkums veidojas no tiem pašiem datiem. **`/demo/analytics`** – izkārtojums kā analītika (kopsavilkumi, kategorijas; **nav** izmaksu tendences/prognozes diagrammas). Ar **`paid_plan_enabled`** sākumlapas hero rāda **`landing.hero.calendar_mock_paid_note`**. Tulkošanas **`034`**, **`036`**, **`037`**, **`041`**, **`demo.*`**.
 - **Analītika** (`/analytics`) - kopsavilkumi, kategoriju joslas un **CSS donut** sadalījums (`demo-analytics-*`, kā demo; bez Chart.js CDN); **`FsI18nBootstrap`** + **`public/fs/js/analytics.js`** (**`app/analytics/page.tsx`**). Ja **`paid_plan_enabled`**, maršruts **`/analytics`** tikai ar **`users.paid_plan_active`** (**`canAccessAnalytics`**, citādi **`redirect('/dashboard')`**). Brīvā līmenī **nav** analītikas saites augšējā joslā un mobilajā navigācijā (**`nav-dash.tsx`**, **`nav-landing.tsx`**, **`mobile-bottom-nav.tsx`** – **`showAnalytics`**). Publiskā **`/demo/analytics`** paliek viesiem; sākumlapas **„Explore”** kartē – **`landing.explore.analytics.pro_hint`** un **`/demo/analytics`**.
 - **PWA (Progressive Web App)** – instalējama web lietotne (**repazy**): **`manifest.webmanifest`**, service worker (**Serwist**, `serwist.config.js`, `app/sw.ts` → `public/sw.js`; **`proxy.ts`** izņem **`sw.js`** / **`manifest.webmanifest`**), fallback **`/offline`** ( **`components/pwa/offline-page-view.tsx`** ); ikonas/favicon no Storage **`brand`** ja **`logo_revision > 0`** (**`071`–`073`**), citādi ģenerētās **`app/icon.tsx`**; instalācijas banneris mobilajā un sadaļa **`/settings`**; admin **`/admin/pwa`** (slēdži, manifest krāsas, logo priekšskatījums, keša revīzija). SQL **`067`–`070`**, **`074_*`** (admin PWA + logo hinti). Build: **`npm run build`**; dev: **`npm run dev`** (Serwist watch) vai **`npm run dev:next-only`**.
 - **Iestatījumi** (`/settings`) - preferences: **`public.users.display_preferences`** (JSON), DB sinhronizācija + dublējums `localStorage` (kad ir migrācija `006_*`). Forma **`components/fs/settings-fs-view-client.tsx`** ar **`useSubtrackIntl`**; saglabāšanas toast (**`pushDomToast`**) ar hover apturētu auto-aizvēršanu; **`app/settings/page.tsx`** kārto **`languages`** atlasi ar **`Intl.Collator`** pēc **`resolveRequestUiLocales`** (nevis fiksētu `lv-LV`). **Saskarnes valoda** – pēc izvēles tiek uzreiz **`applyUiLocaleInBrowser`** + **`writeDisplayPreferencesToLocalStorage`** + **`updateSessionDisplayPreferences`** (`lib/auth/display-preferences-client.ts`) + **`router.refresh()`**, lai **`app/layout.tsx`** (**`SubtrackIntlProvider`**, tulkošanas `dbMap`) atbilstu jaunajai lokālei. **Ielogots:** SSR lokāle no profila (`interface_language_code`), nevis sīkdatnes; **`mergeDisplayPreferencesFromSources`** ar **`prioritizeDbInterfaceLanguage`** – profila valoda pār **`localStorage`**. **Viesis:** sīkdatne **`subtrack_ui_locale`**. **Nav josla** (`NavUiLanguageSwitcher`) ielogotam lietotājam saglabā to pašu profila JSON. Bāzes noklusējumi no **`public.system_settings`** (`012`), ja nav lietotāja ieraksta; `/admin/system` ietekmē jaunos kontus un formas bāzi.
-- **Administrācija** (`/admin`, `/admin/users`, `/admin/languages`, `/admin/translations`, `/admin/integrations`, `/admin/system`, **`/admin/pwa`**) - tikai ar `public.users.is_admin > 0`: paneļa josla + sānizvēlne. **Ikonu tooltipi** admin tabulās – **`SubtrackTooltip`** (`components/subtrack-tooltip.tsx`): melns burbulis, teksts portalā uz **`document.body`** (`position: fixed`), lai **`admin-table-wrap`** `overflow` to neapgriež; burbulis paliek atvērts, kamēr kursors virs pogas vai burbuļa; uz **touch / coarse pointer** nerāda (**`useSupportsHoverTooltip`**). **Peldošie toast** – **`lib/push-dom-toast.ts`** + **`lib/dom-toast-hover-dismiss.ts`** (tā pati hover loģika kā auth **`HoverPauseToast`**). **Lietotāji** – servera lapa **`app/admin/users/page.tsx`** atlasa datus; **`components/admin/admin-users-view.tsx`** (klienta): **`IERAKSTI`** kolonna rāda **kopējo abonementu skaitu** uz lietotāju (bez sadalījuma pa kategorijām); ja **`paid_plan_enabled`**, arī **VIP** slēdzis (`users.pro_vip`, **`POST /api/admin/users/pro-vip`**, RPC **`admin_set_user_pro_vip`**); **Pro** vizuāli – **kronītis** pie avatāra; **Administrators** birka zem e-pasta; **`Intl`** datumi. Admin kopsavilkumi (RLS + **`008`**). **Vadteksti** (īsi intro, bez tabulu `<code>` un liekiem hintiem) – **`components/admin/admin-intros.tsx`**, **`045_*`**. **Sistēma** – panelis **`AdminSystemPanel`** (tulkošanu atslēgas formas virsrakstiem un kļūdām; dažu **`<select>` opciju** iekšējā teksta vēl var atšķirties). **Sistēma** (`/admin/system`) dati: **`012_system_settings.sql`**, Server Actions **`lib/admin/system-actions.ts`**, **`lib/admin/logo-actions.ts`**, publiskā lasīšana **`lib/system-settings-public.ts`** (**`brandLogo`**, **`logo_revision`**). Drag-and-drop logo (**`admin-system-logo-upload.tsx`**) → Storage **`brand`**; topbar, favicon, manifest un **`/offline`** rāda ikonu tikai ja **`logo_revision > 0`** (**`SiteBrandLogo`**, **`DashBrandLink`**). **Valodas** – CRUD pret **`public.languages`**, noklusējuma valoda jaunajiem apmeklētājiem (**`010`**; Server Actions **`lib/admin/languages-actions.ts`**, **`components/admin/admin-languages-panel.tsx`**; pamatā **`007`**); saraksta **`Intl.Collator`** – pēc pašreizējās UI lokāļa. **Integrācijas** – **`public.integrations`** (tehniska atslēga, nosaukums, `enabled`), Server Actions **`lib/admin/integrations-actions.ts`**, **`app/admin/integrations/page.tsx`**, **`components/admin/admin-integrations-panel.tsx`**; migrācija **`024_integrations.sql`**; **SELECT** visa pasaule (lasāms arī no API/feature flagām), rakstīt tikai admins; pēc mutācijas – **`revalidatePath`** arī **`/login`** un **`/signup`**. SSO karodziņas: **`login_google`**, **`login_apple`** (skatīt **Autentifikācija** augšā). **Tulkojumi** - **`public.site_translations`**: **`components/admin/admin-translations-panel.tsx`** + **`AdminTranslationsIntro`** (`titleActions`: poga vienā rindā ar virsrakstu); **modāļi** jaunai atslēgai un labošanai; tabulā **atslēga + teksts tikai aktīvajai UI lokālei**; **meklētājs** pilnā platuma rindā; **bez meklēšanas** papildu rindas ar **IntersectionObserver** (lazy DOM), **ar meklēšanu** filtrs pār **visu** servera ielasīto katalogu (`loadAdminTranslationsData`). Migrācija **`011`**; publiskā **SELECT** – **`012_site_translations_select_public.sql`**; sēkla – **`013_site_translations_seed_subtrack_ui.sql`**, skatīt **[UI tulkošana](#ui-tulkošana)** (**`python scripts/export_site_translations_sql.py`** pēc **`fallback-phrases.ts`** izmaiņām). Atšķiras **prototipa paneļu** vai citu **`components/fs/*`** vietu līmenis par fiksētām virknēm – papildināšana vienmēr ar **`t('…')`**. Admin pazīme: RLS un RPC **`current_user_is_admin`** (pēc **`023`** – **`SECURITY INVOKER`**). Piešķirt tiesības, piem.: `update public.users set is_admin = 1 where email = '...';`
+- **Administrācija** (`/admin`, `/admin/users`, `/admin/languages`, `/admin/translations`, `/admin/integrations`, `/admin/system`, **`/admin/pwa`**) - tikai ar `public.users.is_admin > 0`: paneļa josla + sānizvēlne. **Ikonu tooltipi** admin tabulās – **`SubtrackTooltip`** (`components/subtrack-tooltip.tsx`): melns burbulis, teksts portalā uz **`document.body`** (`position: fixed`), lai **`admin-table-wrap`** `overflow` to neapgriež; burbulis paliek atvērts, kamēr kursors virs pogas vai burbuļa; uz **touch / coarse pointer** nerāda (**`useSupportsHoverTooltip`**). **Peldošie toast** – **`lib/push-dom-toast.ts`** + **`lib/dom-toast-hover-dismiss.ts`** (tā pati hover loģika kā auth **`HoverPauseToast`**). **Lietotāji** – servera lapa **`app/admin/users/page.tsx`** atlasa datus; **`components/admin/admin-users-view.tsx`** (klienta): **`IERAKSTI`** kolonna rāda **kopējo abonementu skaitu** uz lietotāju (bez sadalījuma pa kategorijām); ja **`paid_plan_enabled`**, arī **VIP** slēdzis (`users.pro_vip`, **`POST /api/admin/users/pro-vip`** – admin sesijas pārbaude, RPC **`admin_set_user_pro_vip`** ar **`service_role`**, **`080_*`**); **Pro** vizuāli – **kronītis** pie avatāra; **Administrators** birka zem e-pasta; **`Intl`** datumi. Admin kopsavilkumi (RLS + **`008`**). **Vadteksti** (īsi intro, bez tabulu `<code>` un liekiem hintiem) – **`components/admin/admin-intros.tsx`**, **`045_*`**. **Sistēma** – panelis **`AdminSystemPanel`** (tulkošanu atslēgas formas virsrakstiem un kļūdām; dažu **`<select>` opciju** iekšējā teksta vēl var atšķirties). **Sistēma** (`/admin/system`) dati: **`012_system_settings.sql`**, Server Actions **`lib/admin/system-actions.ts`**, **`lib/admin/logo-actions.ts`**, publiskā lasīšana **`lib/system-settings-public.ts`** (**`brandLogo`**, **`logo_revision`**). Drag-and-drop logo (**`admin-system-logo-upload.tsx`**) → Storage **`brand`**; topbar, favicon, manifest un **`/offline`** rāda ikonu tikai ja **`logo_revision > 0`** (**`SiteBrandLogo`**, **`DashBrandLink`**). **Valodas** – CRUD pret **`public.languages`**, noklusējuma valoda jaunajiem apmeklētājiem (**`010`**; Server Actions **`lib/admin/languages-actions.ts`**, **`components/admin/admin-languages-panel.tsx`**; pamatā **`007`**); saraksta **`Intl.Collator`** – pēc pašreizējās UI lokāļa. **Integrācijas** – **`public.integrations`** (tehniska atslēga, nosaukums, `enabled`), Server Actions **`lib/admin/integrations-actions.ts`**, **`app/admin/integrations/page.tsx`**, **`components/admin/admin-integrations-panel.tsx`**; migrācija **`024_integrations.sql`**; **SELECT** visa pasaule (lasāms arī no API/feature flagām), rakstīt tikai admins; pēc mutācijas – **`revalidatePath`** arī **`/login`** un **`/signup`**. SSO karodziņas: **`login_google`**, **`login_apple`** (skatīt **Autentifikācija** augšā). **Tulkojumi** - **`public.site_translations`**: **`components/admin/admin-translations-panel.tsx`** + **`AdminTranslationsIntro`** (`titleActions`: poga vienā rindā ar virsrakstu); **modāļi** jaunai atslēgai un labošanai; tabulā **atslēga + teksts tikai aktīvajai UI lokālei**; **meklētājs** pilnā platuma rindā; **bez meklēšanas** papildu rindas ar **IntersectionObserver** (lazy DOM), **ar meklēšanu** filtrs pār **visu** servera ielasīto katalogu (`loadAdminTranslationsData`). Migrācija **`011`**; publiskā **SELECT** – **`012_site_translations_select_public.sql`**; sēkla – **`013_site_translations_seed_subtrack_ui.sql`**, skatīt **[UI tulkošana](#ui-tulkošana)** (**`python scripts/export_site_translations_sql.py`** pēc **`fallback-phrases.ts`** izmaiņām). Atšķiras **prototipa paneļu** vai citu **`components/fs/*`** vietu līmenis par fiksētām virknēm – papildināšana vienmēr ar **`t('…')`**. Admin pazīme: RLS un RPC **`current_user_is_admin`** (pēc **`023`** – **`SECURITY INVOKER`**). Piešķirt tiesības, piem.: `update public.users set is_admin = 1 where email = '...';`
 
 ### Mobilā vide (līdz ~960 px platums)
 
@@ -74,10 +74,11 @@ Pat salīdzinoši mazā lietotnē **`App Router`** maršruta maiņa parasti nav 
    NEXT_PUBLIC_SUPABASE_URL=https://<projekts>.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-atslēga>
    NEXT_PUBLIC_SITE_URL=http://localhost:3000
-   # Pēc SQL 023: signup e-pasta pārbaude (service_role RPC) – no Dashboard → Settings → API:
+   # Pēc SQL 023 un 080 (obligāti serverī):
    # SUPABASE_SERVICE_ROLE_KEY=<service_role_atslēga>
-   #
-   # Logo (/admin/system, 071–072): pietiek ar admin sesiju; SERVICE_ROLE nav obligāts.
+   #   – signup e-pasta pārbaude (signupEmailExistsAction)
+   #   – admin VIP slēdzis (/api/admin/users/pro-vip)
+   # Logo (/admin/system, 071–072): pietiek ar admin sesiju + 072_brand_storage.sql
    ```
 
 4. **Authentication → URL Configuration**: redirect URIs (piem. `…/auth/callback`). **OAuth (Google / Apple)** – providerus ieslēdz Supabase pusē (**Authentication → Providers**); aplikācijā pogas **`/login`** un **`/signup`** rādās tikai tad, kad **`/admin/integrations`** **`login_google`** un/vai **`login_apple`** ir **`enabled`** (skatīt **`024_integrations.sql`**).
@@ -116,13 +117,13 @@ Pat salīdzinoši mazā lietotnē **`App Router`** maršruta maiņa parasti nav 
    - **`database/supabase/040_site_translations_landing_mock_payments_labels.sql`** – **`landing.mock.stat_active_label`**, **`landing.mock.subscription_list_heading`** („maksājumi”). Pēc **`012`**.
    - **`database/supabase/041_site_translations_demo_dashboard_mock_payment_names.sql`** – **`demo.dashboard.mock_*`**: parauga maksājumu nosaukumi (kavētie, šodien, nākamajā nedēļā) demo panelī / analītikai. Pēc **`012`**.
    - **`database/supabase/042_site_translations_nav_ui_language.sql`** – **`nav.ui_language_*`**: globālā saskarnes valodas izvēlne (ARIA teksti). Pēc **`012`**.
-   - **`database/supabase/043_users_pro_vip.sql`** – **`users.pro_vip`** un **`users_update_own`** `WITH CHECK` (klients nevar mainīt VIP); SECURITY DEFINER **`admin_set_user_pro_vip`**. Pēc **`027`**.
+   - **`database/supabase/043_users_pro_vip.sql`** – **`users.pro_vip`**; **`users_update_own`** aizsargā VIP; RPC **`admin_set_user_pro_vip`** (pēc **`080`**: tikai **`service_role`**). Pēc **`027`**.
    - **`database/supabase/044_site_translations_admin_users_pro_vip.sql`** – admin lietotāju tabulas un **`api.admin.pro_vip.*`**. Pēc **`012`**.
    - **`database/supabase/045_site_translations_shorter_admin_ui_hints.sql`** – īsāki admin intro teksti; **`admin.forms.preview_intro`**; **`fs.dashboard.advanced_hint_devices`** (lv „termiņu”). Pēc **`044`**.
    - **`database/supabase/046_site_translations_landing_faq_public.sql`** – sākumlapas FAQ produkcijas teksti (konta dati, mobilais, pārlūks, demo vs konts); dzēš novecojušās **`landing.faq.q_ready`** / **`a_ready`**. Pēc **`012`**.
    - **`database/supabase/050_site_translations_landing_footer_hero.sql`** – **`landing.hero.subtitle`** ar **`{SYSTEM_NAME}`**; **`landing.footer.byline`** (pārvaldība, ne prototips). Pēc **`012`**.
-   - **`database/supabase/051_system_settings_email_templates.sql`** – **`system_settings.email_templates`** (JSON admin e-pasta dizainam). Pēc **`012`**.
-   - **`database/supabase/052_email_reminder_log.sql`** – žurnāls kavēto maksājumu e-pastu deduplikācijai. Pēc **`001`**.
+   - **`database/supabase/051_system_settings_email_templates.sql`** – sākotnēji **`email_templates`** uz **`system_settings`**; pēc **`078`** – atsevišķa tabula **`system_settings_email_templates`**. Pēc **`012`**.
+   - **`database/supabase/052_email_reminder_log.sql`** – žurnāls kavēto maksājumu e-pastu deduplikācijai (RLS + deny politikas). Pēc **`001`**. Ja **`052`** bez politikām: **`079_email_reminder_log_rls_policies.sql`**.
    - **`database/supabase/053_site_translations_admin_email_design.sql`** – admin **`/admin/email-design`**. Pēc **`012`**.
    - **`database/supabase/054_site_translations_admin_email_design_lead.sql`** – admin apraksts par visām e-pasta valodām. Pēc **`053`**.
    - **`database/supabase/055_email_design_migrations_combined.sql`** – apvienots skripts **`051`–`053`** (e-pasta dizains admin). Ja jau palaisti atsevišķi, nav obligāti.
@@ -143,10 +144,15 @@ Pat salīdzinoši mazā lietotnē **`App Router`** maršruta maiņa parasti nav 
    - **`database/supabase/069_site_translations_admin_pwa.sql`** – admin **`/admin/pwa`**. Pēc **`012`**.
    - **`database/supabase/070_system_settings_product_name_repazy.sql`** – **`system_name`** → **repazy** (ja vēl SubTrack). Pēc **`012`**.
    - **`database/supabase/071_system_settings_logo.sql`** – **`system_settings.logo_revision`** (0 = ģenerētās ikonas). Pēc **`068`**.
-   - **`database/supabase/072_brand_storage.sql`** – Supabase Storage buckets **`brand`** (publiska lasīšana). Pēc **`071`**.
+   - **`database/supabase/072_brand_storage.sql`** – Storage **`brand`** (publiska lasīšana tikai zināmiem logo failiem; **`080`** precizē politiku). Pēc **`071`**.
    - **`database/supabase/073_site_translations_admin_logo.sql`** – admin logo augšupielādes teksti. Pēc **`012`**.
    - **`database/supabase/074_site_translations_admin_pwa_logo_hint.sql`** – **`/admin/pwa`**: PWA ikonas no **`/admin/system`** logo, hint pēc logo maiņas. Pēc **`069`**.
    - **`database/supabase/075_system_settings_logo_revision_fix.sql`** – labo **`logo_revision`**, ja iepriekš ierakstīts `Date.now()` (integer overflow). Pēc **`071`**.
+   - **`database/supabase/076_system_settings_public_read.sql`** – *(vēsturisks)* skats **`system_settings_public`**; **aizstāj ar `078`**, ja jau palaists.
+   - **`database/supabase/077_site_translations_admin_logo_err_storage_hint.sql`** – logo kļūdas teksts (admin + **`072`**, ne service_role). Pēc **`073`**.
+   - **`database/supabase/078_system_settings_email_templates_split.sql`** – **`system_settings_email_templates`** (admin RLS); noņem **`system_settings_public`**. Pēc **`051`** (un **`076`**, ja bija). **Obligāti** pēc drošības audita.
+   - **`database/supabase/079_email_reminder_log_rls_policies.sql`** – RLS politikas **`email_reminder_log`** (Advisor). Pēc **`052`**.
+   - **`database/supabase/080_security_advisor_warnings.sql`** – **`storage.brand`** bez bucket listing; **`admin_set_user_pro_vip`** tikai **`service_role`**. Pēc **`043`**, **`072`**.
    - Opcionāli **`002_migrate_profiles_to_users.sql`**, ja projektā bijusi vecā `profiles` shēma.
    - **`database/supabase/003_admin_users_select_policy.sql`** - **`current_user_is_admin()`** (sākotnēji **SECURITY DEFINER**; pēc **`023`** – **SECURITY INVOKER**) + SELECT politika **`users_select_all_if_admin`**. Tas ļauj adminiem (`is_admin > 0`) lasīt visu `public.users` sarakstu **bez** RLS rekursijas. Vecais variants ar `EXISTS (SELECT … FROM public.users …)` politikā izraisīja kļūdu `infinite recursion detected in policy for relation users` - ja to redzi, palaid šo failu **pilnībā** vēlreiz. Bez `003` anon sesijā admin lapa redz tikai savu rindu. **Pēc `022`/`023` politikas un grants atbilst jaunajai kārtībai** (Atkārtota palaišana ir idempotenta, ja izmanto jaunākos failus.)
    - **`database/supabase/004_signup_email_exists_rpc.sql`** - sākotnēja `signup_email_exists` (`SECURITY DEFINER`). **Pēc `023`:** `EXECUTE` tikai **`service_role`**; aplikācija izsauc caur **`signupEmailExistsAction`** ar **`SUPABASE_SERVICE_ROLE_KEY`**. Bez migrācijas **`023`** un bez atslēgas – vecais anon izsaukums var vairs nedarboties pēc grants maiņas.
@@ -227,7 +233,7 @@ lib/supabase/             # anon/server klienti, `service-role-client.ts` (servi
 proxy.ts                  # **rate limit** auth ceļiem, tad `updateSession` + redirecti; sk. **[Navigācija un veiktspēja](#navigācija-un-veiktspēja-kopīgas-sajūtas)**
 database/supabase/        # Postgres + RLS (`001` … `074` utt.)
 serwist.config.js         # Serwist build (CommonJS; ģenerē `public/sw.js`)
-scripts/                  # `export_site_translations_sql.py`; tulkošanas palīgvietas; **`security-smoke-users-rls.mjs`** (`SECURITY_SMOKE_*` vai izlaist)
+scripts/                  # `export_site_translations_sql.py`; **`security-*.mjs`** (smoke, regression, migration-checklist)
 public/fs/js/             # FS demo JS (subscriptions, dash-alerts …)
 styles/subtrack.css       # dizaina līnija (toast-container--auth-pages u.c.)
 supabase.env.template     # ENV veidlapa bez noslēpumiem
@@ -249,12 +255,13 @@ npm run dev
 
 **Uzmanību:** nekādā **`next.config`** nelietojiet `deploymentId: process.env.X ?? ""`, ja rezultāts var būt **`""`** – tukša virkne Turbopack režīmā var salauzt hidratāciju un līdzīgas kļūdas (skat. [next.js #92858](https://github.com/vercel/next.js/issues/92858)).
 
-**Drošības papildinājumi:** Saknes **proxy** (`proxy.ts`) **vietējo pieprasījumu līdzību** piemēro ceļiem `/login`, `/signup`, `/auth/callback`, `/forgot-password`, `/change-password` (`lib/security/auth-rate-limit.ts`). Lokālei testiem var **`DISABLE_RATE_LIMIT=true`** (`.env.local`). **`npm run audit`** (**`audit-level=high`**, CI arī) un **`npm run security:smoke-users-rls`** (iekšējais **`SECURITY_SMOKE_EMAIL`/`PASSWORD`; ja nav – izlaiž). Drošības **HTTP galvenes** (`next.config.ts`, CSP kā **report-only**). Detalizēti: **`security_check.md`**.
+**Drošība:** skatīt **[Vide un drošība](#vide-un-drošība)** un **`security_check.md`**. Īsumā: **`npm run security:check`** pēc pull ar jauniem SQL (**`078`**, **`079`**, **`080`**).
 
 ```bash
 npm run build
 npm run start
 npm run lint
+npm run security:check    # pēc DB / drošības izmaiņām
 ```
 
 ## Pēc Git atjauninājuma (`git pull`)
@@ -265,7 +272,7 @@ npm run lint
 
 1. **`npm install`** – vienmēr pēc pull, ja mainījies `package.json` vai `package-lock.json`; ja šaubies, atkārto arī tad, kad lock fails nav mainījies (ātri un novērš „missing dependency’’ lokāli).
 2. **Žurnāls** – salīdzināt ar **[Izmaiņu žurnālu](#izmaiņu-žurnāls)** un rindiņu **`Versija:`** README augšā: tur tiek apkopotas būtiskākās izmaiņas (Auth, proxy/sesija, SQL, ENV, paneļa FS slānis).
-3. **Supabase un ENV** – ja žurnālā vai commit aprakstā ir jauni Postgres soļi, salīdzināt **`database/supabase/`** (līdz **`074_*`**) un **`supabase.env.template`** ar **`.env.local`**; pēc **`023`** – **`SUPABASE_SERVICE_ROLE_KEY`** (signup e-pasta pārbaude); **logo** **`071`–`074`** – admin sesija + **`072_brand_storage.sql`**. Migrācijas secībā pēc **Supabase iestatīšana** saraksta (**divi `012_*`** – sekot aprakstam). PWA: **`npm run build`** vai **`npm run dev`**, lai **`public/sw.js`** būtu aktuāls.
+3. **Supabase un ENV** – salīdzināt **`database/supabase/`** (līdz **`080_*`**) un **`supabase.env.template`** ar **`.env.local`**. **Drošība (2026-05):** **`078`**, **`079`**, **`080`**; **`SUPABASE_SERVICE_ROLE_KEY`** – signup, VIP, cron. Logo: **`071`–`074`**, **`072`**, **`077`**. Pēc SQL: **`npm run security:smoke`**. Migrācijas secība – **Supabase iestatīšana** un **`npm run security:migration-checklist`**. PWA: **`npm run build`** / **`npm run dev`** (`public/sw.js`).
 4. **Pārbaude** – pēc lielākām atkarību vai tipu izmaiņām ieteicams **`npm run lint`** un **`npm run build`**; ikdienas darbam **`npm run dev`**. Ja Turbopack rāda **`CssSyntaxError: Missing opening {`** ar trace uz **`globals.css`** / **`subtrack.css`** – izdzēst mapi **`.next`**, restartēt **`npm run dev`** (vai **`npm run dev:webpack`**); līdzvērtīgi žurnālā **[0.3.8](#izmaiņu-žurnāls)**.
 
 ### Ko „pateikt’’ / kā īsi atbildēt pēc jauna Git atjauninājuma
@@ -279,7 +286,51 @@ Pie būtiskām izmaiņām **papildināt [Izmaiņu žurnālu](#izmaiņu-žurnāls
 
 ## Vide un drošība
 
-- Nekommitē `.env.local` un sensitīvus atslēgu ierakstus.
+- Nekommitē `.env.local` un sensitīvus atslēgu ierakstus; klientā tikai **`NEXT_PUBLIC_*`** (URL, anon key, `SITE_URL`).
+- Pilns audits, atzīme un checklist: **`security_check.md`**.
+
+### Servera atslēga (`SUPABASE_SERVICE_ROLE_KEY`)
+
+| Funkcija | Kur |
+|----------|-----|
+| Signup e-pasta aizņemtība | **`signupEmailExistsAction`** (`023`, `080`) |
+| Admin VIP slēdzis | **`POST /api/admin/users/pro-vip`** (`080`) |
+| Cron kavētie e-pasti | **`GET /api/cron/overdue-payment-emails`** |
+| Logo augšupielāde | **Nav obligāta** – admin sesija + **`072_brand_storage.sql`** |
+
+### Drošības migrācijas (kopsavilkums)
+
+Jaunai videi pēc **`001`** – obligāti vismaz: **`015`**, **`016`**, **`022`**, **`023`**, **`078`**, **`079`**, **`080`**. Saraksts: **`npm run security:migration-checklist`**.
+
+| SQL | Īsumā |
+|-----|--------|
+| **015** | `users`: nevar pašcelt `is_admin` / `email` |
+| **016** | `auth.users` → `public.users.email` sync |
+| **022–023** | Advisor: RPC grants, INVOKER admin pārbaude |
+| **078** | E-pasta šabloni atsevišķā tabulā (aizstāj **076**, ja palaists) |
+| **079** | `email_reminder_log` RLS politikas |
+| **080** | `brand` storage bez listing; VIP RPC tikai service_role |
+
+### Komandas un CI
+
+```bash
+npm run security:migration-checklist   # obligāto SQL saraksts
+npm run security:regression-check      # L2 statika (CI push/PR)
+npm run security:smoke                 # DB smoke (.env + opc. SECURITY_SMOKE_*)
+npm run security:check                 # regression + audit + smoke
+npm run audit
+```
+
+- **CI:** `.github/workflows/security-audit.yml` (L2 + `npm audit`, iknedēļas), **`security-smoke.yml`**, Dependabot (npm + GitHub Actions).
+- **PR:** checklist `.github/pull_request_template.md`; Cursor rule `.cursor/rules/subtrack-security-l2.mdc`.
+- **Proxy rate limit:** `lib/security/auth-rate-limit.ts`, `proxy.ts` (auth ceļi; **`DISABLE_RATE_LIMIT`**, **`RATE_LIMIT_MULTIPLIER`**).
+- **CSP enforce:** `next.config.ts` (`Content-Security-Policy`).
+
+### Supabase Dashboard (manuāli)
+
+- **Leaked password protection:** Authentication → Providers → Email (Pro plānā; Free var rādīt Advisor brīdinājumu pat pēc ieslēgšanas).
+- Pēc SQL pull: **Security Advisor → Refresh**.
+
 - `.gitignore` izslēdz `node_modules`, `.next` un līdzīgi.
 
 ## Ceļš uz backend
@@ -289,6 +340,18 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 ## Izmaiņu žurnāls
 
 Šeit īss pieraksts par izlaistām izmaiņām; detalizētākās funkcijas un SQL skatīt augšējās sadaļās.
+
+### 0.3.59 (2026-05-21)
+
+- **README** – drošības sadaļa (**`078`–`080`**, **`079`**, ENV, `npm run security:*`); migrāciju secība; VIP un e-pasta šabloni atjaunināti.
+
+### 0.3.58 (2026-05-21)
+
+- **Supabase Advisor** – **`078`**: **`system_settings_email_templates`**; noņemts **`system_settings_public`**. **`079`**: **`email_reminder_log`** RLS. **`080`**: **`brand`** + VIP **`service_role`**.
+
+### 0.3.57 (2026-05-21)
+
+- **Drošība LOW (L1/L2)** – `npm run security:regression-check`, `npm run security:check`; CI audit + L2; PR checklist; **`077_*`** logo kļūdas teksts; **`security_check.md`** atjaunināts.
 
 ### 0.3.56 (2026-05-21)
 
@@ -363,7 +426,7 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 
 ### 0.3.41 (2026-05-18)
 
-- **Admin – e-pasta dizains** – **`/admin/email-design`**: priekšskatījums un tekstu rediģēšana **visās 7 valodās** (en, fr, de, es, pt, lv, ru) – reģistrācija, parole, magic link, kavēts maksājums u.c.; noklusējuma teksti katrā valodā; saglabāšana **`system_settings.email_templates`**; „Kopēt Supabase” Auth šabloniem. **`lib/emails/*`**, **`054_site_translations_admin_email_design_lead.sql`**, **`051`–`053`**, **`055_*`** (apvienots).
+- **Admin – e-pasta dizains** – **`/admin/email-design`**: priekšskatījums un tekstu rediģēšana **visās 7 valodās** (en, fr, de, es, pt, lv, ru) – reģistrācija, parole, magic link, kavēts maksājums u.c.; noklusējuma teksti katrā valodā; saglabāšana **`system_settings_email_templates`** (pēc **`078`**); „Kopēt Supabase” Auth šabloniem. **`lib/emails/*`**, **`054_site_translations_admin_email_design_lead.sql`**, **`051`–`053`**, **`055_*`** (apvienots).
 - **Kavēto maksājumu e-pasts** – cron **`GET /api/cron/overdue-payment-emails`** ( **`CRON_SECRET`**, Resend **`RESEND_API_KEY`** + **`EMAIL_FROM`** ); deduplikācija **`052_email_reminder_log.sql`**. ENV: **`supabase.env.template`**.
 
 ### 0.3.40 (2026-05-18)
@@ -513,7 +576,7 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 
 ### 0.3.5 (2026-05-17)
 
-- **Supabase Security Advisor** – SQL **`022_security_advisor_hardening.sql`** (`search_path`, trigeru **REVOKE**, admin RLS **`to authenticated`**), **`023_security_advisor_rpcs.sql`** (`current_user_is_admin` → **SECURITY INVOKER**, `signup_email_exists` → **EXECUTE** tikai **`service_role`**). Serveris: **`lib/supabase/service-role-client.ts`**, **`signupEmailExistsAction`** izmanto service_role (fallback uz anon klientu, ja atslēgas nav – **pēc `023` signup e-pasta pārbaudei vajadzīga `SUPABASE_SERVICE_ROLE_KEY`**). **`security_check.md`**, **`supabase.env.template`**, **`.env.example`**.
+- **Supabase drošība** – **`015`**, **`078`** (šabloni), **`079`** (reminder log), **`080`** (brand + VIP RPC). **`security_check.md`**, **`supabase.env.template`**.
 - **Admin lietotāji** – **`admin-users-view.tsx`**: kolonna **`IERAKSTI`** rāda tikai **kopējo abonementu skaitu**.
 - **Dashboard FS** – **`dashboard-fs-view.tsx`** / **`analytics-fs-view.tsx`**: salabots **`try` / `catch`** ap paneļa skriptu ielādi (parsēšanas kļūda pēc Strict Mode labojumiem).
 - **README** – ENV (`SUPABASE_SERVICE_ROLE_KEY`), Advisor / **leaked password** (Pro), **`proxy.ts`**, soļu numerācija līdz **`023`**, Supabase setup.

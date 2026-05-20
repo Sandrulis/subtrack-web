@@ -50,11 +50,18 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, message: msg }, { status: 500 });
   }
 
-  const { data: settings } = await supabase
-    .from("system_settings")
-    .select("system_name, default_display_preferences, email_templates")
-    .eq("id", 1)
-    .maybeSingle();
+  const [{ data: settings }, { data: emailTplRow }] = await Promise.all([
+    supabase
+      .from("system_settings")
+      .select("system_name, default_display_preferences")
+      .eq("id", 1)
+      .maybeSingle(),
+    supabase
+      .from("system_settings_email_templates")
+      .select("email_templates")
+      .eq("id", 1)
+      .maybeSingle(),
+  ]);
 
   const systemName = await getSystemSiteName();
 
@@ -69,7 +76,7 @@ export async function GET(request: Request) {
       : DISPLAY_PREFERENCES_DEFAULTS.currency;
 
   const templatesStore = normalizeStoredEmailTemplates(
-    sanitizeEmailTemplatesStore(settings?.email_templates),
+    sanitizeEmailTemplatesStore(emailTplRow?.email_templates),
     systemName,
   );
 

@@ -1,6 +1,6 @@
 {
   "name": "subtrack-web",
-  "version": "0.3.41",
+  "version": "0.3.59",
   "private": true,
   "scripts": {
     "dev": "concurrently -p none \"serwist build --watch\" \"next dev\"",
@@ -10,7 +10,12 @@
     "start": "next start",
     "lint": "eslint",
     "audit": "npm audit --audit-level=high",
-    "security:smoke-users-rls": "node scripts/security-smoke-users-rls.mjs"
+    "security:migration-checklist": "node scripts/security-migration-checklist.mjs",
+    "security:regression-check": "node scripts/security-regression-check.mjs",
+    "security:smoke-users-rls": "node scripts/security-smoke-users-rls.mjs",
+    "security:smoke-system-settings": "node scripts/security-smoke-system-settings.mjs",
+    "security:smoke": "npm run security:smoke-system-settings && npm run security:smoke-users-rls",
+    "security:check": "npm run security:regression-check && npm run audit && npm run security:smoke"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

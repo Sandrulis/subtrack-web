@@ -8,8 +8,7 @@ const rpcCurrentUserIsAdmin = cache(async (supabase: SupabaseClient) => {
 
 /**
  * Vai pašreizējā Supabase sesija ir administrators (public.users.is_admin > 0).
- * Primāri RPC ar SECURITY DEFINER, lai darbotos pat tad, ja users SELECT politikas
- * kombinācija (piem. users_select_all_if_admin) rada RLS apakšvaicājumu konfliktus.
+ * Primāri RPC `current_user_is_admin` (pēc `023` – SECURITY INVOKER); rezerves – `users.is_admin` rinda.
  */
 export async function resolveSessionIsAdmin(
   supabase: SupabaseClient,

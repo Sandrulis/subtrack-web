@@ -21,8 +21,8 @@ export default async function AdminEmailDesignPage() {
   const supabase = await createServerSupabaseClient();
   const [{ data, error }, { data: langRows }] = await Promise.all([
     supabase
-      .from("system_settings")
-      .select("system_name, email_templates")
+      .from("system_settings_email_templates")
+      .select("email_templates")
       .eq("id", 1)
       .maybeSingle(),
     supabase.from("languages").select("code, label").order("sort_order", { ascending: true }),
