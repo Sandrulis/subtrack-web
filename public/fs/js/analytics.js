@@ -162,6 +162,9 @@ function renderAnalytics() {
     var upcomingHorizon = subscriptions
         .filter(function (s) {
             if (!s.date) return false;
+            if (typeof isSubscriptionDueActive === 'function' && !isSubscriptionDueActive(s, today)) {
+                return false;
+            }
             var ds = new Date(s.date + 'T00:00:00');
             return ds >= today && ds <= horizon;
         })
@@ -186,7 +189,11 @@ function renderAnalytics() {
 
     var futureAll = subscriptions
         .filter(function (s) {
-            return s.date && new Date(s.date + 'T00:00:00') >= today;
+            if (!s.date) return false;
+            if (typeof isSubscriptionDueActive === 'function' && !isSubscriptionDueActive(s, today)) {
+                return false;
+            }
+            return new Date(s.date + 'T00:00:00') >= today;
         })
         .sort(function (a, b) {
             return new Date(a.date) - new Date(b.date);

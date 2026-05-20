@@ -54,15 +54,104 @@ function monthlyAmount(amount, period) {
     return amount;
 }
 
-function sumDeviceAmounts(s) {
+/**
+ * Parsē summu no formas teksta; pieņem komatu kā decimālo atdalītāju (9,99 → 9.99).
+ * @returns {number} NaN, ja nav derīgs skaitlis
+ */
+function parseDecimalAmountInput(raw) {
+    var s = String(raw == null ? '' : raw).trim();
+    if (!s) return NaN;
+    s = s.replace(/\s+/g, '').replace(/€/gi, '');
+    if (!s || !/^-?\d[\d.,]*$/.test(s)) return NaN;
+
+    var lastComma = s.lastIndexOf(',');
+    var lastDot = s.lastIndexOf('.');
+
+    if (lastComma !== -1 && lastDot !== -1) {
+        if (lastComma > lastDot) {
+            s = s.replace(/\./g, '').replace(',', '.');
+        } else {
+            s = s.replace(/,/g, '');
+        }
+    } else if (lastComma !== -1) {
+        s = s.replace(',', '.');
+    }
+
+    var n = parseFloat(s);
+    return Number.isFinite(n) ? n : NaN;
+}
+
+function normalizeRefDate(refDate) {
+    var ref = refDate ? new Date(refDate) : new Date();
+    if (isNaN(ref.getTime())) ref = new Date();
+    ref.setHours(0, 0, 0, 0);
+    return ref;
+}
+
+/** Vai termiņš (termEnd) ir beidzies salīdzinājumā ar atsauces datumu. */
+function isTermEndedForRef(termEndStr, refDate) {
+    var termEnd = normalizeSubscriptionDateIso(termEndStr);
+    if (!termEnd) return false;
+    var ref = normalizeRefDate(refDate);
+    var te = new Date(termEnd + 'T00:00:00');
+    te.setHours(0, 0, 0, 0);
+    return ref.getTime() > te.getTime();
+}
+
+/** Vai nākamais maksājuma datums ir termiņa ietvaros. */
+function isDueDateWithinTerm(dueIso, termEndStr) {
+    var due = normalizeSubscriptionDateIso(dueIso);
+    var termEnd = normalizeSubscriptionDateIso(termEndStr);
+    if (!termEnd) return true;
+    if (!due) return false;
+    return due <= termEnd;
+}
+
+/** Vai abonements/kredīts vēl rāda maksājumus (kopsavilkums, paziņojumi). */
+function isSubscriptionDueActive(s, refDate) {
+    if (!s) return false;
+    if (isTermEndedForRef(s.termEnd, refDate)) return false;
+    return isDueDateWithinTerm(s.date, s.termEnd);
+}
+
+function sumDeviceAmounts(s, refDate) {
     if (!s.devices || !s.devices.length) return 0;
     return s.devices.reduce(function (a, d) {
+        if (isTermEndedForRef(d.termEnd, refDate)) return a;
         return a + (parseFloat(d.amount) || 0);
     }, 0);
 }
 
-function subscriptionMonthlyTotal(s) {
-    return monthlyAmount(s.amount, s.period) + sumDeviceAmounts(s);
+/** Faktiskā / plānotā summa vienam termiņam (abonements + aktīvas papildu rindas). */
+function subscriptionPaymentAmountForDue(s, paidOnIso) {
+    if (!s) return 0;
+    var base = 0;
+    if (isSubscriptionDueActive(s, paidOnIso)) {
+        base = parseFloat(s.amount) || 0;
+    }
+    return base + sumDeviceAmounts(s, paidOnIso);
+}
+
+/** PATCH ķermenis „atzīmēt samaksāts” (DB `subscription_payments`). */
+function subtrackMarkPaidPatchBody(s, newDate, paidOnIso) {
+    var paidIso = normalizeSubscriptionDateIso(paidOnIso);
+    var body = {
+        date: newDate,
+        markPaid: true,
+        paidOn: paidIso,
+    };
+    if (s && paidIso && typeof subscriptionPaymentAmountForDue === 'function') {
+        body.amountPaid = subscriptionPaymentAmountForDue(s, paidIso);
+    }
+    return body;
+}
+
+function subscriptionMonthlyTotal(s, refDate) {
+    var base = 0;
+    if (isSubscriptionDueActive(s, refDate)) {
+        base = monthlyAmount(s.amount, s.period);
+    }
+    return base + sumDeviceAmounts(s, refDate);
 }
 
 function formatDate(dateStr) {
@@ -156,29 +245,49 @@ function subtrackReloadSubscriptionsFromBootstrap() {
 })();
 
 /**
- * Kalendārs: dienas, kurās panelī / zvanā atzīmēts „samaksāts”, lai šūna paliek redzama pēc termiņa pārcelšanas.
- * localStorage – izdzīvo pārlādē; objekts { "YYYY-MM-DD": skaits }.
+ * Kalendārs: dienas ar „atzīmēts samaksāts” (DB `subscription_payments`, sinhronizācija starp ierīcēm).
+ * Objekts { "YYYY-MM-DD": skaits } – `subtrackPaidCalendarDays`.
  */
+var subtrackPaidCalendarDays = {};
 var SUBTRACK_CAL_PAID_LS_KEY = 'subtrack_cal_paid_marked_v1';
 
-function subtrackReadPaidCalendarCounts() {
+function subtrackNormalizePaidCalendarMap(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+    var out = {};
+    Object.keys(raw).forEach(function (iso) {
+        var n = parseInt(raw[iso], 10) || 0;
+        if (n > 0) out[iso] = n;
+    });
+    return out;
+}
+
+function subtrackReadPaidCalendarLsFallback() {
     if (typeof localStorage === 'undefined') return {};
     try {
         var raw = localStorage.getItem(SUBTRACK_CAL_PAID_LS_KEY);
         if (!raw) return {};
-        var o = JSON.parse(raw);
-        if (!o || typeof o !== 'object' || Array.isArray(o)) return {};
-        return o;
+        return subtrackNormalizePaidCalendarMap(JSON.parse(raw));
     } catch (e) {
         return {};
     }
 }
 
-function subtrackWritePaidCalendarCounts(obj) {
-    if (typeof localStorage === 'undefined') return;
+function subtrackSetPaidCalendarDays(map) {
+    subtrackPaidCalendarDays = subtrackNormalizePaidCalendarMap(map);
+}
+
+function subtrackReloadPaidCalendarFromBootstrap() {
+    var raw = subtrackReadBootstrapJsonTextById('subtrack-paid-calendar-bootstrap-json');
+    if (!raw) return;
     try {
-        localStorage.setItem(SUBTRACK_CAL_PAID_LS_KEY, JSON.stringify(obj));
-    } catch (e) {}
+        subtrackSetPaidCalendarDays(JSON.parse(raw));
+    } catch (ignore) {}
+}
+
+function subtrackReadPaidCalendarCounts() {
+    var server = subtrackPaidCalendarDays || {};
+    if (Object.keys(server).length > 0) return server;
+    return subtrackReadPaidCalendarLsFallback();
 }
 
 function subtrackAddPaidCalendarDay(isoDay) {
@@ -187,16 +296,21 @@ function subtrackAddPaidCalendarDay(isoDay) {
     var map = subtrackReadPaidCalendarCounts();
     var prev = parseInt(map[iso], 10) || 0;
     map[iso] = prev + 1;
-    subtrackWritePaidCalendarCounts(map);
+    subtrackSetPaidCalendarDays(map);
 }
 
-/** Notīra kalendāra „samaksāts” vēsturi (localStorage), ja aktīvo ierakstu vairs nav. */
+/** Notīra kalendāra „samaksāts” kešu (atmiņa + vecais localStorage), ja aktīvo ierakstu vairs nav. */
 function subtrackClearPaidCalendarMarks() {
+    subtrackPaidCalendarDays = {};
     if (typeof localStorage === 'undefined') return;
     try {
         localStorage.removeItem(SUBTRACK_CAL_PAID_LS_KEY);
     } catch (e) {}
 }
+
+(function subtrackHydratePaidCalendarFromDom() {
+    subtrackReloadPaidCalendarFromBootstrap();
+})();
 
 function subtrackPaidCalendarDayMapForMonth(y, m) {
     var map = subtrackReadPaidCalendarCounts();
@@ -238,7 +352,7 @@ function subtrackSetCalendarIncludePaidMarks(show) {
 }
 
 /** Nākamais termiņš pēc „samaksāts“ (neejam uz pagātni salīdzinājumā ar šodienu). */
-function advanceNextDueAfterPayment(dateStr, period) {
+function advanceNextDueAfterPayment(dateStr, period, termEndStr) {
     var iso = normalizeSubscriptionDateIso(dateStr);
     if (!iso) {
         return toISODateLocal(new Date());
@@ -251,7 +365,12 @@ function advanceNextDueAfterPayment(dateStr, period) {
         next = addOneBillingPeriod(next, period);
         guard++;
     }
-    return toISODateLocal(next);
+    var nextIso = toISODateLocal(next);
+    var termEnd = normalizeSubscriptionDateIso(termEndStr);
+    if (termEnd && nextIso > termEnd) {
+        return termEnd;
+    }
+    return nextIso;
 }
 
 /** Kredīta / līzingu – mēneši līdz „līdz” datumam */
@@ -366,6 +485,9 @@ function subtrackSyncSubscriptionsFromApi() {
                     return o;
                 });
                 subtrackMarkSubsSyncedFromApi();
+            }
+            if (data && data.paidCalendarDays && typeof subtrackSetPaidCalendarDays === 'function') {
+                subtrackSetPaidCalendarDays(data.paidCalendarDays);
             }
         })
         .catch(function () {

@@ -70,11 +70,16 @@ function markNotifyItemPaid(rawId) {
         return;
     }
 
+    var patchBody =
+        typeof subtrackMarkPaidPatchBody === 'function'
+            ? subtrackMarkPaidPatchBody(s, newDate, paidOnIso)
+            : { date: newDate, markPaid: true, paidOn: paidOnIso };
+
     fetch(apiSubscriptionUrl(s.id), {
         method: 'PATCH',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: newDate }),
+        body: JSON.stringify(patchBody),
     })
         .then(parseApiJson)
         .then(function (data) {
@@ -83,7 +88,9 @@ function markNotifyItemPaid(rawId) {
             } else {
                 s.date = normalizeSubscriptionDateIso(newDate) || newDate;
             }
-            if (paidOnIso && typeof subtrackAddPaidCalendarDay === 'function') {
+            if (data.paidCalendarDays && typeof subtrackSetPaidCalendarDays === 'function') {
+                subtrackSetPaidCalendarDays(data.paidCalendarDays);
+            } else if (paidOnIso && typeof subtrackAddPaidCalendarDay === 'function') {
                 subtrackAddPaidCalendarDay(paidOnIso);
             }
             return subtrackSyncSubscriptionsFromApi();
@@ -337,6 +344,9 @@ function refreshDashNotifications() {
     var overdue = subscriptions.filter(function (s) {
         var dIso = normalizeSubscriptionDateIso(s.date);
         if (!dIso) return false;
+        if (typeof isSubscriptionDueActive === 'function' && !isSubscriptionDueActive(s, today)) {
+            return false;
+        }
         return new Date(dIso + 'T00:00:00') < today;
     }).sort(function (a, b) {
         return (
@@ -346,6 +356,9 @@ function refreshDashNotifications() {
     });
 
     var dueToday = subscriptions.filter(function (s) {
+        if (typeof isSubscriptionDueActive === 'function' && !isSubscriptionDueActive(s, today)) {
+            return false;
+        }
         return normalizeSubscriptionDateIso(s.date) === isoToday;
     }).sort(function (a, b) {
         return (
@@ -357,6 +370,9 @@ function refreshDashNotifications() {
     var upcoming = subscriptions.filter(function (s) {
         var dIso = normalizeSubscriptionDateIso(s.date);
         if (!dIso) return false;
+        if (typeof isSubscriptionDueActive === 'function' && !isSubscriptionDueActive(s, today)) {
+            return false;
+        }
         var d = new Date(dIso + 'T00:00:00');
         return d > today && d < upcomingHorizonEnd;
     }).sort(function (a, b) {

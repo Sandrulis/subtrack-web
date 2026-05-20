@@ -29,11 +29,13 @@ const SUBTRACK_VISUAL_SUGGEST_BOOTSTRAP = JSON.stringify(
 export function DashboardFsView({
   userDisplay,
   initialSubscriptions,
+  initialPaidCalendarDays = {},
   freeTierGate,
   demoMode = false,
 }: {
   userDisplay?: NavUserDisplay | null;
   initialSubscriptions: SubscriptionClient[];
+  initialPaidCalendarDays?: Record<string, number>;
   freeTierGate: DashboardFreeTierGatePayload;
   /** Publiskais `/demo/dashboard`: bez API, navigācija paliek demo maršrutos. */
   demoMode?: boolean;
@@ -80,6 +82,14 @@ export function DashboardFsView({
           __html: JSON.stringify(initialSubscriptions).replace(/</g, "\\u003c"),
         }}
       />
+      {!demoMode ? (
+        <template
+          id="subtrack-paid-calendar-bootstrap-json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(initialPaidCalendarDays).replace(/</g, "\\u003c"),
+          }}
+        />
+      ) : null}
       <template
         id="subtrack-icon-search-bootstrap"
         dangerouslySetInnerHTML={{ __html: SUBTRACK_ICON_SEARCH_BOOTSTRAP }}
@@ -247,20 +257,11 @@ export function DashboardFsView({
                 </div>
 
                 <div className="dashboard-overview-next-slot dashboard-next-pay-slot">
-                  <div className="stat-card stat-card--next-pay">
-                    <div className="stat-label">{t("landing.mock.next_pay_label")}</div>
-                    <div className="stat-next-body">
-                      <div className="stat-next-text">
-                        <div className="stat-value stat-value--next" id="stat-next">
-                          -
-                        </div>
-                        <div className="stat-next-name" id="stat-next-name">
-                          {t("fs.dashboard.empty_no_subscriptions")}
-                        </div>
-                      </div>
-                      <div className="stat-next-amount" id="stat-next-amount" />
-                    </div>
-                  </div>
+                  <div
+                    id="stat-next-pay-root"
+                    className="stat-next-pay-grid stat-next-pay-grid--cols-1"
+                    aria-live="polite"
+                  />
                 </div>
               </div>
             </div>
@@ -269,6 +270,12 @@ export function DashboardFsView({
           <div className="section-header section-header--subscriptions-list">
             <h2 className="section-heading">{t("landing.mock.subscription_list_heading")}</h2>
           </div>
+
+          <div
+            id="dashboard-category-bar"
+            className="dashboard-category-bar hidden"
+            aria-live="polite"
+          />
 
           <div id="sub-list" className="sub-list" />
 
@@ -353,11 +360,11 @@ export function DashboardFsView({
                 <span className="form-optional">{t("fs.dashboard.optional_paren")}</span>
               </label>
                 <input
-                  type="number"
+                  type="text"
                   id="sub-amount"
-                  placeholder="9.99"
-                  step="0.01"
-                  min="0"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  placeholder="9,99"
                 />
               </div>
               <div className="form-group">

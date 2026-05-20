@@ -3,6 +3,7 @@ import { FsI18nBootstrap } from "@/components/fs/fs-i18n-bootstrap";
 import { DashboardFsView } from "@/components/fs/dashboard-fs-view";
 import { getSessionUserDisplay } from "@/lib/auth/user-display";
 import { fetchSubscriptionsForSession } from "@/lib/subscriptions/fetch-subscriptions-server";
+import { fetchPaidCalendarDaysForSession } from "@/lib/subscriptions/fetch-paid-calendar-server";
 import {
   buildDashboardFreeTierGatePayload,
   fetchSystemPaidPlanLiveForDashboard,
@@ -22,11 +23,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DashboardPage() {
-  const [userDisplay, initialSubscriptions, paidPlanLive] = await Promise.all([
-    getSessionUserDisplay(),
-    fetchSubscriptionsForSession(),
-    fetchSystemPaidPlanLiveForDashboard(),
-  ]);
+  const [userDisplay, initialSubscriptions, initialPaidCalendarDays, paidPlanLive] =
+    await Promise.all([
+      getSessionUserDisplay(),
+      fetchSubscriptionsForSession(),
+      fetchPaidCalendarDaysForSession(),
+      fetchSystemPaidPlanLiveForDashboard(),
+    ]);
   const freeTierGate = buildDashboardFreeTierGatePayload(userDisplay, paidPlanLive);
   const { locale } = await resolveRequestUiLocales();
   const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
@@ -38,6 +41,7 @@ export default async function DashboardPage() {
       <DashboardFsView
         userDisplay={userDisplay}
         initialSubscriptions={initialSubscriptions}
+        initialPaidCalendarDays={initialPaidCalendarDays}
         freeTierGate={freeTierGate}
       />
     </>

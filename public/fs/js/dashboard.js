@@ -96,6 +96,7 @@ function getPaymentsByDateInMonth(y, m) {
     subscriptions.forEach(function (s) {
         var dayIso = normalizeSubscriptionDateIso(s.date);
         if (!dayIso) return;
+        if (!isDueDateWithinTerm(dayIso, s.termEnd)) return;
         var d = new Date(dayIso + 'T00:00:00');
         if (isNaN(d.getTime())) return;
         if (d.getFullYear() !== y || d.getMonth() !== m) return;
@@ -608,7 +609,9 @@ function buildItem(s) {
     var periodLabel = periodTextUi(s.period);
     var amountMonth = monthlyAmount(s.amount, s.period);
     var devExtra = sumDeviceAmounts(s);
-    var displayTotal = amountMonth + devExtra;
+    var displayTotal = subscriptionMonthlyTotal(s);
+    var billingActive =
+        typeof isSubscriptionDueActive === 'function' && isSubscriptionDueActive(s);
     var iconClass = s.icon || 'fa-solid fa-box';
     var termHtml = buildTermHtml(s);
     var deviceBlocks = '';
@@ -655,17 +658,19 @@ function buildItem(s) {
                 '</div>' +
                 '<div class="sub-right">' +
                     '<div class="sub-actions">' +
-                        '<button type="button" class="icon-btn mark-paid" data-subscription-id="' +
-                        escAttr(String(s.id)) +
-                        '" data-tooltip="' +
-                        escAttr(FsT('fs.dashboard.tooltip_mark_paid')) +
-                        '" aria-label="' +
-                        escAttr(FsT('fs.dashboard.aria_mark_paid')) +
-                        '" onclick=\'markPaid(' +
-                        JSON.stringify(String(s.id)) +
-                        ')\'>' +
-                        subtrackMarkPaidButtonInnerHtml() +
-                        '</button>' +
+                    (billingActive
+                        ? '<button type="button" class="icon-btn mark-paid" data-subscription-id="' +
+                          escAttr(String(s.id)) +
+                          '" data-tooltip="' +
+                          escAttr(FsT('fs.dashboard.tooltip_mark_paid')) +
+                          '" aria-label="' +
+                          escAttr(FsT('fs.dashboard.aria_mark_paid')) +
+                          '" onclick=\'markPaid(' +
+                          JSON.stringify(String(s.id)) +
+                          ')\'>' +
+                          subtrackMarkPaidButtonInnerHtml() +
+                          '</button>'
+                        : '') +
                         '<button type="button" class="icon-btn" data-tooltip="' +
                         escAttr(FsT('fs.dashboard.tooltip_edit')) +
                         '" aria-label="' +
@@ -712,9 +717,12 @@ function markPaid(id) {
     });
     if (idx === -1) return;
     var s = subscriptions[idx];
+    if (typeof isSubscriptionDueActive === 'function' && !isSubscriptionDueActive(s)) {
+        return;
+    }
     var paidOnIso = normalizeSubscriptionDateIso(s.date);
     var period = s.period || 'monthly';
-    var newDate = advanceNextDueAfterPayment(s.date, period);
+    var newDate = advanceNextDueAfterPayment(s.date, period, s.termEnd);
 
     subtrackSetMarkPaidPending(id, true);
 
@@ -734,11 +742,16 @@ function markPaid(id) {
         return;
     }
 
+    var patchBody =
+        typeof subtrackMarkPaidPatchBody === 'function'
+            ? subtrackMarkPaidPatchBody(s, newDate, paidOnIso)
+            : { date: newDate, markPaid: true, paidOn: paidOnIso };
+
     fetch(apiSubscriptionUrl(s.id), {
         method: 'PATCH',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: newDate }),
+        body: JSON.stringify(patchBody),
     })
         .then(parseApiJson)
         .then(function (data) {
@@ -749,7 +762,9 @@ function markPaid(id) {
             } else {
                 s.date = normalizeSubscriptionDateIso(newDate) || newDate;
             }
-            if (paidOnIso && typeof subtrackAddPaidCalendarDay === 'function') {
+            if (data.paidCalendarDays && typeof subtrackSetPaidCalendarDays === 'function') {
+                subtrackSetPaidCalendarDays(data.paidCalendarDays);
+            } else if (paidOnIso && typeof subtrackAddPaidCalendarDay === 'function') {
                 subtrackAddPaidCalendarDay(paidOnIso);
             }
             return subtrackSyncSubscriptionsFromApi().then(function () {
@@ -770,6 +785,270 @@ function markPaid(id) {
 }
 
 /* ---- Stats ---- */
+var DASHBOARD_CATEGORY_COLORS = [
+    '#0d9488', '#f59e0b', '#3b82f6', '#64748b', '#e11d48', '#8b5cf6', '#059669', '#d97706'
+];
+
+function renderDashboardCategoryBar() {
+    var host = document.getElementById('dashboard-category-bar');
+    if (!host) return;
+
+    var byCat = {};
+    subscriptions.forEach(function (s) {
+        var k = normalizeCategoryKey(s.category);
+        if (!byCat[k]) byCat[k] = 0;
+        byCat[k] += subscriptionMonthlyTotal(s);
+    });
+
+    var catKeys = Object.keys(byCat)
+        .filter(function (k) {
+            return byCat[k] > 0;
+        })
+        .sort(function (a, b) {
+            return byCat[b] - byCat[a];
+        });
+
+    var total = catKeys.reduce(function (sum, k) {
+        return sum + byCat[k];
+    }, 0);
+
+    if (!catKeys.length || total <= 0) {
+        host.classList.add('hidden');
+        host.innerHTML = '';
+        return;
+    }
+
+    host.classList.remove('hidden');
+
+    var ariaLabel = FsT('fs.dashboard.category_bar_aria');
+    if (!ariaLabel) ariaLabel = 'Kopējā summa sadalījumā pa kategorijām';
+
+    var track =
+        '<div class="dashboard-category-bar-track" role="img" aria-label="' +
+        escAttr(ariaLabel) +
+        '">';
+    var legend = '<ul class="dashboard-category-bar-legend">';
+
+    catKeys.forEach(function (k, i) {
+        var amt = byCat[k];
+        var pct = (amt / total) * 100;
+        var color = DASHBOARD_CATEGORY_COLORS[i % DASHBOARD_CATEGORY_COLORS.length];
+        var label = categoryLabel(k);
+        var pctRounded = Math.round(pct);
+        var segTip = label + ' · €' + amt.toFixed(2) + ' · ' + pctRounded + '%';
+        track +=
+            '<div class="dashboard-category-bar-seg" style="width:' +
+            pct.toFixed(4) +
+            '%;background:' +
+            escAttr(color) +
+            ';" data-tooltip="' +
+            escAttr(segTip) +
+            '" tabindex="0" role="img" aria-label="' +
+            escAttr(label + ' €' + amt.toFixed(2) + ' ' + pctRounded + '%') +
+            '"></div>';
+        legend +=
+            '<li class="dashboard-category-bar-legend-item">' +
+            '<span class="dashboard-category-bar-swatch" style="background:' +
+            escAttr(color) +
+            ';" aria-hidden="true"></span>' +
+            '<span class="dashboard-category-bar-name">' +
+            escHtml(label) +
+            '</span>' +
+            '<span class="dashboard-category-bar-meta">€' +
+            amt.toFixed(2) +
+            ' · ' +
+            pctRounded +
+            '%</span>' +
+            '</li>';
+    });
+
+    track += '</div>';
+    legend += '</ul>';
+    host.innerHTML = track + legend;
+}
+
+function dashboardStatsTodayRef() {
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+}
+
+function dashboardStatsIsoToday() {
+    var today = dashboardStatsTodayRef();
+    if (typeof toISODateLocal === 'function') return toISODateLocal(today);
+    var y = today.getFullYear();
+    var m = String(today.getMonth() + 1).padStart(2, '0');
+    var d = String(today.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+}
+
+function partitionSubscriptionsForNextPayStats() {
+    var today = dashboardStatsTodayRef();
+    var isoToday = dashboardStatsIsoToday();
+    var overdue = [];
+    var dueToday = [];
+    var future = [];
+
+    subscriptions.forEach(function (s) {
+        if (typeof isSubscriptionDueActive === 'function' && !isSubscriptionDueActive(s, today)) {
+            return;
+        }
+        var dIso = normalizeSubscriptionDateIso(s.date);
+        if (!dIso) return;
+        var d = new Date(dIso + 'T00:00:00');
+        d.setHours(0, 0, 0, 0);
+        if (d.getTime() < today.getTime()) overdue.push(s);
+        else if (dIso === isoToday) dueToday.push(s);
+        else future.push({ s: s, d: d });
+    });
+
+    overdue.sort(function (a, b) {
+        return (
+            new Date(normalizeSubscriptionDateIso(a.date) + 'T00:00:00') -
+            new Date(normalizeSubscriptionDateIso(b.date) + 'T00:00:00')
+        );
+    });
+    dueToday.sort(function (a, b) {
+        return String(a.name || '').localeCompare(String(b.name || ''));
+    });
+    future.sort(function (a, b) {
+        return a.d - b.d;
+    });
+
+    return { overdue: overdue, dueToday: dueToday, future: future };
+}
+
+function sumStatsPaymentsForList(list, refDate) {
+    return list.reduce(function (sum, s) {
+        return sum + subscriptionMonthlyTotal(s, refDate);
+    }, 0);
+}
+
+function formatStatBillsCount(count) {
+    var n = Number(count) || 0;
+    if (n === 1) {
+        var one = FsT('fs.dashboard.stat_bills_one');
+        return one || '1 rēķins';
+    }
+    var tpl = FsT('fs.dashboard.stat_bills_other');
+    return tpl ? tpl.replace(/\{count\}/g, String(n)) : n + ' rēķini';
+}
+
+function renderStatNextPayUrgencyCol(kind, labelKey, list) {
+    var label = FsT(labelKey) || '';
+    var count = list.length;
+    var sum = sumStatsPaymentsForList(list, dashboardStatsTodayRef());
+    var mod = kind === 'overdue' ? 'stat-next-pay-col--overdue' : 'stat-next-pay-col--today';
+    return (
+        '<div class="stat-next-pay-col ' +
+        mod +
+        '">' +
+        '<div class="stat-label">' +
+        escHtml(label) +
+        '</div>' +
+        '<div class="stat-next-body">' +
+        '<div class="stat-next-text">' +
+        '<div class="stat-value stat-value--next">€' +
+        sum.toFixed(2) +
+        '</div>' +
+        '<div class="stat-next-name">' +
+        escHtml(formatStatBillsCount(count)) +
+        '</div>' +
+        '</div>' +
+        '</div></div>'
+    );
+}
+
+function renderStatNextPayFutureCol(nextEntry, emptyMsg, compact) {
+    var label = FsT('landing.mock.next_pay_label') || 'Nākamais maksājums';
+    var value = '-';
+    var name = emptyMsg || '';
+    var sideAmount = '';
+
+    if (nextEntry && nextEntry.s) {
+        var pay = subscriptionMonthlyTotal(nextEntry.s, dashboardStatsTodayRef());
+        name = nextEntry.s.name || '';
+        if (compact) {
+            value = '€' + pay.toFixed(2);
+        } else {
+            value = formatDate(nextEntry.s.date);
+            sideAmount = '€' + pay.toFixed(2);
+        }
+    }
+
+    var colClass = 'stat-next-pay-col stat-next-pay-col--next';
+    if (compact) colClass += ' stat-next-pay-col--next-compact';
+
+    var amountHtml = '';
+    if (!compact && sideAmount) {
+        amountHtml =
+            '<div class="stat-next-amount">' + escHtml(sideAmount) + '</div>';
+    }
+
+    return (
+        '<div class="' +
+        colClass +
+        '">' +
+        '<div class="stat-label">' +
+        escHtml(label) +
+        '</div>' +
+        '<div class="stat-next-body">' +
+        '<div class="stat-next-text">' +
+        '<div class="stat-value stat-value--next">' +
+        escHtml(value) +
+        '</div>' +
+        '<div class="stat-next-name">' +
+        escHtml(name) +
+        '</div>' +
+        '</div>' +
+        amountHtml +
+        '</div></div>'
+    );
+}
+
+function renderNextPayStatsBlock() {
+    var root = document.getElementById('stat-next-pay-root');
+    if (!root) return;
+
+    if (!subscriptions.length) {
+        root.className = 'stat-next-pay-grid stat-next-pay-grid--cols-1';
+        root.innerHTML = renderStatNextPayFutureCol(
+            null,
+            FsT('fs.dashboard.empty_no_subscriptions') || '',
+        );
+        return;
+    }
+
+    var parts = partitionSubscriptionsForNextPayStats();
+    var cols = [];
+
+    if (parts.overdue.length) {
+        cols.push(renderStatNextPayUrgencyCol('overdue', 'fs.dashboard.stat_overdue_label', parts.overdue));
+    }
+    if (parts.dueToday.length) {
+        cols.push(renderStatNextPayUrgencyCol('today', 'fs.dashboard.stat_today_due_label', parts.dueToday));
+    }
+
+    var compactNext = parts.overdue.length > 0 && parts.dueToday.length > 0;
+
+    if (parts.future.length > 0) {
+        cols.push(renderStatNextPayFutureCol(parts.future[0], '', compactNext));
+    } else if (!parts.overdue.length && !parts.dueToday.length) {
+        cols.push(
+            renderStatNextPayFutureCol(null, FsT('fs.dashboard.empty_nothing_upcoming') || '', false),
+        );
+    } else if (parts.dueToday.length || parts.overdue.length) {
+        cols.push(
+            renderStatNextPayFutureCol(null, FsT('fs.dashboard.empty_nothing_upcoming') || '', compactNext),
+        );
+    }
+
+    var n = cols.length;
+    if (n < 1) n = 1;
+    root.className = 'stat-next-pay-grid stat-next-pay-grid--cols-' + n;
+    root.innerHTML = cols.join('');
+}
+
 function updateStats() {
     var total = subscriptions.reduce(function(sum, s) {
         return sum + subscriptionMonthlyTotal(s);
@@ -778,33 +1057,8 @@ function updateStats() {
     document.getElementById('stat-total').textContent = '€' + total.toFixed(2);
     document.getElementById('stat-count').textContent = subscriptions.length;
 
-    if (subscriptions.length === 0) {
-        document.getElementById('stat-next').textContent = '-';
-        document.getElementById('stat-next-amount').textContent = '';
-        document.getElementById('stat-next-name').textContent = FsT('fs.dashboard.empty_no_subscriptions') || '';
-        return;
-    }
-
-    var today = new Date();
-    today.setHours(0,0,0,0);
-
-    var upcoming = subscriptions
-        .map(function(s) { return { s: s, d: new Date(s.date) }; })
-        .filter(function(x) { return x.d >= today; })
-        .sort(function(a, b) { return a.d - b.d; });
-
-    if (upcoming.length > 0) {
-        var next = upcoming[0];
-        var pay = subscriptionMonthlyTotal(next.s);
-        document.getElementById('stat-next').textContent = formatDate(next.s.date);
-        document.getElementById('stat-next-amount').textContent = '€' + pay.toFixed(2);
-        document.getElementById('stat-next-name').textContent = next.s.name;
-    } else {
-        document.getElementById('stat-next').textContent = '-';
-        document.getElementById('stat-next-amount').textContent = '';
-        document.getElementById('stat-next-name').textContent =
-            FsT('fs.dashboard.empty_nothing_upcoming') || '';
-    }
+    renderNextPayStatsBlock();
+    renderDashboardCategoryBar();
 }
 
 /* ---- Free tier: neļaut atvērt „Pievienot” modāli pie limita ---- */
@@ -1005,7 +1259,10 @@ function modalSaveSetLabel(text) {
 function saveSubscription() {
     var name = document.getElementById('sub-name').value.trim();
     var amountRaw = document.getElementById('sub-amount').value.trim();
-    var amount = parseFloat(amountRaw);
+    var amount =
+        typeof parseDecimalAmountInput === 'function'
+            ? parseDecimalAmountInput(amountRaw)
+            : parseFloat(amountRaw);
     var period = document.getElementById('sub-period').value;
     var date = document.getElementById('sub-date').value;
     var note = document.getElementById('sub-note').value.trim();
@@ -1261,13 +1518,61 @@ function matchBrandVisualFromName(rawName) {
     return null;
 }
 
-function pickRandomSubscriptionIcon() {
-    loadVisualSuggestBootstrap();
+function fsIconHintSlotCount() {
+    var maxN = fsIconMaxSlotsForShellWidth(fsIconHintsShellInnerWidthPx());
+    return maxN <= 0 ? 1 : maxN;
+}
+
+/** Pirmā hintu rinda (pēc platuma) – no tās nejaušā izvēle pievienošanas modālī. */
+function fsIconVisibleHintPool(nameQueryNorm) {
     loadFsIconSearchBootstrap();
-    var icons = visualSuggestBootstrap.icons;
-    if (!icons || !icons.length) icons = fsIconFullOrderClsFromBootstrap();
-    if (!icons || !icons.length) return 'fa-solid fa-film';
-    return icons[Math.floor(Math.random() * icons.length)];
+    var candidates = fsIconCandidateClassesForHints(nameQueryNorm || '');
+    var maxN = fsIconHintSlotCount();
+    var pool = [];
+    var cap = Math.min(candidates.length, maxN);
+    for (var pi = 0; pi < cap; pi++) pool.push(candidates[pi]);
+    return pool;
+}
+
+function fsIconBuildHintRowClasses(candidates, maxN, pinnedCls) {
+    var out = [];
+    var seen = Object.create(null);
+    if (pinnedCls) {
+        out.push(pinnedCls);
+        seen[pinnedCls] = true;
+    }
+    for (var i = 0; i < candidates.length && out.length < maxN; i++) {
+        var c = candidates[i];
+        if (seen[c]) continue;
+        out.push(c);
+        seen[c] = true;
+    }
+    return out;
+}
+
+function syncIconPickerMoreToggle(totalCandidates, shownCount) {
+    var btn = document.getElementById('icon-picker-toggle');
+    var libHint = document.getElementById('icon-picker-library-hint');
+    var hasMore = totalCandidates > shownCount;
+    if (btn) btn.classList.toggle('hidden', !hasMore);
+    if (libHint) libHint.classList.toggle('hidden', !hasMore);
+}
+
+function pickRandomSubscriptionIcon() {
+    loadFsIconSearchBootstrap();
+    var nameEl = document.getElementById('sub-name');
+    var q = normalizeForSearchIco(nameEl ? nameEl.value : '');
+    var pool = fsIconVisibleHintPool(q);
+    if (!pool.length) {
+        loadVisualSuggestBootstrap();
+        var icons = visualSuggestBootstrap.icons;
+        if (!icons || !icons.length) icons = fsIconFullOrderClsFromBootstrap();
+        if (!icons || !icons.length) return 'fa-solid fa-film';
+        var capFb = Math.min(icons.length, fsIconHintSlotCount());
+        pool = icons.slice(0, capFb);
+    }
+    if (!pool.length) return 'fa-solid fa-film';
+    return pool[Math.floor(Math.random() * pool.length)];
 }
 
 function pickRandomSubscriptionColor() {
@@ -1463,16 +1768,20 @@ function renderIconPickerHints() {
     var q = normalizeForSearchIco(raw);
 
     var candidates = fsIconCandidateClassesForHints(q);
-    var wPx = fsIconHintsShellInnerWidthPx();
-    var maxN = fsIconMaxSlotsForShellWidth(wPx);
-    if (maxN <= 0) maxN = 1;
-    var trimmed = [];
-    var hi;
-    var cap = Math.min(candidates.length, maxN);
-    for (hi = 0; hi < cap; hi++) trimmed.push(candidates[hi]);
+    var maxN = fsIconHintSlotCount();
+    var trimmed = fsIconBuildHintRowClasses(candidates, maxN, selectedIcon || '');
+
+    if (editingId == null && !userPickedIcon && selectedIcon) {
+        var visiblePool = fsIconVisibleHintPool(q);
+        if (visiblePool.length && visiblePool.indexOf(selectedIcon) === -1) {
+            selectIcon(visiblePool[Math.floor(Math.random() * visiblePool.length)], true);
+            trimmed = fsIconBuildHintRowClasses(candidates, maxN, selectedIcon);
+        }
+    }
 
     host.innerHTML = fsIconBtnsHtml(trimmed);
     syncIconPickerHintMessage(false);
+    syncIconPickerMoreToggle(candidates.length, trimmed.length);
     selectIcon(selectedIcon, true);
 }
 
@@ -1708,7 +2017,7 @@ function addDeviceRow(data) {
         '"></div>' +
         '<div class="form-group"><label>' +
         escHtml(FsT('fs.dashboard.device_label_extra_amount')) +
-        '</label><input type="number" class="sub-device-amount" placeholder="0" step="0.01" min="0" value="' +
+        '</label><input type="text" class="sub-device-amount" inputmode="decimal" autocomplete="off" placeholder="0" value="' +
         escAttr(amountV) +
         '"></div>' +
             '<div class="form-row">' +
@@ -1740,7 +2049,10 @@ function collectDevicesFromForm() {
         var noteEl = row.querySelector('.sub-device-note');
         var note = noteEl ? noteEl.value.trim() : '';
         var amountRaw = row.querySelector('.sub-device-amount').value;
-        var amount = parseFloat(amountRaw);
+        var amount =
+            typeof parseDecimalAmountInput === 'function'
+                ? parseDecimalAmountInput(amountRaw)
+                : parseFloat(amountRaw);
         var ts = row.querySelector('.sub-device-ts').value.trim();
         var te = row.querySelector('.sub-device-te').value.trim();
         var hasAny =

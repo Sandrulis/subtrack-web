@@ -3660,10 +3660,15 @@ button.dash-exit {
         min-height: 0;
     }
 
-    .dashboard-next-pay-slot .stat-card--next-pay {
+    .dashboard-next-pay-slot .stat-card--next-pay,
+    .dashboard-next-pay-slot .stat-next-pay-grid {
         flex: 1;
         display: flex;
         flex-direction: column;
+    }
+
+    .dashboard-next-pay-slot .stat-next-pay-grid {
+        display: grid;
     }
 
     .dashboard-overview-main .dashboard-overview-calendar-col .dashboard-top-calendar {
@@ -4173,6 +4178,73 @@ button.dash-exit {
     min-height: 118px;
 }
 
+/* Nākamais maksājums: vairākas kolonnas (kavētie / šodien / nākamais) */
+.stat-next-pay-grid {
+    display: grid;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+}
+
+.stat-next-pay-grid--cols-1 {
+    grid-template-columns: 1fr;
+}
+
+.stat-next-pay-grid--cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stat-next-pay-grid--cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stat-next-pay-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    min-height: 118px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+.stat-next-pay-col--overdue {
+    background: var(--danger-light);
+    border-color: var(--danger);
+}
+
+.stat-next-pay-col--today {
+    background: #fffbeb;
+    border-color: var(--warning);
+}
+
+/* Kā „Aktīvie maksājumi” / pārējās stat kartes */
+.stat-next-pay-col--next {
+    background: var(--bg-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    gap: 6px;
+    transition: box-shadow 0.2s;
+}
+
+.stat-next-pay-col--next:hover {
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-next-pay-col--overdue .stat-label,
+.stat-next-pay-col--today .stat-label {
+    color: var(--text);
+}
+
+.stat-next-pay-col--overdue .stat-next-body,
+.stat-next-pay-col--today .stat-next-body,
+.stat-next-pay-col--next-compact .stat-next-body {
+    justify-content: flex-start;
+}
+
 .stat-value--next {
     /*
      * Datuma rinda „Nākamais maksājums”: tā paša izmēra kā kopējās summas .stat-value.
@@ -4220,6 +4292,106 @@ button.dash-exit {
 
 .section-header.section-header--subscriptions-list + .sub-list {
     margin-top: 0;
+}
+
+.section-header.section-header--subscriptions-list + .dashboard-category-bar {
+    margin-top: 0;
+}
+
+.section-header.section-header--subscriptions-list + .dashboard-category-bar + .sub-list {
+    margin-top: 14px;
+}
+
+/* Kategoriju sadalījums virs abonementu saraksta */
+.dashboard-category-bar {
+    margin-bottom: 4px;
+}
+
+.dashboard-category-bar-track {
+    display: flex;
+    width: 100%;
+    height: 12px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+}
+
+.dashboard-category-bar-seg {
+    height: 100%;
+    min-width: 3px;
+    transition: width 0.35s ease;
+}
+
+.dashboard-category-bar-seg:first-child {
+    border-radius: 999px 0 0 999px;
+}
+
+.dashboard-category-bar-seg:last-child {
+    border-radius: 0 999px 999px 0;
+}
+
+.dashboard-category-bar-seg:only-child {
+    border-radius: 999px;
+}
+
+.dashboard-category-bar-legend {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+}
+
+.dashboard-category-bar-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+.dashboard-category-bar-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.dashboard-category-bar-name {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.dashboard-category-bar-meta {
+    color: var(--text-muted);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* PC (pele): leģenda paslēpta, katra segmenta tooltip virs joslas */
+@media (hover: hover) and (pointer: fine) {
+    .dashboard-category-bar-legend {
+        display: none;
+    }
+
+    .dashboard-category-bar-track {
+        overflow: visible;
+    }
+
+    .dashboard-category-bar-seg[data-tooltip]::after {
+        top: auto;
+        bottom: calc(100% + 8px);
+    }
+}
+
+/* Mobilais / touch: leģenda zem joslas, bez hover tooltip */
+@media (hover: none), (pointer: coarse) {
+    .dashboard-category-bar-seg[data-tooltip]::after {
+        display: none !important;
+    }
 }
 
 .section-heading {
@@ -4421,6 +4593,50 @@ button.dash-exit {
 }
 
 .sub-item:hover .sub-actions { opacity: 1; }
+
+/* Abonementu saraksts: darbību pogas (klusas, ne piesātinātas) */
+.sub-actions .icon-btn:not(.delete):not(.mark-paid) {
+    color: #5b7cb8;
+}
+
+.sub-actions .icon-btn:not(.delete):not(.mark-paid):hover:not(:disabled) {
+    background: #f1f5fb;
+    color: #4a6fa5;
+}
+
+.sub-actions .icon-btn.delete {
+    color: #c96a6a;
+}
+
+.sub-actions .icon-btn.delete:hover:not(:disabled):not(.delete--pending) {
+    background: #faf5f5;
+    color: #b85c5c;
+}
+
+.sub-actions .icon-btn.delete.delete--pending:hover {
+    background: transparent;
+    color: #c96a6a;
+}
+
+.sub-actions .icon-btn.mark-paid {
+    background: #edf7f1;
+    color: #3d8f6e;
+}
+
+.sub-actions .icon-btn.mark-paid:hover:not(:disabled):not(.mark-paid--pending) {
+    background: #e3f2ea;
+    color: #358063;
+}
+
+.sub-actions .icon-btn.mark-paid .mark-paid-spinner {
+    border-color: rgba(61, 143, 110, 0.2);
+    border-top-color: #3d8f6e;
+}
+
+.sub-actions .icon-btn.mark-paid.mark-paid--pending:hover {
+    background: #edf7f1;
+    color: #3d8f6e;
+}
 
 /* Kredīts / atmaksas termiņš - progress */
 .sub-term-block {
@@ -5290,6 +5506,10 @@ html.subtrack-modal-open body {
     .stat-card {
         padding: 16px 14px;
         min-width: 0;
+    }
+
+    .stat-next-pay-col--next {
+        padding: 16px 14px;
     }
 
     .stat-label {
@@ -7382,8 +7602,14 @@ html.subtrack-modal-open body {
         padding-top: 0;
     }
 
-    .app-layout .dashboard-overview-next-slot .stat-card--next-pay {
+    .app-layout .dashboard-overview-next-slot .stat-card--next-pay,
+    .app-layout .dashboard-overview-next-slot .stat-next-pay-grid {
         flex: none;
         min-height: 0;
+    }
+
+    .stat-next-pay-grid--cols-2,
+    .stat-next-pay-grid--cols-3 {
+        grid-template-columns: 1fr;
     }
 }
