@@ -15,7 +15,10 @@
         }
         var bag = global.__SUBTRACK_FS_I18N;
         if (bag && typeof bag[key] === 'string' && bag[key]) return bag[key];
-        return 'Vai tiešām vēlaties aizvērt šo logu?';
+        if (key === DEFAULT_KEY) {
+            return 'Nesaglabātie dati var tikt zaudēti.';
+        }
+        return '';
     }
 
     function requestBackdropCloseConfirm(message) {
