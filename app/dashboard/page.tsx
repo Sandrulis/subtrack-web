@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { FsI18nBootstrap } from "@/components/fs/fs-i18n-bootstrap";
 import { DashboardFsView } from "@/components/fs/dashboard-fs-view";
 import { getSessionUserDisplay } from "@/lib/auth/user-display";
-import { fetchSubscriptionsForSession } from "@/lib/subscriptions/fetch-subscriptions-server";
+import { fetchDashboardSubscriptionsWithFamilyShare } from "@/lib/family-sharing/family-sharing-server";
 import { fetchPaidCalendarDaysForSession } from "@/lib/subscriptions/fetch-paid-calendar-server";
 import {
   buildDashboardFreeTierGatePayload,
@@ -23,13 +23,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DashboardPage() {
-  const [userDisplay, initialSubscriptions, initialPaidCalendarDays, paidPlanLive] =
+  const [userDisplay, subsBundle, initialPaidCalendarDays, paidPlanLive] =
     await Promise.all([
       getSessionUserDisplay(),
-      fetchSubscriptionsForSession(),
+      fetchDashboardSubscriptionsWithFamilyShare(),
       fetchPaidCalendarDaysForSession(),
       fetchSystemPaidPlanLiveForDashboard(),
     ]);
+  const initialSubscriptions = subsBundle.subscriptions;
+  const familySharingBootstrap = subsBundle.familyBootstrap;
   const freeTierGate = buildDashboardFreeTierGatePayload(userDisplay, paidPlanLive);
   const { locale } = await resolveRequestUiLocales();
   const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
@@ -42,6 +44,7 @@ export default async function DashboardPage() {
         userDisplay={userDisplay}
         initialSubscriptions={initialSubscriptions}
         initialPaidCalendarDays={initialPaidCalendarDays}
+        familySharingBootstrap={familySharingBootstrap}
         freeTierGate={freeTierGate}
       />
     </>

@@ -44,6 +44,8 @@ async function afterIntegrationsMutation() {
   revalidatePath("/admin/integrations");
   revalidatePath("/login");
   revalidatePath("/signup");
+  revalidatePath("/dashboard");
+  revalidatePath("/family-sharing");
 }
 
 export async function createIntegrationAction(

@@ -272,6 +272,9 @@ function subtrackReloadSubscriptionsFromBootstrap() {
                 if (o.date) o.date = normalizeSubscriptionDateIso(o.date);
                 return o;
             });
+            if (typeof window.subtrackRefreshFamilySharedCache === 'function') {
+                window.subtrackRefreshFamilySharedCache();
+            }
         }
     } catch (ignore) {}
 }
@@ -520,6 +523,9 @@ function subtrackSyncSubscriptionsFromApi() {
                     if (o.date) o.date = normalizeSubscriptionDateIso(o.date);
                     return o;
                 });
+                if (typeof window.subtrackMergeFamilySharedIntoSubscriptions === 'function') {
+                    window.subtrackMergeFamilySharedIntoSubscriptions();
+                }
                 subtrackMarkSubsSyncedFromApi();
             }
             if (data && data.paidCalendarDays && typeof subtrackSetPaidCalendarDays === 'function') {

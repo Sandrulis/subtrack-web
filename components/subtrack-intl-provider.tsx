@@ -16,6 +16,10 @@ import {
 } from "react";
 import type { LanguageOption } from "@/lib/languages-catalog";
 
+export type SubtrackIntegrationFlags = {
+  familySharingEnabled: boolean;
+};
+
 type SubtrackIntlCtx = {
   locale: string;
   /** `public.system_settings.system_name` (bez vietturiem; zīmolam un vietturu aizpildei tulkošanā). */
@@ -25,6 +29,7 @@ type SubtrackIntlCtx = {
   /** Maksas plāna pitch no `system_settings` (cena, limits, ieslēgšana). */
   paidPlan: SubtrackPublicPaidPlan;
   pwa: PublicPwaSettings;
+  integrations: SubtrackIntegrationFlags;
   /** Valodu izvēlne globālajam slēdzim (no `public.languages`). */
   languageOptions: LanguageOption[];
   t: (key: string) => string;
@@ -42,6 +47,7 @@ const SubtrackIntlReactContext = createContext<SubtrackIntlCtx>({
   brandLogo: null,
   paidPlan: PAID_PLAN_CTX_DEFAULT,
   pwa: normalizePwaRow(null, DEFAULT_SYSTEM_NAME),
+  integrations: { familySharingEnabled: false },
   languageOptions: [],
   t: (k) => k,
 });
@@ -52,6 +58,7 @@ export function SubtrackIntlProvider({
   brandLogo: brandLogoProp,
   paidPlan,
   pwa: pwaProp,
+  integrations: integrationsProp,
   languageOptions = [],
   dbMap,
   children,
@@ -61,6 +68,7 @@ export function SubtrackIntlProvider({
   brandLogo?: PublicBrandLogoAssets | null;
   paidPlan?: SubtrackPublicPaidPlan | null;
   pwa?: PublicPwaSettings | null;
+  integrations?: SubtrackIntegrationFlags | null;
   languageOptions?: LanguageOption[];
   dbMap: Record<string, string>;
   children: ReactNode;
@@ -70,6 +78,7 @@ export function SubtrackIntlProvider({
   const brandLogo = brandLogoProp ?? null;
   const plan = paidPlan ?? PAID_PLAN_CTX_DEFAULT;
   const pwa = pwaProp ?? normalizePwaRow(null, brand);
+  const integrations = integrationsProp ?? { familySharingEnabled: false };
 
   const t = useCallback(
     (key: string) => {
@@ -95,10 +104,11 @@ export function SubtrackIntlProvider({
       brandLogo,
       paidPlan: plan,
       pwa,
+      integrations,
       languageOptions: langs,
       t,
     }),
-    [brand, brandLogo, lc, langs, plan, pwa, t],
+    [brand, brandLogo, integrations, lc, langs, plan, pwa, t],
   );
 
   return (

@@ -8190,3 +8190,212 @@ html.subtrack-modal-open body {
         transform: none;
     }
 }
+
+/* ---- Family sharing (platums kā analītika: .main-content) ---- */
+.family-sharing-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+.family-sharing-card--invite {
+    grid-column: 1 / -1;
+}
+
+.family-sharing-invite-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 4px;
+}
+
+.family-sharing-invite-form .form-group {
+    margin-bottom: 16px;
+}
+
+.family-sharing-invite-actions {
+    margin-top: 4px;
+}
+
+.family-sharing-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 4px;
+}
+
+.family-sharing-section-block {
+    padding-top: 28px;
+    margin-top: 28px;
+    border-top: 1px solid var(--border);
+}
+
+.family-sharing-section-block:first-child {
+    padding-top: 0;
+    margin-top: 0;
+    border-top: none;
+}
+
+.family-sharing-section-block-header {
+    margin-bottom: 16px;
+}
+
+.family-sharing-links-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.family-sharing-empty-card {
+    padding: 20px 24px;
+    min-height: 0;
+}
+
+.family-sharing-empty-text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.family-sharing-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.family-sharing-list--in-card {
+    margin-top: 8px;
+}
+
+.family-sharing-card.stat-card {
+    gap: 12px;
+    min-width: 0;
+}
+
+
+.family-sharing-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.family-sharing-card-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.family-sharing-card-meta {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.family-sharing-status {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.family-sharing-field {
+    margin-bottom: 12px;
+}
+
+.family-sharing-field--row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.family-sharing-field-label-inline {
+    display: block;
+    margin-bottom: 0;
+}
+
+.family-sharing-field-hint {
+    margin-top: 6px;
+}
+
+.family-sharing-card .form-group {
+    margin-bottom: 14px;
+}
+
+.family-sharing-card .form-group:last-of-type {
+    margin-bottom: 0;
+}
+
+.family-sharing-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+@media (max-width: 640px) {
+    .family-sharing-grid,
+    .family-sharing-links-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.sub-item--family-shared {
+    border-radius: 12px;
+}
+
+.sub-family-share-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--muted, #64748b);
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(100, 116, 139, 0.12);
+}
+
+.stat-card--total {
+    position: relative;
+}
+
+.stat-value-row {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.stat-total-combined-mark {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary, #00a38d);
+    line-height: 1;
+}
+
+.stat-total-combined-hint {
+    margin: 4px 0 0;
+    font-size: 0.75rem;
+    color: var(--muted, #64748b);
+}
+
+.stat-own-only {
+    position: absolute;
+    right: 14px;
+    bottom: 12px;
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--muted, #64748b);
+    text-align: right;
+}
+
+.pay-cal-cell--family-shared.pay-cal-cell--due {
+    box-shadow: inset 0 0 0 2px var(--pay-cal-family-color, #f59e0b);
+}

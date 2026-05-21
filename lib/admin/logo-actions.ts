@@ -4,8 +4,10 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { BRAND_STORAGE_FILES } from "@/lib/brand/logo-assets";
 import { processLogoUpload } from "@/lib/brand/process-logo";
 import { requireAdminUser } from "@/lib/auth/require-admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type LogoActionResult =
   | { ok: true; revision: number }
@@ -19,15 +21,35 @@ async function afterLogoMutation() {
   revalidatePath("/settings");
 }
 
-async function getLogoStorageClient() {
-  const storage = createServiceRoleSupabaseClient();
-  if (!storage) {
-    return {
-      ok: false as const,
-      message: await getUiPhraseForRequest("admin.forms.logo_err_service_role"),
-    };
+type LogoStorageClient =
+  | { ok: true; supabase: SupabaseClient; usedServiceRole: boolean }
+  | { ok: false; message: string };
+
+async function getLogoStorageClient(): Promise<LogoStorageClient> {
+  const service = createServiceRoleSupabaseClient();
+  if (service) {
+    return { ok: true, supabase: service, usedServiceRole: true };
   }
-  return { ok: true as const, storage };
+  const session = await createServerSupabaseClient();
+  return { ok: true, supabase: session, usedServiceRole: false };
+}
+
+async function storageErrorHint(
+  message: string,
+  usedServiceRole: boolean,
+): Promise<string> {
+  if (/bucket/i.test(message)) {
+    return " Palaid `database/supabase/072_brand_storage.sql`.";
+  }
+  if (/policy|permission|denied|403|42501|row-level security/i.test(message)) {
+    if (!usedServiceRole) {
+      const roleHint = await getUiPhraseForRequest("admin.forms.logo_err_service_role");
+      const policyHint = await getUiPhraseForRequest("admin.forms.logo_err_storage_policy");
+      return `${roleHint}${policyHint}`;
+    }
+    return await getUiPhraseForRequest("admin.forms.logo_err_storage_policy");
+  }
+  return "";
 }
 
 export async function uploadSystemLogoAction(formData: FormData): Promise<LogoActionResult> {
@@ -47,7 +69,7 @@ export async function uploadSystemLogoAction(formData: FormData): Promise<LogoAc
   if (!client.ok) {
     return { ok: false, message: client.message };
   }
-  const supabase = client.storage;
+  const { supabase, usedServiceRole } = client;
 
   for (const item of processed.files) {
     const { error } = await supabase.storage.from("brand").upload(item.filename, item.buffer, {
@@ -56,10 +78,8 @@ export async function uploadSystemLogoAction(formData: FormData): Promise<LogoAc
       cacheControl: "31536000",
     });
     if (error) {
-      const bucketHint = /bucket/i.test(error.message)
-        ? " Palaid `database/supabase/072_brand_storage.sql`."
-        : "";
-      return { ok: false, message: `${error.message}${bucketHint}` };
+      const hint = await storageErrorHint(error.message, usedServiceRole);
+      return { ok: false, message: `${error.message}${hint}` };
     }
   }
 
@@ -88,7 +108,8 @@ export async function uploadSystemLogoAction(formData: FormData): Promise<LogoAc
     .eq("id", 1);
 
   if (updateErr) {
-    return { ok: false, message: updateErr.message };
+    const hint = await storageErrorHint(updateErr.message, usedServiceRole);
+    return { ok: false, message: `${updateErr.message}${hint}` };
   }
 
   await afterLogoMutation();
@@ -102,10 +123,14 @@ export async function removeSystemLogoAction(): Promise<LogoActionResult> {
   if (!client.ok) {
     return { ok: false, message: client.message };
   }
-  const supabase = client.storage;
+  const { supabase, usedServiceRole } = client;
 
   const paths = [...BRAND_STORAGE_FILES];
-  await supabase.storage.from("brand").remove(paths);
+  const { error: removeErr } = await supabase.storage.from("brand").remove(paths);
+  if (removeErr) {
+    const hint = await storageErrorHint(removeErr.message, usedServiceRole);
+    return { ok: false, message: `${removeErr.message}${hint}` };
+  }
 
   const { error } = await supabase
     .from("system_settings")
@@ -116,7 +141,8 @@ export async function removeSystemLogoAction(): Promise<LogoActionResult> {
     const colHint = /logo_revision/i.test(error.message)
       ? " Palaid `database/supabase/071_system_settings_logo.sql`."
       : "";
-    return { ok: false, message: `${error.message}${colHint}` };
+    const hint = await storageErrorHint(error.message, usedServiceRole);
+    return { ok: false, message: `${error.message}${colHint}${hint}` };
   }
 
   await afterLogoMutation();

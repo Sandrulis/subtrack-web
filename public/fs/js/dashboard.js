@@ -12,12 +12,103 @@ var editingId = null;
 var deletingId = null;
 var amountEditId = null;
 var calendarView = null;
+/** Kopīgotie ieraksti no SSR bootstrap – saglabāti pēc API sinhronizācijas. */
+var subtrackCachedFamilySharedSubs = [];
+
+/* ---- Family sharing (bootstrap no #subtrack-family-sharing-bootstrap-json) ---- */
+function subtrackReadFamilySharingBootstrap() {
+    var raw =
+        typeof subtrackReadBootstrapJsonTextById === 'function'
+            ? subtrackReadBootstrapJsonTextById('subtrack-family-sharing-bootstrap-json')
+            : '';
+    if (!raw) return { enabled: false, links: [] };
+    try {
+        var parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return { enabled: false, links: [] };
+        return {
+            enabled: parsed.enabled === true,
+            links: Array.isArray(parsed.links) ? parsed.links : [],
+        };
+    } catch (e) {
+        return { enabled: false, links: [] };
+    }
+}
+
+function subtrackSubscriptionIsShared(s) {
+    return !!(s && s.familyShare && s.familyShare.partnerUserId);
+}
+
+function subtrackFamilySharingCombineActive() {
+    var boot = subtrackReadFamilySharingBootstrap();
+    if (!boot.enabled || !boot.links || !boot.links.length) return false;
+    for (var i = 0; i < boot.links.length; i++) {
+        var l = boot.links[i];
+        if (!l.isIncoming && l.status === 'active' && l.combineInTotals === true) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function subtrackSubscriptionsForStatsList() {
+    if (!subtrackFamilySharingCombineActive()) {
+        return subscriptions.filter(function (s) {
+            return !subtrackSubscriptionIsShared(s);
+        });
+    }
+    return subscriptions.slice();
+}
+
+function subtrackSubscriptionsOwnOnly() {
+    return subscriptions.filter(function (s) {
+        return !subtrackSubscriptionIsShared(s);
+    });
+}
+
+function subtrackRefreshFamilySharedCache() {
+    subtrackCachedFamilySharedSubs = subscriptions.filter(function (s) {
+        return subtrackSubscriptionIsShared(s);
+    });
+}
+
+function subtrackMergeFamilySharedIntoSubscriptions() {
+    var own = subscriptions.filter(function (s) {
+        return !subtrackSubscriptionIsShared(s);
+    });
+    if (subtrackCachedFamilySharedSubs.length) {
+        subscriptions = own.concat(subtrackCachedFamilySharedSubs);
+    } else {
+        subscriptions = own;
+    }
+}
+
+function subtrackFamilySharingTintCss(hex) {
+    var h = String(hex || '#f59e0b').trim();
+    if (h.length === 4 && h.charAt(0) === '#') {
+        h =
+            '#' +
+            h.charAt(1) +
+            h.charAt(1) +
+            h.charAt(2) +
+            h.charAt(2) +
+            h.charAt(3) +
+            h.charAt(3);
+    }
+    var r = parseInt(h.slice(1, 3), 16);
+    var g = parseInt(h.slice(3, 5), 16);
+    var b = parseInt(h.slice(5, 7), 16);
+    if (!isFinite(r) || !isFinite(g) || !isFinite(b)) {
+        return 'rgba(245, 158, 11, 0.12)';
+    }
+    return 'rgba(' + r + ',' + g + ',' + b + ',0.14)';
+}
 
 /* ---- Init ----
  * Paneļa skripti tiek ielādēti pēc React mount (FsScripts); DOMContentLoaded
  * šajā brīdī jau ir noticis – inicializāciju jāpalaiž arī tad.
  */
 function continueDashboardBoot() {
+    subtrackRefreshFamilySharedCache();
     setDefaultDate();
     renderList();
     initCalendarNav();
@@ -41,6 +132,8 @@ function fsBootDashboard() {
 }
 
 window.fsBootDashboard = fsBootDashboard;
+window.subtrackRefreshFamilySharedCache = subtrackRefreshFamilySharedCache;
+window.subtrackMergeFamilySharedIntoSubscriptions = subtrackMergeFamilySharedIntoSubscriptions;
 
 /* ---- Render ---- */
 function renderList(scrollToItemId) {
@@ -412,6 +505,16 @@ function renderPaymentCalendar() {
         }
 
         var list = payMap[iso];
+        var familyCalColor = null;
+        if (list && list.length) {
+            for (var fci = 0; fci < list.length; fci++) {
+                var fsub = list[fci];
+                if (subtrackSubscriptionIsShared(fsub) && fsub.familyShare && fsub.familyShare.tintColor) {
+                    familyCalColor = fsub.familyShare.tintColor;
+                    break;
+                }
+            }
+        }
         var paidMarkCount = paidPastMap[iso] ? paidPastMap[iso] : 0;
         var showPaidOnDue =
             includePaidMarks && paidMarkCount > 0 && list && list.length > 0;
@@ -421,6 +524,9 @@ function renderPaymentCalendar() {
         var attrs = '';
         if (list && list.length) {
             classes.push('pay-cal-cell--due');
+            if (familyCalColor) {
+                classes.push('pay-cal-cell--family-shared');
+            }
             if (showPaidOnDue) {
                 classes.push('pay-cal-cell--due-with-paid');
             }
@@ -453,6 +559,10 @@ function renderPaymentCalendar() {
                 }
             }
             attrs = ' data-tooltip="' + escAttr(tipParts.join('; ')) + '" tabindex="0"';
+            if (familyCalColor) {
+                attrs +=
+                    ' style="--pay-cal-family-color:' + escAttr(familyCalColor) + ';"';
+            }
         } else if (showPaidPastOnly) {
             classes.push('pay-cal-cell--paid-past');
             var tipPaid =
@@ -843,7 +953,65 @@ function buildItem(s) {
               '"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span>'
             : '';
 
-    return '<div class="sub-item" id="item-' + s.id + '">' +
+    var isShared = subtrackSubscriptionIsShared(s);
+    var sharedBadge = '';
+    var itemStyle = '';
+    var itemExtraClass = '';
+    if (isShared && s.familyShare) {
+        itemExtraClass = ' sub-item--family-shared';
+        itemStyle =
+            ' style="background:' +
+            escAttr(subtrackFamilySharingTintCss(s.familyShare.tintColor)) +
+            ';"';
+        var sharedLbl = FsT('family_sharing.badge_shared') || 'Shared';
+        var partnerName = escHtml(s.familyShare.partnerLabel || '');
+        sharedBadge =
+            '<span class="sub-family-share-badge" title="' +
+            escAttr(partnerName) +
+            '">' +
+            escHtml(sharedLbl) +
+            (partnerName ? ' · ' + partnerName : '') +
+            '</span>';
+    }
+
+    var billingActions =
+        !isShared && billingActive
+            ? '<button type="button" class="icon-btn mark-paid" data-subscription-id="' +
+              escAttr(String(s.id)) +
+              '" data-tooltip="' +
+              escAttr(FsT('fs.dashboard.tooltip_mark_paid')) +
+              '" aria-label="' +
+              escAttr(FsT('fs.dashboard.aria_mark_paid')) +
+              '" onclick=\'markPaid(' +
+              JSON.stringify(String(s.id)) +
+              ')\'>' +
+              subtrackMarkPaidButtonInnerHtml() +
+              '</button>'
+            : '';
+
+    var editDeleteActions = isShared
+        ? ''
+        : changeAmountBtn +
+          '<button type="button" class="icon-btn" data-tooltip="' +
+          escAttr(FsT('fs.dashboard.tooltip_edit')) +
+          '" aria-label="' +
+          escAttr(FsT('fs.dashboard.aria_edit')) +
+          '" onclick=\'openEditModal(' +
+          JSON.stringify(String(s.id)) +
+          ')\'><i class="fa-solid fa-pen"></i></button>' +
+          '<button type="button" class="icon-btn delete" data-subscription-id="' +
+          escAttr(String(s.id)) +
+          '" data-tooltip="' +
+          escAttr(FsT('fs.dashboard.tooltip_delete')) +
+          '" aria-label="' +
+          escAttr(FsT('fs.dashboard.aria_delete')) +
+          '" onclick=\'openDeleteModal(' +
+          JSON.stringify(String(s.id)) +
+          ')\'>' +
+          subtrackDeleteButtonInnerHtml() +
+          '</button>';
+
+    return '<div class="sub-item' + itemExtraClass + '" id="item-' + s.id + '"' + itemStyle + '>' +
         '<div class="sub-item-top">' +
             '<div class="sub-icon-col">' +
                 '<span class="sub-icon-bg">' +
@@ -855,6 +1023,7 @@ function buildItem(s) {
                     '<span class="sub-name">' +
                     escHtml((s.name && String(s.name).trim()) ? String(s.name).trim() : (FsT('fs.dashboard.list_untitled') || '-')) +
                     '</span>' +
+                    sharedBadge +
                     dynamicAmountBadge +
                     (s.note ? '<span class="sub-note-inline">' + escHtml(s.note) + '</span>' : '') +
                     '<span class="sub-category-pill">' + escHtml(categoryLabel(s.category)) + '</span>' +
@@ -872,38 +1041,8 @@ function buildItem(s) {
                 '</div>' +
                 '<div class="sub-right">' +
                     '<div class="sub-actions">' +
-                    (billingActive
-                        ? '<button type="button" class="icon-btn mark-paid" data-subscription-id="' +
-                          escAttr(String(s.id)) +
-                          '" data-tooltip="' +
-                          escAttr(FsT('fs.dashboard.tooltip_mark_paid')) +
-                          '" aria-label="' +
-                          escAttr(FsT('fs.dashboard.aria_mark_paid')) +
-                          '" onclick=\'markPaid(' +
-                          JSON.stringify(String(s.id)) +
-                          ')\'>' +
-                          subtrackMarkPaidButtonInnerHtml() +
-                          '</button>'
-                        : '') +
-                        changeAmountBtn +
-                        '<button type="button" class="icon-btn" data-tooltip="' +
-                        escAttr(FsT('fs.dashboard.tooltip_edit')) +
-                        '" aria-label="' +
-                        escAttr(FsT('fs.dashboard.aria_edit')) +
-                        '" onclick=\'openEditModal(' +
-                        JSON.stringify(String(s.id)) +
-                        ')\'><i class="fa-solid fa-pen"></i></button>' +
-                        '<button type="button" class="icon-btn delete" data-subscription-id="' +
-                        escAttr(String(s.id)) +
-                        '" data-tooltip="' +
-                        escAttr(FsT('fs.dashboard.tooltip_delete')) +
-                        '" aria-label="' +
-                        escAttr(FsT('fs.dashboard.aria_delete')) +
-                        '" onclick=\'openDeleteModal(' +
-                        JSON.stringify(String(s.id)) +
-                        ')\'>' +
-                        subtrackDeleteButtonInnerHtml() +
-                        '</button>' +
+                    billingActions +
+                    editDeleteActions +
                     '</div>' +
                     '<div class="sub-amount-wrap">' +
                         amountMainHtml +
@@ -932,6 +1071,7 @@ function markPaid(id) {
     });
     if (idx === -1) return;
     var s = subscriptions[idx];
+    if (subtrackSubscriptionIsShared(s)) return;
     if (typeof isSubscriptionDueActive === 'function' && !isSubscriptionDueActive(s)) {
         return;
     }
@@ -1012,7 +1152,7 @@ function renderDashboardCategoryBar() {
     if (!host) return;
 
     var byCat = {};
-    subscriptions.forEach(function (s) {
+    subtrackSubscriptionsForStatsList().forEach(function (s) {
         var k = normalizeCategoryKey(s.category);
         if (!byCat[k]) byCat[k] = 0;
         byCat[k] += subscriptionMonthlyTotal(s);
@@ -1107,7 +1247,7 @@ function partitionSubscriptionsForNextPayStats() {
     var dueToday = [];
     var future = [];
 
-    subscriptions.forEach(function (s) {
+    subtrackSubscriptionsForStatsList().forEach(function (s) {
         if (typeof isSubscriptionDueActive === 'function' && !isSubscriptionDueActive(s, today)) {
             return;
         }
@@ -1268,12 +1408,52 @@ function renderNextPayStatsBlock() {
 }
 
 function updateStats() {
-    var total = subscriptions.reduce(function(sum, s) {
+    var statsList = subtrackSubscriptionsForStatsList();
+    var ownList = subtrackSubscriptionsOwnOnly();
+    var combineOn = subtrackFamilySharingCombineActive();
+
+    var total = statsList.reduce(function (sum, s) {
+        return sum + subscriptionMonthlyTotal(s);
+    }, 0);
+    var ownTotal = ownList.reduce(function (sum, s) {
         return sum + subscriptionMonthlyTotal(s);
     }, 0);
 
-    document.getElementById('stat-total').textContent = '€' + total.toFixed(2);
-    document.getElementById('stat-count').textContent = subscriptions.length;
+    var totalEl = document.getElementById('stat-total');
+    if (totalEl) totalEl.textContent = '€' + total.toFixed(2);
+
+    var markEl = document.getElementById('stat-total-combined-mark');
+    if (markEl) {
+        if (combineOn) markEl.classList.remove('hidden');
+        else markEl.classList.add('hidden');
+    }
+
+    var hintEl = document.getElementById('stat-total-combined-hint');
+    if (hintEl) {
+        if (combineOn) {
+            var hintTxt = FsT('fs.dashboard.stat_total_combined_hint') || '';
+            hintEl.textContent = hintTxt;
+            hintEl.classList.remove('hidden');
+        } else {
+            hintEl.textContent = '';
+            hintEl.classList.add('hidden');
+        }
+    }
+
+    var ownEl = document.getElementById('stat-own-only');
+    if (ownEl) {
+        if (combineOn) {
+            var ownLbl = FsT('fs.dashboard.stat_own_only_label') || '';
+            ownEl.textContent = ownLbl + ': €' + ownTotal.toFixed(2);
+            ownEl.classList.remove('hidden');
+        } else {
+            ownEl.textContent = '';
+            ownEl.classList.add('hidden');
+        }
+    }
+
+    var countEl = document.getElementById('stat-count');
+    if (countEl) countEl.textContent = String(subscriptions.length);
 
     renderNextPayStatsBlock();
     renderDashboardCategoryBar();

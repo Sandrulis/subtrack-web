@@ -12,7 +12,8 @@ import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { getFsIconPickerSearchBootstrap } from "@/lib/fs-icon-picker-search";
 import { getSubscriptionVisualSuggestBootstrap } from "@/lib/subscription-visual-suggest";
 import { FA_ICONS_ALL, FS_COLOR_DOTS } from "@/lib/fs-icons";
-import type { SubscriptionClient } from "@/lib/subscriptions/subscription-client";
+import type { FamilySharingDashboardBootstrap } from "@/lib/family-sharing/family-sharing-types";
+import type { SubscriptionWithFamilyShare } from "@/lib/family-sharing/family-sharing-types";
 import type { DashboardFreeTierGatePayload } from "@/lib/subscriptions/dashboard-free-tier-gate";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { SubtrackTooltip } from "@/components/subtrack-tooltip";
@@ -30,12 +31,14 @@ export function DashboardFsView({
   userDisplay,
   initialSubscriptions,
   initialPaidCalendarDays = {},
+  familySharingBootstrap = { enabled: false, links: [] },
   freeTierGate,
   demoMode = false,
 }: {
   userDisplay?: NavUserDisplay | null;
-  initialSubscriptions: SubscriptionClient[];
+  initialSubscriptions: SubscriptionWithFamilyShare[];
   initialPaidCalendarDays?: Record<string, number>;
+  familySharingBootstrap?: FamilySharingDashboardBootstrap;
   freeTierGate: DashboardFreeTierGatePayload;
   /** Publiskais `/demo/dashboard`: bez API, navigācija paliek demo maršrutos. */
   demoMode?: boolean;
@@ -110,6 +113,14 @@ export function DashboardFsView({
           __html: JSON.stringify(freeTierGate).replace(/</g, "\\u003c"),
         }}
       />
+      {!demoMode ? (
+        <template
+          id="subtrack-family-sharing-bootstrap-json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(familySharingBootstrap).replace(/</g, "\\u003c"),
+          }}
+        />
+      ) : null}
       <div className="app-layout app-layout-stacked">
         <NavDash
           active="dashboard"
@@ -246,12 +257,26 @@ export function DashboardFsView({
                 </div>
 
                 <div className="dashboard-overview-stats-row">
-                  <div className="stat-card">
+                  <div className="stat-card stat-card--total">
                     <div className="stat-label">{t("landing.mock.stat_total_label")}</div>
-                    <div className="stat-value" id="stat-total">
-                      €0.00
+                    <div className="stat-value-row">
+                      <div className="stat-value" id="stat-total">
+                        €0.00
+                      </div>
+                      <span
+                        id="stat-total-combined-mark"
+                        className="stat-total-combined-mark hidden"
+                        aria-hidden="true"
+                      >
+                        *
+                      </span>
                     </div>
                     <div className="stat-note">{t("landing.mock.stat_total_note")}</div>
+                    <p
+                      id="stat-total-combined-hint"
+                      className="stat-total-combined-hint hidden"
+                    />
+                    <p id="stat-own-only" className="stat-own-only hidden" />
                   </div>
                   <div className="stat-card">
                     <div className="stat-label">{t("landing.mock.stat_active_label")}</div>

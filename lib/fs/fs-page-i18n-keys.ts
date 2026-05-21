@@ -93,6 +93,9 @@ export const FS_DASHBOARD_DEMO_EXTRA_KEYS = [
   "fs.dashboard.cal_toggle_all_payments_label",
   "fs.dashboard.cal_toggle_all_payments_hint",
   "api.subscriptions.free_tier_limit",
+  "family_sharing.badge_shared",
+  "fs.dashboard.stat_total_combined_hint",
+  "fs.dashboard.stat_own_only_label",
 ] as const;
 
 /** Tikai augšējās joslas paziņojumi (`dash-alerts.js` + `formatOverdueLabel`), ja nav pilnā paneļa bootstrap. Ietver arī „atzīmēt samaksāts” un toast tekstu vienam maksājumam. */
