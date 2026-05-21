@@ -106,6 +106,40 @@ Datums: 2026-05-21 (LOW sesija).
 
 
 
+### Family sharing (`/family-sharing`, `084`–`091`) – pārbaude 2026-05-21
+
+
+
+| L2 punkts | Status | Piezīme |
+
+|-----------|--------|---------|
+
+| 1. RLS `WITH CHECK` | **OK** | `092`: owner UPDATE sadalīts (pending/active meta, revoke); trigger `family_sharing_links_guard_update` bloķē `pending`→`active` bez partnera, `partner_user_id`/`invite_email` maiņu, owner→`partner_tint_color`. Partner (088/087/090), accept (089). **`subscriptions`**: SELECT tikai `active` (086). |
+
+| 2. Server Actions `requireAdminUser` | **N/A** | Nav admin Server Actions; integrācija tikai admin panelī (`integrations`). |
+
+| 3. API `getUser()` + autorizācija | **OK** | `GET`/`POST` `app/api/family-sharing/route.ts`, `PATCH` `[id]/route.ts` – `requireSessionUser()` + `getUser()`. `PATCH`: UUID validācija, loma (owner/partner), pending/active; accept/decline/leave/revoke ar papildu pārbaudēm pirms `service_role` UPDATE. `POST` INSERT ar sesijas klientu (`owner_user_id` no sesijas). Brīdinājums regresijas skriptā par `user_id` – paredzēts (entitāte `family_sharing_links`, ne `subscriptions`). |
+
+| 4. E-pasta šabloni | **N/A** | Nav `system_settings.email_templates`. |
+
+| 5. Middleware / maršruts | **LABOTS** | Bija tikai lapas `redirect` uz login; **`/family-sharing`** pievienots `PROTECTED_PREFIXES` (`lib/supabase/middleware.ts`). Integrācija izslēgta → `redirect /dashboard` (lapa). |
+
+| 6. `service_role` | **OK (serverī)** | Tikai `lookupUserIdByEmail` (POST), state `PATCH` (accept/decline/revoke/leave). Nav `NEXT_PUBLIC_`, nav client komponentēs. |
+
+| 7. Datu noplūde / enumerācija | **OK** | Kopīgie `subscriptions` tikai caur RLS + read-only fetch. POST uzaicinājumam: **`family_sharing.err_invite_failed`** (400), ne `404` / `err_not_found` – neatsklāj, vai e-pasts reģistrēts. |
+
+| 8. FS XSS | **OK** | `family-sharing-view`: `JSON.stringify` + `\\u003c` bootstrap; nav `innerHTML` ar lietotāja tekstu. `dash-alerts.js` – `escHtml`/`escAttr`. |
+
+
+
+**SQL secība:** `084` → `093` (ieskaitot **`093`** SELECT RLS active uzaicinātajam, **`092`** RLS + trigger).
+
+
+
+**Pirms produkcijas:** `SUPABASE_SERVICE_ROLE_KEY` obligāts uzaicinājumiem un state `PATCH`; pēc migrācijām – smoke / manuāli: uzaicinājums, accept/decline, partner lasa owner subs tikai `active`.
+
+
+
 ---
 
 

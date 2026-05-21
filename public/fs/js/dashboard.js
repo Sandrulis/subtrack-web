@@ -20,12 +20,23 @@ var subtrackFamilySharingBootstrapCache = null;
 
 function subtrackApplyFamilySharingBootstrap(data) {
     if (!data || typeof data !== 'object') return;
+    var prevViewer =
+        (subtrackFamilySharingBootstrapCache &&
+            subtrackFamilySharingBootstrapCache.viewerUserId) ||
+        '';
+    if (!prevViewer) {
+        var boot = subtrackReadFamilySharingBootstrap();
+        if (boot && boot.viewerUserId) prevViewer = boot.viewerUserId;
+    }
     subtrackFamilySharingBootstrapCache = {
         enabled: data.enabled === true,
         viewerUserId:
-            typeof data.viewerUserId === 'string' ? data.viewerUserId : '',
+            typeof data.viewerUserId === 'string' && data.viewerUserId
+                ? data.viewerUserId
+                : prevViewer,
         links: Array.isArray(data.links) ? data.links : [],
     };
+    window.__subtrackFamilySharingNotifyCache = subtrackFamilySharingBootstrapCache;
     if (typeof subscriptions !== 'undefined' && subscriptions.length) {
         subtrackEnrichAllSubscriptionsFamilyShare();
         subtrackRefreshFamilySharedCache();
@@ -65,6 +76,8 @@ function subtrackSyncFamilySharingBootstrapFromApi() {
         })
         .then(function (data) {
             if (data) subtrackApplyFamilySharingBootstrap(data);
+            if (typeof updateStats === 'function') updateStats();
+            if (typeof renderList === 'function') renderList();
         })
         .catch(function () {
             /* paliek SSR bootstrap */
@@ -74,18 +87,24 @@ function subtrackSyncFamilySharingBootstrapFromApi() {
 function subtrackFamilySharingCombineActive() {
     var boot = subtrackReadFamilySharingBootstrap();
     if (!boot.enabled || !boot.links || !boot.links.length) return false;
-    var viewerId = boot.viewerUserId || '';
     for (var i = 0; i < boot.links.length; i++) {
         var l = boot.links[i];
         if (l.status !== 'active' || l.combineInTotals !== true) continue;
         if (l.isOwner === true) return true;
-        if (
-            viewerId &&
-            l.partnerUserId === viewerId &&
-            !l.isOwner
-        ) {
-            return true;
-        }
+        if (!l.isOwner && !l.isIncoming) return true;
+    }
+    return false;
+}
+
+/** Aktīva ģimenes saite (owner vai partner), arī ja kopsumma vēl nav apvienota. */
+function subtrackFamilySharingHasActiveLink() {
+    var boot = subtrackReadFamilySharingBootstrap();
+    if (!boot.enabled || !boot.links || !boot.links.length) return false;
+    for (var i = 0; i < boot.links.length; i++) {
+        var l = boot.links[i];
+        if (l.status !== 'active') continue;
+        if (l.isOwner === true) return true;
+        if (!l.isOwner && !l.isIncoming) return true;
     }
     return false;
 }
@@ -221,6 +240,7 @@ window.fsBootDashboard = fsBootDashboard;
 window.subtrackRefreshFamilySharedCache = subtrackRefreshFamilySharedCache;
 window.subtrackMergeFamilySharedIntoSubscriptions = subtrackMergeFamilySharedIntoSubscriptions;
 window.subtrackApplyFamilySharingBootstrap = subtrackApplyFamilySharingBootstrap;
+window.subtrackSyncFamilySharingBootstrapFromApi = subtrackSyncFamilySharingBootstrapFromApi;
 window.subtrackEnrichAllSubscriptionsFamilyShare = subtrackEnrichAllSubscriptionsFamilyShare;
 
 /* ---- Render ---- */
@@ -1514,16 +1534,44 @@ function updateStats() {
     var totalEl = document.getElementById('stat-total');
     if (totalEl) totalEl.textContent = '€' + total.toFixed(2);
 
+    var hasFamilyLink = subtrackFamilySharingHasActiveLink();
+    var showOwnOnlyHint = hasFamilyLink && !combineOn;
+    var ownTip = FsT('fs.dashboard.stat_own_only_label') || 'Tikai mani izdevumi';
+
     var markEl = document.getElementById('stat-total-combined-mark');
     if (markEl) {
-        if (combineOn) markEl.classList.remove('hidden');
-        else markEl.classList.add('hidden');
+        if (combineOn) {
+            markEl.classList.remove('hidden');
+            markEl.classList.remove('stat-total-combined-mark--own-only');
+        } else if (showOwnOnlyHint) {
+            markEl.classList.remove('hidden');
+            markEl.classList.add('stat-total-combined-mark--own-only');
+        } else {
+            markEl.classList.add('hidden');
+            markEl.classList.remove('stat-total-combined-mark--own-only');
+        }
+    }
+
+    var hintEl = document.getElementById('stat-total-own-only-hint');
+    if (hintEl) {
+        if (showOwnOnlyHint) {
+            hintEl.classList.remove('hidden');
+            hintEl.setAttribute('data-tooltip', ownTip);
+            hintEl.setAttribute('tabindex', '0');
+            hintEl.setAttribute('aria-label', ownTip);
+            hintEl.removeAttribute('aria-hidden');
+        } else {
+            hintEl.classList.add('hidden');
+            hintEl.removeAttribute('data-tooltip');
+            hintEl.setAttribute('tabindex', '-1');
+            hintEl.removeAttribute('aria-label');
+            hintEl.setAttribute('aria-hidden', 'true');
+        }
     }
 
     var ownEl = document.getElementById('stat-own-only');
     if (ownEl) {
         if (combineOn) {
-            var ownTip = FsT('fs.dashboard.stat_own_only_label') || '';
             ownEl.textContent = '€' + ownTotal.toFixed(2);
             ownEl.setAttribute('data-tooltip', ownTip);
             ownEl.setAttribute('tabindex', '0');
@@ -1536,6 +1584,12 @@ function updateStats() {
             ownEl.removeAttribute('aria-label');
             ownEl.classList.add('hidden');
         }
+    }
+
+    var combinedFooter = document.getElementById('stat-total-combined-footer');
+    if (combinedFooter) {
+        if (combineOn) combinedFooter.classList.remove('hidden');
+        else combinedFooter.classList.add('hidden');
     }
 
     var countEl = document.getElementById('stat-count');

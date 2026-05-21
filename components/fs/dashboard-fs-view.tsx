@@ -258,21 +258,37 @@ export function DashboardFsView({
 
                 <div className="dashboard-overview-stats-row">
                   <div className="stat-card stat-card--total">
-                    <div className="stat-label">{t("landing.mock.stat_total_label")}</div>
-                    <div className="stat-value-row">
-                      <div className="stat-value" id="stat-total">
-                        €0.00
+                    <div className="stat-card-total-inner">
+                      <div className="stat-card-total-main">
+                        <div className="stat-label">{t("landing.mock.stat_total_label")}</div>
+                        <div className="stat-value-row">
+                          <div className="stat-value" id="stat-total">
+                            €0.00
+                          </div>
+                          <span
+                            id="stat-total-combined-mark"
+                            className="stat-total-combined-mark hidden"
+                            aria-hidden="true"
+                          >
+                            *
+                          </span>
+                        </div>
+                        <div className="stat-note">{t("landing.mock.stat_total_note")}</div>
                       </div>
-                      <span
-                        id="stat-total-combined-mark"
-                        className="stat-total-combined-mark hidden"
+                      <button
+                        type="button"
+                        id="stat-total-own-only-hint"
+                        className="stat-total-own-only-hint hidden"
                         aria-hidden="true"
+                        tabIndex={-1}
                       >
-                        *
-                      </span>
+                        <i className="fas fa-info-circle" aria-hidden="true" />
+                      </button>
                     </div>
-                    <div className="stat-card-total-footer">
-                      <div className="stat-note">{t("landing.mock.stat_total_note")}</div>
+                    <div
+                      id="stat-total-combined-footer"
+                      className="stat-card-total-footer hidden"
+                    >
                       <span
                         id="stat-own-only"
                         className="stat-own-only hidden"

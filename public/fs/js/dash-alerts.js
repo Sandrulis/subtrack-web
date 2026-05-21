@@ -198,6 +198,240 @@ function buildNotifyTodayItemRow(s) {
         '</div></div>';
 }
 
+/* ---- Ģimenes dalīšana: saņemtie uzaicinājumi paziņojumu panelī ---- */
+var subtrackFamilyNotifyBusyId = null;
+
+function subtrackInitialsFromLabel(label) {
+    var parts = String(label || '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+    if (parts.length >= 2) {
+        return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+    }
+    if (parts.length === 1 && parts[0].length) {
+        return parts[0].slice(0, 2).toUpperCase();
+    }
+    return '?';
+}
+
+function subtrackParseFamilySharingNotifyCache() {
+    if (window.__subtrackFamilySharingNotifyCache) {
+        return window.__subtrackFamilySharingNotifyCache;
+    }
+    var raw =
+        typeof subtrackReadBootstrapJsonTextById === 'function'
+            ? subtrackReadBootstrapJsonTextById('subtrack-family-sharing-bootstrap-json')
+            : '';
+    if (!raw) return null;
+    try {
+        var parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+        window.__subtrackFamilySharingNotifyCache = {
+            enabled: parsed.enabled === true,
+            viewerUserId:
+                typeof parsed.viewerUserId === 'string' ? parsed.viewerUserId : '',
+            links: Array.isArray(parsed.links) ? parsed.links : [],
+        };
+        return window.__subtrackFamilySharingNotifyCache;
+    } catch (e) {
+        return null;
+    }
+}
+
+function subtrackIncomingFamilyInvites() {
+    var data = subtrackParseFamilySharingNotifyCache();
+    if (!data || !data.enabled || !data.links || !data.links.length) return [];
+    return data.links.filter(function (l) {
+        return l && l.isIncoming === true && l.status === 'pending';
+    });
+}
+
+function subtrackRefreshFamilySharingNotifyFromApi() {
+    if (typeof fetch === 'undefined') return;
+    if (window.__subtrackFamilySharingNotifyFetchInFlight) return;
+    window.__subtrackFamilySharingNotifyFetchInFlight = true;
+    fetch('/api/family-sharing', { credentials: 'same-origin' })
+        .then(function (res) {
+            if (!res.ok) return null;
+            return res.json();
+        })
+        .then(function (data) {
+            if (data && typeof data === 'object') {
+                window.__subtrackFamilySharingNotifyCache = {
+                    enabled: data.enabled === true,
+                    viewerUserId:
+                        typeof data.viewerUserId === 'string' ? data.viewerUserId : '',
+                    links: Array.isArray(data.links) ? data.links : [],
+                };
+                if (typeof subtrackApplyFamilySharingBootstrap === 'function') {
+                    subtrackApplyFamilySharingBootstrap(data);
+                }
+            }
+            refreshDashNotifications();
+        })
+        .catch(function () {
+            /* ignore */
+        })
+        .finally(function () {
+            window.__subtrackFamilySharingNotifyFetchInFlight = false;
+        });
+}
+
+function subtrackEnsureFamilySharingNotifyData() {
+    if (subtrackParseFamilySharingNotifyCache()) return;
+    if (document.getElementById('subtrack-family-sharing-bootstrap-json')) return;
+    subtrackRefreshFamilySharingNotifyFromApi();
+}
+
+function buildNotifyFamilyInviteRow(link) {
+    var name = escHtml(link.partnerLabel || '');
+    var emailRaw = link.counterpartyEmail || link.inviteEmail || '';
+    var email = escHtml(emailRaw);
+    var showEmail =
+        email.length > 0 &&
+        String(link.partnerLabel || '')
+            .trim()
+            .toLowerCase() !== String(emailRaw).trim().toLowerCase();
+    var initials = escHtml(subtrackInitialsFromLabel(link.partnerLabel));
+    var acceptLbl = escAttr(FsT('family_sharing.aria_accept') || 'Pieņemt uzaicinājumu');
+    var declineLbl = escAttr(FsT('family_sharing.aria_decline') || 'Noraidīt uzaicinājumu');
+    var cardBusy = subtrackFamilyNotifyBusyId === link.id;
+    var anyBusy = !!subtrackFamilyNotifyBusyId;
+    var dis = anyBusy ? ' disabled' : '';
+    var loadCls = cardBusy ? ' is-loading' : '';
+    var iconHide = cardBusy ? ' hidden' : '';
+    var spinHide = cardBusy ? '' : ' hidden';
+    var busyAttr = cardBusy ? 'true' : 'false';
+    return (
+        '<div class="dash-notify-item dash-notify-item--family-invite">' +
+        '<div class="dash-notify-family-invite-inner">' +
+        '<span class="user-avatar dash-notify-family-avatar" aria-hidden="true">' +
+        initials +
+        '</span>' +
+        '<div class="dash-notify-item-main">' +
+        '<span class="dash-notify-item-name">' +
+        name +
+        '</span>' +
+        (showEmail ? '<span class="dash-notify-item-meta">' + email + '</span>' : '') +
+        '</div>' +
+        '<div class="dash-notify-family-actions">' +
+        '<button type="button" class="icon-btn mark-paid dash-notify-family-accept' +
+        loadCls +
+        '"' +
+        ' data-family-link-id="' +
+        escAttr(String(link.id)) +
+        '" aria-label="' +
+        acceptLbl +
+        '" aria-busy="' +
+        busyAttr +
+        '"' +
+        dis +
+        '>' +
+        '<i class="fa-solid fa-check family-sharing-action-icon' +
+        iconHide +
+        '" aria-hidden="true"></i>' +
+        '<span class="mark-paid-spinner btn-spinner family-sharing-action-spinner' +
+        spinHide +
+        '" aria-hidden="true"></span></button>' +
+        '<button type="button" class="icon-btn delete dash-notify-family-decline' +
+        loadCls +
+        '"' +
+        ' data-family-link-id="' +
+        escAttr(String(link.id)) +
+        '" aria-label="' +
+        declineLbl +
+        '" aria-busy="' +
+        busyAttr +
+        '"' +
+        dis +
+        '>' +
+        '<i class="fa-solid fa-times family-sharing-action-icon' +
+        iconHide +
+        '" aria-hidden="true"></i>' +
+        '<span class="mark-paid-spinner btn-spinner family-sharing-action-spinner' +
+        spinHide +
+        '" aria-hidden="true"></span></button>' +
+        '</div></div></div>'
+    );
+}
+
+function subtrackPatchFamilyInviteFromNotify(linkId, body) {
+    if (!linkId || subtrackFamilyNotifyBusyId) return;
+    subtrackFamilyNotifyBusyId = linkId;
+    refreshDashNotifications();
+    fetch('/api/family-sharing/' + encodeURIComponent(String(linkId)), {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    })
+        .then(function (res) {
+            return res.json().then(function (data) {
+                if (!res.ok || (data && data.success === false)) {
+                    var msg =
+                        data && data.message
+                            ? String(data.message)
+                            : 'HTTP ' + res.status;
+                    throw new Error(msg);
+                }
+                return data;
+            });
+        })
+        .then(function () {
+            if (body.action === 'accept') {
+                var raw = FsT('family_sharing.toast_accepted');
+                if (typeof showToast === 'function') {
+                    showToast(raw || 'Dalīšana pieņemta', 'success');
+                }
+            } else if (body.action === 'decline') {
+                var rawD = FsT('family_sharing.toast_declined');
+                if (typeof showToast === 'function') {
+                    showToast(rawD || 'Uzaicinājums noraidīts', 'info');
+                }
+            }
+            return fetch('/api/family-sharing', { credentials: 'same-origin' }).then(function (res) {
+                if (!res.ok) return null;
+                return res.json();
+            });
+        })
+        .then(function (data) {
+            if (data && typeof data === 'object') {
+                window.__subtrackFamilySharingNotifyCache = {
+                    enabled: data.enabled === true,
+                    viewerUserId:
+                        typeof data.viewerUserId === 'string' ? data.viewerUserId : '',
+                    links: Array.isArray(data.links) ? data.links : [],
+                };
+                if (typeof subtrackApplyFamilySharingBootstrap === 'function') {
+                    subtrackApplyFamilySharingBootstrap(data);
+                }
+            }
+            if (typeof subtrackSyncSubscriptionsFromApi === 'function') {
+                return subtrackSyncSubscriptionsFromApi();
+            }
+        })
+        .then(function () {
+            if (typeof renderList === 'function') renderList();
+            if (typeof renderAnalytics === 'function') renderAnalytics();
+            refreshDashNotifications();
+        })
+        .catch(function (err) {
+            var fail = FsT('fs.dashboard.toast_api_save_failed');
+            if (typeof showToast === 'function') {
+                showToast(
+                    err && err.message ? String(err.message) : fail || 'Kļūda',
+                    'error',
+                );
+            }
+            refreshDashNotifications();
+        })
+        .finally(function () {
+            subtrackFamilyNotifyBusyId = null;
+            refreshDashNotifications();
+        });
+}
+
 /** Cita augšējās joslas izvēlne (piem. lietotājs): lai nav divu „modāļu“ un tumša fona aiz paziņojumiem. */
 var SUBTRACK_NOTIFY_OPENED = 'subtrack:notify-opened';
 var SUBTRACK_USER_MENU_OPENED = 'subtrack:user-menu-opened';
@@ -295,6 +529,8 @@ function refreshDashNotifications() {
     var secU = document.getElementById('dash-notify-upcoming-section');
     var listO = document.getElementById('dash-notify-overdue-list');
     var listU = document.getElementById('dash-notify-upcoming-list');
+    var secF = document.getElementById('dash-notify-family-section');
+    var listF = document.getElementById('dash-notify-family-list');
     var emptyEl = document.getElementById('dash-notify-empty');
 
     function setBellSolid(active) {
@@ -331,12 +567,19 @@ function refreshDashNotifications() {
             secU.classList.add('hidden');
             if (listU) listU.innerHTML = '';
         }
+        if (secF) {
+            secF.classList.add('hidden');
+            if (listF) listF.innerHTML = '';
+        }
         if (emptyEl) {
             emptyEl.classList.remove('hidden');
         }
         syncDashNotifyPanelMobPlacement();
         return;
     }
+
+    subtrackEnsureFamilySharingNotifyData();
+    var familyInvites = subtrackIncomingFamilyInvites();
 
     var today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -393,7 +636,7 @@ function refreshDashNotifications() {
         );
     });
 
-    var count = overdue.length + dueToday.length + upcoming.length;
+    var count = overdue.length + dueToday.length + upcoming.length + familyInvites.length;
 
     if (badge) {
         if (count > 0) {
@@ -409,6 +652,20 @@ function refreshDashNotifications() {
     }
 
     setBellSolid(count > 0);
+
+    if (listF && secF) {
+        if (familyInvites.length === 0) {
+            secF.classList.add('hidden');
+            listF.innerHTML = '';
+        } else {
+            secF.classList.remove('hidden');
+            listF.innerHTML = familyInvites
+                .map(function (l) {
+                    return buildNotifyFamilyInviteRow(l);
+                })
+                .join('');
+        }
+    }
 
     if (listT && secT) {
         if (dueToday.length === 0) {
@@ -440,7 +697,11 @@ function refreshDashNotifications() {
         }
     }
 
-    var showEmpty = overdue.length === 0 && dueToday.length === 0 && upcoming.length === 0;
+    var showEmpty =
+        overdue.length === 0 &&
+        dueToday.length === 0 &&
+        upcoming.length === 0 &&
+        familyInvites.length === 0;
     if (emptyEl) {
         if (showEmpty) {
             emptyEl.classList.remove('hidden');
@@ -517,6 +778,30 @@ function initDashNotifications() {
                 return;
             }
 
+            var familyAccept = t.closest('.dash-notify-family-accept');
+            if (familyAccept && familyAccept.getAttribute('data-family-link-id')) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                subtrackPatchFamilyInviteFromNotify(
+                    familyAccept.getAttribute('data-family-link-id'),
+                    { action: 'accept' },
+                );
+                return;
+            }
+
+            var familyDecline = t.closest('.dash-notify-family-decline');
+            if (familyDecline && familyDecline.getAttribute('data-family-link-id')) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                subtrackPatchFamilyInviteFromNotify(
+                    familyDecline.getAttribute('data-family-link-id'),
+                    { action: 'decline' },
+                );
+                return;
+            }
+
             var paidItem = t.closest('.dash-notify-mark-paid-ok');
             if (paidItem && paidItem.getAttribute('data-subscription-id')) {
                 e.preventDefault();
@@ -529,6 +814,7 @@ function initDashNotifications() {
             }
 
             if (t.closest('#dash-notify-panel')) {
+                e.stopPropagation();
                 return;
             }
 

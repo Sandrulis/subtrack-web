@@ -76,6 +76,15 @@ export function DashNotifyDropdown() {
             <span className="dash-notify-head-title">{t("session.notify_title")}</span>
           </div>
           <div
+            className="dash-notify-section hidden"
+            id="dash-notify-family-section"
+          >
+            <h3 className="dash-notify-section-title">
+              {t("family_sharing.section_incoming")}
+            </h3>
+            <div className="dash-notify-list" id="dash-notify-family-list" />
+          </div>
+          <div
             className="dash-notify-empty hidden"
             id="dash-notify-empty"
             role="status"

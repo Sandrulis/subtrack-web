@@ -1,11 +1,23 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   normalizeInviteEmail,
   normalizePartnerColor,
+  resolveInviteEmailForUser,
 } from "@/lib/family-sharing/family-sharing-server";
 import { isIntegrationEnabled } from "@/lib/integrations/integration-enabled";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
+
+function userIdsEqual(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a || !b) return false;
+  return String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+}
+
+function normalizeLinkStatus(raw: string): string {
+  return String(raw ?? "").trim().toLowerCase();
+}
 
 async function requireSessionUser() {
   const supabase = await createServerSupabaseClient();
@@ -64,9 +76,6 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
     typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
 
   const patch: Record<string, unknown> = {};
-  if (rec.color !== undefined) {
-    patch.partner_display_color = normalizePartnerColor(String(rec.color));
-  }
   if (rec.combineInTotals !== undefined) {
     patch.combine_in_totals =
       rec.combineInTotals === true || rec.combineInTotals === "true";
@@ -76,12 +85,8 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
     patch.accepted_at = new Date().toISOString();
     patch.partner_user_id = user.id;
   }
-  if (rec.action === "revoke" || rec.action === "leave") {
+  if (rec.action === "revoke" || rec.action === "leave" || rec.action === "decline") {
     patch.status = "revoked";
-  }
-
-  if (Object.keys(patch).length === 0) {
-    return NextResponse.json({ success: false, message: "No fields" }, { status: 400 });
   }
 
   const { data: existing, error: fetchErr } = await supabase
@@ -101,69 +106,165 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
   }
 
   const row = existing as LinkRow;
-  const userEmail = normalizeInviteEmail(user.email ?? "");
+  const linkStatus = normalizeLinkStatus(row.status);
+  const userEmail = await resolveInviteEmailForUser(supabase, user);
+  const authEmail = normalizeInviteEmail(user.email ?? "");
+  const isOwner = userIdsEqual(row.owner_user_id, user.id);
+  const isPartner =
+    userIdsEqual(row.partner_user_id, user.id) ||
+    (linkStatus === "active" &&
+      !isOwner &&
+      (normalizeInviteEmail(row.invite_email) === userEmail ||
+        (authEmail.length > 0 &&
+          normalizeInviteEmail(row.invite_email) === authEmail)));
+
+  if (rec.color !== undefined) {
+    const color = normalizePartnerColor(String(rec.color));
+    if (isOwner && linkStatus === "active") {
+      patch.partner_display_color = color;
+    } else if (isPartner && linkStatus === "active") {
+      patch.partner_tint_color = color;
+    } else {
+      return NextResponse.json({ success: false, message: "Not allowed" }, { status: 403 });
+    }
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return NextResponse.json({ success: false, message: "No fields" }, { status: 400 });
+  }
 
   if (rec.action === "accept") {
-    if (row.status !== "pending") {
+    if (linkStatus !== "pending") {
       return NextResponse.json(
         { success: false, message: "Invite is not pending" },
         { status: 400 },
       );
     }
-    if (normalizeInviteEmail(row.invite_email) !== userEmail) {
+    const mayAccept =
+      userIdsEqual(row.partner_user_id, user.id) ||
+      normalizeInviteEmail(row.invite_email) === userEmail ||
+      (authEmail.length > 0 && normalizeInviteEmail(row.invite_email) === authEmail);
+    if (!mayAccept) {
+      return NextResponse.json({ success: false, message: "Not allowed" }, { status: 403 });
+    }
+  } else if (rec.action === "decline") {
+    if (linkStatus !== "pending") {
+      return NextResponse.json(
+        { success: false, message: "Invite is not pending" },
+        { status: 400 },
+      );
+    }
+    const mayDecline =
+      userIdsEqual(row.partner_user_id, user.id) ||
+      normalizeInviteEmail(row.invite_email) === userEmail ||
+      (authEmail.length > 0 && normalizeInviteEmail(row.invite_email) === authEmail);
+    if (!mayDecline) {
       return NextResponse.json({ success: false, message: "Not allowed" }, { status: 403 });
     }
   } else if (rec.action === "leave") {
-    if (row.partner_user_id !== user.id) {
+    if (!isPartner) {
       return NextResponse.json({ success: false, message: "Not allowed" }, { status: 403 });
     }
-    if (row.status !== "active") {
+    if (linkStatus !== "active") {
       return NextResponse.json(
         { success: false, message: "Sharing is not active" },
         { status: 400 },
       );
     }
   } else if (
-    row.partner_user_id === user.id &&
-    row.status === "active" &&
+    isPartner &&
+    linkStatus === "active" &&
     rec.action === undefined &&
-    rec.color === undefined &&
-    rec.combineInTotals !== undefined
+    (rec.color !== undefined || rec.combineInTotals !== undefined)
   ) {
-    /* partneris: tikai summēšanas slēdzis */
-  } else if (row.owner_user_id !== user.id) {
+    /* partneris: sava krāsa vai summēšanas slēdzis */
+  } else if (rec.action === "revoke" && !isOwner) {
     return NextResponse.json({ success: false, message: "Not allowed" }, { status: 403 });
-  } else if (row.status === "revoked" && rec.action !== "revoke") {
+  } else if (!isOwner && !isPartner && rec.action !== "decline") {
+    return NextResponse.json({ success: false, message: "Not allowed" }, { status: 403 });
+  } else if (linkStatus === "revoked" && rec.action !== "revoke") {
     return NextResponse.json(
       { success: false, message: "Link is revoked" },
       { status: 400 },
     );
   }
 
-  let updateQuery = supabase.from("family_sharing_links").update(patch).eq("id", id);
+  const isStateAction =
+    rec.action === "accept" ||
+    rec.action === "decline" ||
+    rec.action === "revoke" ||
+    rec.action === "leave";
+  const isMetaUpdate =
+    rec.action === undefined &&
+    (rec.color !== undefined || rec.combineInTotals !== undefined);
+
+  let updateClient: SupabaseClient = supabase;
+  if (isStateAction || isMetaUpdate) {
+    const admin = createServiceRoleSupabaseClient();
+    if (!admin) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Server configuration error (service role)",
+        },
+        { status: 500 },
+      );
+    }
+    updateClient = admin;
+  }
+
+  let updateQuery = updateClient.from("family_sharing_links").update(patch).eq("id", id);
 
   if (rec.action === "accept") {
     updateQuery = updateQuery.eq("status", "pending");
+  } else if (rec.action === "decline") {
+    updateQuery = updateQuery.eq("status", "pending");
   } else if (rec.action === "leave") {
-    updateQuery = updateQuery.eq("partner_user_id", user.id).eq("status", "active");
-  } else if (
-    row.partner_user_id === user.id &&
-    rec.color === undefined &&
-    rec.combineInTotals !== undefined
-  ) {
-    updateQuery = updateQuery.eq("partner_user_id", user.id).eq("status", "active");
-  } else {
+    updateQuery = updateQuery.eq("status", "active");
+    if (row.partner_user_id) {
+      updateQuery = updateQuery.eq("partner_user_id", user.id);
+    }
+  } else if (isPartner && isMetaUpdate) {
+    updateQuery = updateQuery.eq("status", "active");
+    if (row.partner_user_id && userIdsEqual(row.partner_user_id, user.id)) {
+      updateQuery = updateQuery.eq("partner_user_id", user.id);
+    }
+  } else if (isOwner && isMetaUpdate) {
+    updateQuery = updateQuery.eq("owner_user_id", user.id).eq("status", "active");
+  } else if (isOwner) {
     updateQuery = updateQuery.eq("owner_user_id", user.id);
+  } else {
+    return NextResponse.json({ success: false, message: "Not allowed" }, { status: 403 });
   }
 
-  const { error: updateErr } = await updateQuery;
+  try {
+    const { data: updated, error: updateErr } = await updateQuery.select("id").maybeSingle();
 
-  if (updateErr) {
+    if (updateErr) {
+      console.error("[PATCH /api/family-sharing/:id] update", updateErr);
+      const msg = String(updateErr.message ?? "Failed");
+      const hint =
+        msg.includes("partner_tint_color") || msg.includes("42703")
+          ? " (run migration 091_family_sharing_partner_tint_color.sql)"
+          : "";
+      return NextResponse.json(
+        { success: false, message: msg + hint },
+        { status: 500 },
+      );
+    }
+    if (!updated?.id) {
+      return NextResponse.json(
+        { success: false, message: "Update failed or not allowed" },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("[PATCH /api/family-sharing/:id]", err);
     return NextResponse.json(
-      { success: false, message: updateErr.message ?? "Failed" },
+      { success: false, message: "Internal server error" },
       { status: 500 },
     );
   }
-
-  return NextResponse.json({ success: true });
 }

@@ -9,6 +9,8 @@ export type FamilySharingLinkClient = {
   status: FamilySharingLinkStatus;
   partnerUserId: string | null;
   partnerLabel: string;
+  /** Otras puses e-pasts (saņemts: uzaicinātāja; nosūtīts: uzaicinātā). */
+  counterpartyEmail: string;
   partnerDisplayColor: string;
   combineInTotals: boolean;
   /** Es izveidoju uzaicinājumu (redzu partnera ierakstus). */

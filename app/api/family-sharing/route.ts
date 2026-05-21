@@ -26,13 +26,33 @@ export async function GET() {
   if (!session) {
     return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
   }
+  const { user } = session;
 
-  const enabled = await isIntegrationEnabled("family_sharing");
-  if (!enabled) {
-    return NextResponse.json({ success: true, enabled: false, links: [] });
+  try {
+    const enabled = await isIntegrationEnabled("family_sharing");
+    if (!enabled) {
+      return NextResponse.json({
+        success: true,
+        enabled: false,
+        viewerUserId: user.id,
+        links: [],
+      });
+    }
+    const { supabase } = session;
+    const links = await fetchFamilySharingLinksForSession({ supabase, user });
+    return NextResponse.json({
+      success: true,
+      enabled: true,
+      viewerUserId: user.id,
+      links,
+    });
+  } catch (err) {
+    console.error("[GET /api/family-sharing]", err);
+    return NextResponse.json(
+      { success: false, message: "Internal server error" },
+      { status: 500 },
+    );
   }
-  const links = await fetchFamilySharingLinksForSession();
-  return NextResponse.json({ success: true, enabled: true, links });
 }
 
 export async function POST(request: Request) {
@@ -84,9 +104,9 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        message: await getUiPhraseForRequest("family_sharing.err_not_found"),
+        message: await getUiPhraseForRequest("family_sharing.err_invite_failed"),
       },
-      { status: 404 },
+      { status: 400 },
     );
   }
 
@@ -97,7 +117,7 @@ export async function POST(request: Request) {
     .insert({
       owner_user_id: user.id,
       invite_email: email,
-      partner_user_id: null,
+      partner_user_id: partnerId,
       status: "pending",
       partner_display_color: color,
       combine_in_totals: false,

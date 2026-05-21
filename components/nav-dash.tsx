@@ -20,9 +20,16 @@ type NavDashProps = {
    * un mobilā josla izmanto `mode="demo"`.
    */
   demoMode?: boolean;
+  /** Pārlasīt `#subtrack-subs-bootstrap-json` pēc skriptiem (lapas bez dashboard, piem. family-sharing). */
+  reloadSubscriptionsFromBootstrap?: boolean;
 };
 
-export function NavDash({ active = "", userDisplay, demoMode = false }: NavDashProps) {
+export function NavDash({
+  active = "",
+  userDisplay,
+  demoMode = false,
+  reloadSubscriptionsFromBootstrap = false,
+}: NavDashProps) {
   const { t, paidPlan } = useSubtrackIntl();
   const analyticsHref = demoMode ? "/demo/analytics" : "/analytics";
   const dashboardHref = demoMode ? "/demo/dashboard" : "/dashboard";
@@ -32,7 +39,9 @@ export function NavDash({ active = "", userDisplay, demoMode = false }: NavDashP
     <>
     <AuthedNotifyBootstrap
       enabled={Boolean(userDisplay) || demoMode}
-      reloadSubscriptionsFromBootstrap={demoMode}
+      reloadSubscriptionsFromBootstrap={
+        demoMode || reloadSubscriptionsFromBootstrap
+      }
     />
     <header className="dash-topbar">
       <div className="dash-topbar-shell">
