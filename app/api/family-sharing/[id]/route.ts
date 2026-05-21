@@ -19,6 +19,33 @@ function normalizeLinkStatus(raw: string): string {
   return String(raw ?? "").trim().toLowerCase();
 }
 
+function isMissingTintColumnError(message: string): boolean {
+  const m = message.toLowerCase();
+  return m.includes("partner_tint_color") || m.includes("42703");
+}
+
+type UpdateQueryBuilder = (
+  client: SupabaseClient,
+) => ReturnType<ReturnType<SupabaseClient["from"]>["update"]>;
+
+async function runLinkUpdate(
+  clients: SupabaseClient[],
+  buildQuery: UpdateQueryBuilder,
+): Promise<{ ok: true; id: string } | { ok: false; message: string }> {
+  let lastMessage = "Failed";
+  for (const client of clients) {
+    const { data, error } = await buildQuery(client).select("id").maybeSingle();
+    if (!error && data?.id) {
+      return { ok: true, id: data.id };
+    }
+    if (error) {
+      lastMessage = error.message ?? lastMessage;
+      console.error("[PATCH /api/family-sharing/:id] update attempt", error);
+    }
+  }
+  return { ok: false, message: lastMessage };
+}
+
 async function requireSessionUser() {
   const supabase = await createServerSupabaseClient();
   const {
@@ -129,6 +156,8 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
     }
   }
 
+  const metaPatch = { ...patch };
+
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ success: false, message: "No fields" }, { status: 400 });
   }
@@ -198,72 +227,102 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
     rec.action === undefined &&
     (rec.color !== undefined || rec.combineInTotals !== undefined);
 
-  let updateClient: SupabaseClient = supabase;
-  if (isStateAction) {
-    const admin = createServiceRoleSupabaseClient();
-    if (!admin) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Server configuration error (service role)",
-        },
-        { status: 500 },
-      );
+  const admin = createServiceRoleSupabaseClient();
+  const updateClients: SupabaseClient[] = [];
+  if (isStateAction || isMetaUpdate) {
+    if (admin) {
+      updateClients.push(admin);
     }
-    updateClient = admin;
-  } else if (isMetaUpdate) {
-    const admin = createServiceRoleSupabaseClient();
-    updateClient = admin ?? supabase;
-    if (!admin) {
-      console.warn(
-        "[PATCH /api/family-sharing/:id] SUPABASE_SERVICE_ROLE_KEY missing; meta update via session client",
-      );
+    if (!admin || isMetaUpdate) {
+      updateClients.push(supabase);
     }
-  }
-
-  let updateQuery = updateClient.from("family_sharing_links").update(patch).eq("id", id);
-
-  if (rec.action === "accept") {
-    updateQuery = updateQuery.eq("status", "pending");
-  } else if (rec.action === "decline") {
-    updateQuery = updateQuery.eq("status", "pending");
-  } else if (rec.action === "leave") {
-    updateQuery = updateQuery.eq("status", "active");
-    if (row.partner_user_id) {
-      updateQuery = updateQuery.eq("partner_user_id", user.id);
-    }
-  } else if (isPartner && isMetaUpdate) {
-    updateQuery = updateQuery.eq("status", "active");
-    if (row.partner_user_id && userIdsEqual(row.partner_user_id, user.id)) {
-      updateQuery = updateQuery.eq("partner_user_id", user.id);
-    }
-  } else if (isOwner && isMetaUpdate) {
-    updateQuery = updateQuery.eq("owner_user_id", user.id).eq("status", "active");
-  } else if (isOwner) {
-    updateQuery = updateQuery.eq("owner_user_id", user.id);
   } else {
-    return NextResponse.json({ success: false, message: "Not allowed" }, { status: 403 });
+    updateClients.push(supabase);
   }
+
+  if ((isStateAction || isMetaUpdate) && !admin) {
+    console.warn(
+      "[PATCH /api/family-sharing/:id] SUPABASE_SERVICE_ROLE_KEY missing on server",
+    );
+  }
+
+  if (isStateAction && !admin) {
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          "Server configuration error: set SUPABASE_SERVICE_ROLE_KEY on Vercel (Production).",
+      },
+      { status: 500 },
+    );
+  }
+
+  const buildQuery: UpdateQueryBuilder = (client) => {
+    let q = client.from("family_sharing_links").update(patch).eq("id", id);
+    if (rec.action === "accept") {
+      q = q.eq("status", "pending");
+    } else if (rec.action === "decline") {
+      q = q.eq("status", "pending");
+    } else if (rec.action === "leave") {
+      q = q.eq("status", "active");
+      if (row.partner_user_id) {
+        q = q.eq("partner_user_id", user.id);
+      }
+    } else if (isPartner && isMetaUpdate) {
+      q = q.eq("status", "active");
+      if (row.partner_user_id && userIdsEqual(row.partner_user_id, user.id)) {
+        q = q.eq("partner_user_id", user.id);
+      }
+    } else if (isOwner && isMetaUpdate) {
+      q = q.eq("owner_user_id", user.id).eq("status", "active");
+    } else if (isOwner) {
+      q = q.eq("owner_user_id", user.id);
+    }
+    return q;
+  };
 
   try {
-    const { data: updated, error: updateErr } = await updateQuery.select("id").maybeSingle();
+    let result = await runLinkUpdate(updateClients, buildQuery);
 
-    if (updateErr) {
-      console.error("[PATCH /api/family-sharing/:id] update", updateErr);
-      const msg = String(updateErr.message ?? "Failed");
-      const hint =
-        msg.includes("partner_tint_color") || msg.includes("42703")
-          ? " (run migration 091_family_sharing_partner_tint_color.sql)"
-          : "";
+    if (
+      !result.ok &&
+      isMetaUpdate &&
+      isPartner &&
+      metaPatch.partner_tint_color !== undefined &&
+      isMissingTintColumnError(result.message)
+    ) {
+      const fallbackPatch = { ...metaPatch };
+      delete fallbackPatch.partner_tint_color;
+      if (Object.keys(fallbackPatch).length > 0) {
+        const fallbackBuilder: UpdateQueryBuilder = (client) => {
+          let q = client
+            .from("family_sharing_links")
+            .update(fallbackPatch)
+            .eq("id", id)
+            .eq("status", "active");
+          if (row.partner_user_id && userIdsEqual(row.partner_user_id, user.id)) {
+            q = q.eq("partner_user_id", user.id);
+          }
+          return q;
+        };
+        result = await runLinkUpdate(updateClients, fallbackBuilder);
+      }
+    }
+
+    if (!result.ok) {
+      const msg = result.message;
+      let hint = "";
+      if (isMissingTintColumnError(msg)) {
+        hint = " Palaid Supabase migrāciju 091_family_sharing_partner_tint_color.sql.";
+      } else if (msg.includes("family_sharing_links:")) {
+        hint = " Palaid migrācijas 092–094 uz produkcijas Supabase.";
+      } else if (!admin && isMetaUpdate) {
+        hint =
+          " Vercel: pievieno SUPABASE_SERVICE_ROLE_KEY (Production) un redeploy.";
+      }
       return NextResponse.json(
         { success: false, message: msg + hint },
         { status: 500 },
-      );
-    }
-    if (!updated?.id) {
-      return NextResponse.json(
-        { success: false, message: "Update failed or not allowed" },
-        { status: 409 },
       );
     }
 
