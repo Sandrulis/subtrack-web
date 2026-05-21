@@ -76,6 +76,20 @@ function isMissingTintColumnError(error: { message?: string; code?: string }): b
   return msg.includes("partner_tint_color") || error.code === "42703";
 }
 
+/**
+ * Lasīšana ar service_role (ja ENV ir), pēc tam filtrs serverī pēc lietotāja.
+ * Novērš Vercel/prod RLS, kur sesija redz tikai daļu saites (bez 093 vai vecs SELECT).
+ */
+async function fetchFamilySharingLinkRowsForViewer(
+  sessionSupabase: SupabaseClient,
+): Promise<LinkRow[]> {
+  const admin = createServiceRoleSupabaseClient();
+  if (admin) {
+    return fetchFamilySharingLinkRows(admin);
+  }
+  return fetchFamilySharingLinkRows(sessionSupabase);
+}
+
 async function fetchFamilySharingLinkRows(
   supabase: SupabaseClient,
 ): Promise<LinkRow[]> {
@@ -183,7 +197,7 @@ export async function fetchFamilySharingLinksForSession(
   }
   if (!user) return [];
 
-  const rows = await fetchFamilySharingLinkRows(supabase);
+  const rows = await fetchFamilySharingLinkRowsForViewer(supabase);
   if (!rows.length) return [];
 
   const sessionEmail = await resolveInviteEmailForUser(supabase, user);
