@@ -14,10 +14,11 @@ function pickFromRow(row: Partial<Record<FallbackLocaleCode, string>>, code: str
 export function pickFallbackPhrase(key: string, localeCode: string): string | undefined {
   const row = FALLBACK_PHRASES[key as keyof typeof FALLBACK_PHRASES];
   if (!row) return undefined;
-  const direct = pickFromRow(row, localeCode);
+  const partial = row as Partial<Record<FallbackLocaleCode, string>>;
+  const direct = pickFromRow(partial, localeCode);
   if (direct) return direct;
   for (const b of CHAIN_FALLBACK_ORDER) {
-    const v = row[b];
+    const v = partial[b];
     if (v) return v;
   }
   return undefined;
