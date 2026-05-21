@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { loadAuthContext } from "@/lib/auth/load-auth-context";
 import {
   fetchFamilySharingLinksForSession,
   isValidInviteEmail,
@@ -8,9 +7,26 @@ import {
   normalizePartnerColor,
 } from "@/lib/family-sharing/family-sharing-server";
 import { isIntegrationEnabled } from "@/lib/integrations/integration-enabled";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
+async function requireSessionUser() {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return null;
+  }
+  return { supabase, user };
+}
+
 export async function GET() {
+  const session = await requireSessionUser();
+  if (!session) {
+    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+  }
+
   const enabled = await isIntegrationEnabled("family_sharing");
   if (!enabled) {
     return NextResponse.json({ success: true, enabled: false, links: [] });
@@ -20,6 +36,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const session = await requireSessionUser();
+  if (!session) {
+    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+  }
+  const { supabase, user } = session;
+
   if (!(await isIntegrationEnabled("family_sharing"))) {
     return NextResponse.json(
       {
@@ -44,11 +66,6 @@ export async function POST(request: Request) {
 
   if (!isValidInviteEmail(email)) {
     return NextResponse.json({ success: false, message: "Invalid email" }, { status: 400 });
-  }
-
-  const { supabase, user } = await loadAuthContext();
-  if (!user) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
   }
 
   const selfEmail = normalizeInviteEmail(user.email ?? "");

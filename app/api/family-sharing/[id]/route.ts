@@ -1,8 +1,19 @@
 import { NextResponse } from "next/server";
-import { loadAuthContext } from "@/lib/auth/load-auth-context";
 import { normalizePartnerColor } from "@/lib/family-sharing/family-sharing-server";
 import { isIntegrationEnabled } from "@/lib/integrations/integration-enabled";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
+
+async function requireSessionUser() {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return null;
+  }
+  return { supabase, user };
+}
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -10,6 +21,12 @@ const UUID_RE =
 type RouteCtx = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, ctx: RouteCtx) {
+  const session = await requireSessionUser();
+  if (!session) {
+    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+  }
+  const { supabase, user } = session;
+
   if (!(await isIntegrationEnabled("family_sharing"))) {
     return NextResponse.json(
       {
@@ -53,11 +70,6 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
 
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ success: false, message: "No fields" }, { status: 400 });
-  }
-
-  const { supabase, user } = await loadAuthContext();
-  if (!user) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
   }
 
   if (rec.action === "accept") {
