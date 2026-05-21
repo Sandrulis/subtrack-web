@@ -272,23 +272,23 @@ export function DashboardFsView({
                       </span>
                     </div>
                     <div className="stat-card-total-foot">
-                      <div className="stat-card-total-foot-main">
-                        <div className="stat-note">{t("landing.mock.stat_total_note")}</div>
+                      <div className="stat-note">{t("landing.mock.stat_total_note")}</div>
+                      <div className="stat-card-total-foot-end">
                         <span
                           id="stat-own-only"
                           className="stat-own-only hidden"
                           tabIndex={-1}
                         />
+                        <button
+                          type="button"
+                          id="stat-total-own-only-hint"
+                          className="stat-total-own-only-hint hidden"
+                          aria-hidden="true"
+                          tabIndex={-1}
+                        >
+                          <i className="fas fa-info-circle" aria-hidden="true" />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        id="stat-total-own-only-hint"
-                        className="stat-total-own-only-hint hidden"
-                        aria-hidden="true"
-                        tabIndex={-1}
-                      >
-                        <i className="fas fa-info-circle" aria-hidden="true" />
-                      </button>
                     </div>
                   </div>
                   <div className="stat-card">

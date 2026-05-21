@@ -8632,7 +8632,7 @@ html.subtrack-modal-open body {
 
 .stat-card-total-foot {
     display: flex;
-    align-items: flex-end;
+    align-items: baseline;
     justify-content: space-between;
     gap: 10px;
     margin-top: auto;
@@ -8640,22 +8640,23 @@ html.subtrack-modal-open body {
     width: 100%;
 }
 
-.stat-card-total-foot-main {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    min-width: 0;
-    flex: 1;
-}
-
 .stat-card-total-foot .stat-note {
     margin: 0;
+    flex-shrink: 0;
+}
+
+.stat-card-total-foot-end {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+    margin-left: auto;
+    flex-shrink: 0;
 }
 
 .stat-total-own-only-hint {
     flex-shrink: 0;
-    align-self: flex-end;
     margin: 0;
     padding: 0;
     border: none;
@@ -8710,7 +8711,7 @@ html.subtrack-modal-open body {
     font-size: 12px;
     font-weight: 500;
     color: var(--text-muted);
-    text-align: left;
+    text-align: right;
     flex-shrink: 0;
     white-space: nowrap;
 }
