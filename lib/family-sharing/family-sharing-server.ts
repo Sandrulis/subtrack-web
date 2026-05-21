@@ -45,9 +45,9 @@ export function normalizePartnerColor(raw: string, fallback = "#f59e0b"): string
 }
 
 const FAMILY_LINK_SELECT_WITH_TINT =
-  "id, owner_user_id, partner_user_id, invite_email, status, partner_display_color, partner_tint_color, combine_in_totals";
+  "id, owner_user_id, partner_user_id, invite_email, status, partner_display_color, partner_tint_color, owner_combine_in_totals, partner_combine_in_totals";
 const FAMILY_LINK_SELECT_BASE =
-  "id, owner_user_id, partner_user_id, invite_email, status, partner_display_color, combine_in_totals";
+  "id, owner_user_id, partner_user_id, invite_email, status, partner_display_color, owner_combine_in_totals, partner_combine_in_totals";
 
 type LinkRow = {
   id: string;
@@ -57,8 +57,19 @@ type LinkRow = {
   status: string;
   partner_display_color: string;
   partner_tint_color?: string | null;
-  combine_in_totals: boolean;
+  owner_combine_in_totals: boolean;
+  partner_combine_in_totals: boolean;
 };
+
+function combineInTotalsForViewer(row: LinkRow, viewerId: string): boolean {
+  if (userIdsEqual(row.owner_user_id, viewerId)) {
+    return row.owner_combine_in_totals === true;
+  }
+  if (userIdsEqual(row.partner_user_id, viewerId)) {
+    return row.partner_combine_in_totals === true;
+  }
+  return false;
+}
 
 function userIdsEqual(a: string | null | undefined, b: string | null | undefined): boolean {
   if (!a || !b) return false;
@@ -261,7 +272,7 @@ export async function fetchFamilySharingLinksForSession(
           ? normalizeInviteEmail(row.invite_email)
           : profileEmail(profiles, row.owner_user_id),
       partnerDisplayColor: panelColorForViewer(row, user.id),
-      combineInTotals: row.combine_in_totals === true,
+      combineInTotals: combineInTotalsForViewer(row, user.id),
       isOwner,
       isIncoming,
     });

@@ -12,6 +12,7 @@ export type FamilySharingLinkClient = {
   /** Otras puses e-pasts (saņemts: uzaicinātāja; nosūtīts: uzaicinātā). */
   counterpartyEmail: string;
   partnerDisplayColor: string;
+  /** Saskaitīt kopīgos izdevumus šī lietotāja kopsummā (owner/partner atsevišķi DB). */
   combineInTotals: boolean;
   /** Es izveidoju uzaicinājumu (redzu partnera ierakstus). */
   isOwner: boolean;

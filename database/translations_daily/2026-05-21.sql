@@ -56,7 +56,10 @@ VALUES
   ('family_sharing.confirm_revoke_active', 'ru', 'Прекратить доступ с {name}?'),
   ('family_sharing.confirm_leave', 'lv', 'Vai pamest dalību ar {name}?'),
   ('family_sharing.confirm_leave', 'en', 'Leave sharing with {name}?'),
-  ('family_sharing.confirm_leave', 'ru', 'Выйти из доступа с {name}?')
+  ('family_sharing.confirm_leave', 'ru', 'Выйти из доступа с {name}?'),
+  ('family_sharing.hint_combine', 'lv', 'Tava izvēle tavā panelī; otrs lietotājs var būt atšķirīgs. Ar zvaigznīti kopsummā; apakšā – tikai tavi izdevumi.'),
+  ('family_sharing.hint_combine', 'en', 'Your choice on your dashboard; the other person may differ. Asterisk in totals; below – only your expenses.'),
+  ('family_sharing.hint_combine', 'ru', 'Ваш выбор в вашей панели; у другого пользователя может быть иначе. Звёздочка в итогах; внизу – только ваши расходы.')
 ON CONFLICT (translation_key, locale) DO UPDATE SET
   value = EXCLUDED.value,
   updated_at = now();

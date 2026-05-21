@@ -119,7 +119,8 @@ export async function POST(request: Request) {
       partner_user_id: partnerId,
       status: "pending",
       partner_display_color: color,
-      combine_in_totals: false,
+      owner_combine_in_totals: false,
+      partner_combine_in_totals: false,
     })
     .select("id")
     .maybeSingle();

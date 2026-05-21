@@ -102,10 +102,6 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
     typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
 
   const patch: Record<string, unknown> = {};
-  if (rec.combineInTotals !== undefined) {
-    patch.combine_in_totals =
-      rec.combineInTotals === true || rec.combineInTotals === "true";
-  }
   if (rec.action === "accept") {
     patch.status = "active";
     patch.accepted_at = new Date().toISOString();
@@ -150,6 +146,18 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
       patch.partner_display_color = color;
     } else if (isPartner && linkStatus === "active") {
       patch.partner_tint_color = color;
+    } else {
+      return NextResponse.json({ success: false, message: "Not allowed" }, { status: 403 });
+    }
+  }
+
+  if (rec.combineInTotals !== undefined) {
+    const combineVal =
+      rec.combineInTotals === true || rec.combineInTotals === "true";
+    if (isOwner && linkStatus === "active") {
+      patch.owner_combine_in_totals = combineVal;
+    } else if (isPartner && linkStatus === "active") {
+      patch.partner_combine_in_totals = combineVal;
     } else {
       return NextResponse.json({ success: false, message: "Not allowed" }, { status: 403 });
     }

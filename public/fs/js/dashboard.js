@@ -1586,12 +1586,6 @@ function updateStats() {
         }
     }
 
-    var combinedFooter = document.getElementById('stat-total-combined-footer');
-    if (combinedFooter) {
-        if (combineOn) combinedFooter.classList.remove('hidden');
-        else combinedFooter.classList.add('hidden');
-    }
-
     var countEl = document.getElementById('stat-count');
     if (countEl) countEl.textContent = String(subscriptions.length);
 
