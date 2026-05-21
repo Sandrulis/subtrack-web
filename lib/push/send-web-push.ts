@@ -12,6 +12,8 @@ export type PushPayload = {
   body: string;
   url?: string;
   tag?: string;
+  /** PWA sākuma ekrāna ikonas skaitītājs (Badging API, SW push). */
+  badgeCount?: number;
 };
 
 export async function sendWebPushToSubscription(

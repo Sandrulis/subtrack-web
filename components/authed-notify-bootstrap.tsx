@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { ensureAuthedNotifyScriptsLoaded } from "@/components/fs/load-fs-scripts";
+import { syncAppBadgeCount } from "@/lib/pwa/app-badge";
 
 type AuthedNotifyBootstrapProps = {
   enabled: boolean;
@@ -18,6 +19,19 @@ export function AuthedNotifyBootstrap({
 }: AuthedNotifyBootstrapProps) {
   useEffect(() => {
     if (!enabled) return;
+
+    const win = window as Window & { subtrackSyncAppBadge?: (count: number) => void };
+    win.subtrackSyncAppBadge = (count) => {
+      void syncAppBadgeCount(count);
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        window.fsBootDashAlerts?.();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     (async () => {
       try {
         await ensureAuthedNotifyScriptsLoaded();
@@ -32,6 +46,11 @@ export function AuthedNotifyBootstrap({
         console.error(e);
       }
     })();
+
+    return () => {
+      delete win.subtrackSyncAppBadge;
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [enabled, reloadSubscriptionsFromBootstrap]);
 
   return null;

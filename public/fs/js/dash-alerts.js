@@ -312,6 +312,9 @@ function refreshDashNotifications() {
         if (badge) {
             badge.classList.add('hidden');
         }
+        if (typeof window.subtrackSyncAppBadge === 'function') {
+            window.subtrackSyncAppBadge(0);
+        }
         setBellSolid(false);
         if (secT) {
             secT.classList.add('hidden');
@@ -391,6 +394,10 @@ function refreshDashNotifications() {
         } else {
             badge.classList.add('hidden');
         }
+    }
+
+    if (typeof window.subtrackSyncAppBadge === 'function') {
+        window.subtrackSyncAppBadge(count);
     }
 
     setBellSolid(count > 0);

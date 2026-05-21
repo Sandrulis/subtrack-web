@@ -1,6 +1,6 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.4.8` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (repazy)](#pwa-repazy)**).
+**Versija:** `0.4.10` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (repazy)](#pwa-repazy)**).
 
 **repazy** (repozitorijs `subtrack-web`) ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, **`public.subscription_payments`** maksājumu žurnālam, RLS); CRUD notiek caur **Route Handlers** (`app/api/subscriptions/*`) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
@@ -71,6 +71,12 @@ Produkta **Progressive Web App** slānis (pamats **0.3.51**–**0.3.53**; **0.4.
 - **ENV:** `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (**`supabase.env.template`**; `npx web-push generate-vapid-keys`).
 - **SQL:** **`081_push_subscriptions.sql`**, **`082_site_translations_push.sql`**.
 
+### Sākuma ekrāna ikonas badge (0.4.10)
+
+- **Zvana skaitītājs lietotnē** (`#dash-notify-badge`) un **ikonas skaitlis uz iOS/Android sākuma ekrāna** ir atsevišķi: pēdējais sinhronizējas ar **Badging API** (`navigator.setAppBadge` / `clearAppBadge`) no **`lib/pwa/app-badge.ts`** un **`dash-alerts.js`** (kavētie + šodien + gaidāmie 7 d.).
+- **Kad atjauninās:** panelī ielādējot abonementus, pārslēdzoties atpakaļ uz lietotni (`visibilitychange`), un **Web Push** cron (`badgeCount` → **`app/sw.ts`**).
+- **iOS:** strādā tikai **instalētai** PWA (atvērt no sākuma ekrāna ikonas, ne Safari cilne); **iOS 16.4+**. Bez push un bez atvēršanas lietotnes ikona var palikt bez skaitļa.
+
 **Bannera uzvedība (0.4.7):**
 
 - **X** („Ne tagad”, `pwa.banner.dismiss`) – **`localStorage`** atslēga **`subtrack_pwa_install_dismissed_v1`** ar **timestamp**; banneris atkal pēc **3 dienām** (**`PWA_INSTALL_DISMISS_COOLDOWN_MS`** – **`lib/pwa/defaults.ts`**). Vecais ieraksts **`"1"`** tiek ignorēts (rāda banneri atkal).
@@ -89,7 +95,7 @@ components/pwa/pwa-install-banner.tsx
 components/pwa/pwa-settings-install.tsx
 components/pwa/pwa-push-settings.tsx
 components/pwa/offline-page-view.tsx, offline-wifi-icon.tsx
-lib/pwa/install-prompt.ts, defaults.ts, public-pwa-settings.ts, brand-mark.tsx
+lib/pwa/install-prompt.ts, defaults.ts, public-pwa-settings.ts, brand-mark.tsx, app-badge.ts
 lib/push/push-client.ts, payment-due-alerts.ts, send-web-push.ts, vapid-config.ts
 lib/subscriptions/due-active.ts
 app/api/push/subscribe, app/api/push/unsubscribe
@@ -157,7 +163,7 @@ Pat salīdzinoši mazā lietotnē **`App Router`** maršruta maiņa parasti nav 
    # SUPABASE_SERVICE_ROLE_KEY=<service_role_atslēga>
    #   – signup e-pasta pārbaude (signupEmailExistsAction)
    #   – admin VIP slēdzis (/api/admin/users/pro-vip)
-   # Logo (/admin/system, 071–072): pietiek ar admin sesiju + 072_brand_storage.sql
+   # Logo (/admin/system, 071–072): admin sesija + SUPABASE_SERVICE_ROLE_KEY + 072_brand_storage.sql
    ```
 
 4. **Authentication → URL Configuration**: redirect URIs (piem. `…/auth/callback`). **OAuth (Google / Apple)** – providerus ieslēdz Supabase pusē (**Authentication → Providers**); aplikācijā pogas **`/login`** un **`/signup`** rādās tikai tad, kad **`/admin/integrations`** **`login_google`** un/vai **`login_apple`** ir **`enabled`** (skatīt **`024_integrations.sql`**).
@@ -228,7 +234,8 @@ Pat salīdzinoši mazā lietotnē **`App Router`** maršruta maiņa parasti nav 
    - **`database/supabase/074_site_translations_admin_pwa_logo_hint.sql`** – **`/admin/pwa`**: PWA ikonas no **`/admin/system`** logo, hint pēc logo maiņas. Pēc **`069`**.
    - **`database/supabase/075_system_settings_logo_revision_fix.sql`** – labo **`logo_revision`**, ja iepriekš ierakstīts `Date.now()` (integer overflow). Pēc **`071`**.
    - **`database/supabase/076_system_settings_public_read.sql`** – *(vēsturisks)* skats **`system_settings_public`**; **aizstāj ar `078`**, ja jau palaists.
-   - **`database/supabase/077_site_translations_admin_logo_err_storage_hint.sql`** – logo kļūdas teksts (admin + **`072`**, ne service_role). Pēc **`073`**.
+   - **`database/supabase/077_site_translations_admin_logo_err_storage_hint.sql`** – logo kļūdas teksts (vēsturiski). Pēc **`073`**.
+   - **`database/supabase/083_site_translations_logo_upload_service_role.sql`** – logo kļūdas teksts (ENV + **`072`**). Pēc **`077`**.
    - **`database/supabase/078_system_settings_email_templates_split.sql`** – **`system_settings_email_templates`** (admin RLS); noņem **`system_settings_public`**. Pēc **`051`** (un **`076`**, ja bija). **Obligāti** pēc drošības audita.
    - **`database/supabase/079_email_reminder_log_rls_policies.sql`** – RLS politikas **`email_reminder_log`** (Advisor). Pēc **`052`**.
    - **`database/supabase/080_security_advisor_warnings.sql`** – **`storage.brand`** bez bucket listing; **`admin_set_user_pro_vip`** tikai **`service_role`**. Pēc **`043`**, **`072`**.
@@ -381,7 +388,7 @@ Pie būtiskām izmaiņām **papildināt [Izmaiņu žurnāls](#izmaiņu-žurnāls
 | Admin VIP slēdzis | **`POST /api/admin/users/pro-vip`** (`080`) |
 | Cron kavētie e-pasti | **`GET /api/cron/overdue-payment-emails`** |
 | Cron PWA push (kavētie + šodien) | **`GET /api/cron/payment-push-notifications`** |
-| Logo augšupielāde | **Nav obligāta** – admin sesija + **`072_brand_storage.sql`** |
+| Logo augšupielāde | Admin sesija + **`SUPABASE_SERVICE_ROLE_KEY`** + **`072_brand_storage.sql`** |
 
 ### Drošības migrācijas (kopsavilkums)
 
@@ -427,6 +434,14 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 
 Šeit īss pieraksts par izlaistām izmaiņām. **PWA** – **[PWA (repazy)](#pwa-repazy)**. **0.4.x** no **0.4.0** (= agrāk **0.3.54**).
 
+### 0.4.10 (2026-05-21)
+
+- **PWA ikonas badge** – sākuma ekrānā (Badging API): sinhronizācija ar zvana skaitītāju (`lib/pwa/app-badge.ts`, **`dash-alerts.js`**); push cron **`badgeCount`** + **`app/sw.ts`**.
+
+### 0.4.9 (2026-05-21)
+
+- **Logo augšupielāde** – **`lib/admin/logo-actions.ts`**: pēc admin pārbaudes Storage un **`logo_revision`** ar **`service_role`** (novērš storage RLS kļūdu); **`083_*`** tulkojumi; ENV **`SUPABASE_SERVICE_ROLE_KEY`**.
+
 ### 0.4.8 (2026-05-21)
 
 - **PWA Web Push** – kavētie + šodienas maksājumi (kā zvana panelis): **`081_*`**, **`082_*`**, **`lib/push/*`**, **`app/sw.ts`** push/click, **`PwaPushSettings`** **`/settings`**, cron **`/api/cron/payment-push-notifications`**, VAPID ENV.
@@ -459,7 +474,7 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 
 ### 0.4.1 (2026-05-21)
 
-- **README** – ENV/logo skaidrojums (logo bez **`SUPABASE_SERVICE_ROLE_KEY`**); struktūra **`lib/brand/process-logo.ts`**; tehniskais steks (Serwist, **sharp**). **`logo-actions.ts`** jau izmanto admin sesiju (`createServerSupabaseClient`).
+- **README** – ENV/logo skaidrojums; struktūra **`lib/brand/process-logo.ts`**; tehniskais steks (Serwist, **sharp**).
 
 ### 0.4.0 (2026-05-21) – 0.4.x sākums
 
@@ -471,7 +486,7 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 
 ### 0.3.52 (2026-05-21)
 
-- **Produkta logo** – **`/admin/system`**: drag-and-drop augšupielāde; **`sharp`** ģenerē 32/64/180/192/512/maskable PNG Supabase Storage **`brand`**; **`logo_revision`** kešam; favicon + manifest no augšupielādes; topbar rāda ikonu (ne teksta nosaukumu), ja logo ir; bez logo – teksta nosaukums (**`DashBrandLink`**). **`<title>`** = **`system_name`**. Faili: **`lib/brand/*`**, **`components/brand/*`**, **`components/admin/admin-system-logo-upload.tsx`**. SQL **`071`–`074`**. Logo saglabāšana ar **admin sesiju** (nav obligāts service_role).
+- **Produkta logo** – **`/admin/system`**: drag-and-drop augšupielāde; **`sharp`** ģenerē 32/64/180/192/512/maskable PNG Supabase Storage **`brand`**; **`logo_revision`** kešam; favicon + manifest no augšupielādes; topbar rāda ikonu (ne teksta nosaukumu), ja logo ir; bez logo – teksta nosaukums (**`DashBrandLink`**). **`<title>`** = **`system_name`**. Faili: **`lib/brand/*`**, **`components/brand/*`**, **`components/admin/admin-system-logo-upload.tsx`**. SQL **`071`–`074`**. Logo saglabāšana: **admin sesija** + serverī **`service_role`** (**`logo-actions.ts`**, kā VIP API).
 
 ### 0.3.51 (2026-05-21)
 

@@ -66,6 +66,7 @@ type PushPayload = {
   body?: string;
   url?: string;
   tag?: string;
+  badgeCount?: number;
 };
 
 self.addEventListener("push", (event) => {
@@ -82,14 +83,31 @@ self.addEventListener("push", (event) => {
   const url = data?.url?.trim() || "/dashboard";
   const tag = data?.tag?.trim() || "repazy-payment";
 
+  const badgeCount =
+    typeof data?.badgeCount === "number" && Number.isFinite(data.badgeCount)
+      ? Math.max(0, Math.floor(data.badgeCount))
+      : undefined;
+
   event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      tag,
-      data: { url },
-      icon: "/icon/192",
-      badge: "/icon/192",
-    }),
+    (async () => {
+      await self.registration.showNotification(title, {
+        body,
+        tag,
+        data: { url },
+        icon: "/icon/192",
+        badge: "/icon/192",
+      });
+      if (badgeCount === undefined || !("setAppBadge" in self.navigator)) return;
+      try {
+        if (badgeCount > 0) {
+          await self.navigator.setAppBadge(badgeCount);
+        } else if ("clearAppBadge" in self.navigator) {
+          await self.navigator.clearAppBadge();
+        }
+      } catch {
+        // Nav atbalsta šajā ierīcē / kontekstā.
+      }
+    })(),
   );
 });
 

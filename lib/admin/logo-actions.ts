@@ -4,7 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { BRAND_STORAGE_FILES } from "@/lib/brand/logo-assets";
 import { processLogoUpload } from "@/lib/brand/process-logo";
 import { requireAdminUser } from "@/lib/auth/require-admin";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
 export type LogoActionResult =
@@ -17,6 +17,17 @@ async function afterLogoMutation() {
   revalidatePath("/");
   revalidatePath("/dashboard");
   revalidatePath("/settings");
+}
+
+async function getLogoStorageClient() {
+  const storage = createServiceRoleSupabaseClient();
+  if (!storage) {
+    return {
+      ok: false as const,
+      message: await getUiPhraseForRequest("admin.forms.logo_err_service_role"),
+    };
+  }
+  return { ok: true as const, storage };
 }
 
 export async function uploadSystemLogoAction(formData: FormData): Promise<LogoActionResult> {
@@ -32,7 +43,11 @@ export async function uploadSystemLogoAction(formData: FormData): Promise<LogoAc
     return processed;
   }
 
-  const supabase = await createServerSupabaseClient();
+  const client = await getLogoStorageClient();
+  if (!client.ok) {
+    return { ok: false, message: client.message };
+  }
+  const supabase = client.storage;
 
   for (const item of processed.files) {
     const { error } = await supabase.storage.from("brand").upload(item.filename, item.buffer, {
@@ -41,13 +56,10 @@ export async function uploadSystemLogoAction(formData: FormData): Promise<LogoAc
       cacheControl: "31536000",
     });
     if (error) {
-      let hint = "";
-      if (/bucket/i.test(error.message)) {
-        hint = " Palaid `database/supabase/072_brand_storage.sql`.";
-      } else if (/policy|permission|denied|403|42501/i.test(error.message)) {
-        hint = await getUiPhraseForRequest("admin.forms.logo_err_storage_policy");
-      }
-      return { ok: false, message: `${error.message}${hint}` };
+      const bucketHint = /bucket/i.test(error.message)
+        ? " Palaid `database/supabase/072_brand_storage.sql`."
+        : "";
+      return { ok: false, message: `${error.message}${bucketHint}` };
     }
   }
 
@@ -86,7 +98,11 @@ export async function uploadSystemLogoAction(formData: FormData): Promise<LogoAc
 export async function removeSystemLogoAction(): Promise<LogoActionResult> {
   await requireAdminUser();
 
-  const supabase = await createServerSupabaseClient();
+  const client = await getLogoStorageClient();
+  if (!client.ok) {
+    return { ok: false, message: client.message };
+  }
+  const supabase = client.storage;
 
   const paths = [...BRAND_STORAGE_FILES];
   await supabase.storage.from("brand").remove(paths);

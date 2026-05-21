@@ -145,6 +145,7 @@ export async function GET(request: Request) {
       body,
       url: `${siteUrl}/dashboard`,
       tag: `repazy-payment-${todayIso}`,
+      badgeCount: alerts.length,
     };
 
     let delivered = false;

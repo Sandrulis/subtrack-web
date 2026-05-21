@@ -1,5 +1,5 @@
 -- Publisks storage buckets augšupielādētajam produkta logo.
--- Augšupielāde: admin Server Action ar sesijas klientu (lib/admin/logo-actions.ts).
+-- Augšupielāde: lib/admin/logo-actions.ts – requireAdminUser(), tad service_role (apiet storage RLS).
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
