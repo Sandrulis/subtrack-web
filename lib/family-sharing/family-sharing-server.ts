@@ -155,6 +155,31 @@ function profileEmail(profiles: Map<string, UserProfile>, userId: string): strin
   return normalizeInviteEmail(profiles.get(userId)?.email ?? "");
 }
 
+/**
+ * Partnera/owner kopīgie abonementi dashboardam – service_role (ja ENV),
+ * tikai pēc aktīvās saites validācijas serverī (RLS EXISTS uz links bieži tukšs Vercel).
+ */
+async function fetchSubscriptionsForFamilyShareCounterparty(
+  sessionSupabase: SupabaseClient,
+  counterpartyUserId: string,
+): Promise<SubscriptionRow[]> {
+  const admin = createServiceRoleSupabaseClient();
+  const client = admin ?? sessionSupabase;
+  const { data, error } = await client
+    .from("subscriptions")
+    .select("*")
+    .eq("user_id", counterpartyUserId)
+    .order("next_payment_date", { ascending: true });
+  if (error) {
+    console.error(
+      "[family-sharing] dashboard shared subs:",
+      error.message ?? error,
+    );
+    return [];
+  }
+  return (data ?? []) as SubscriptionRow[];
+}
+
 async function loadUserProfiles(userIds: string[]): Promise<Map<string, UserProfile>> {
   const out = new Map<string, UserProfile>();
   if (!userIds.length) return out;
@@ -312,25 +337,24 @@ export async function fetchDashboardSubscriptionsWithFamilyShare(): Promise<{
     let sharedOwnerId: string | null = null;
     let sharedLabel = link.partnerLabel;
 
-    if (link.isOwner && link.partnerUserId !== user.id) {
+    if (link.isOwner && !userIdsEqual(link.partnerUserId, user.id)) {
       sharedOwnerId = link.partnerUserId;
     } else if (
       !link.isOwner &&
-      link.partnerUserId === user.id &&
-      link.ownerUserId !== user.id
+      userIdsEqual(link.partnerUserId, user.id) &&
+      !userIdsEqual(link.ownerUserId, user.id)
     ) {
       sharedOwnerId = link.ownerUserId;
       sharedLabel =
         inviterProfiles.get(link.ownerUserId)?.label ?? link.inviteEmail;
     }
 
-    if (!sharedOwnerId || sharedOwnerId === user.id) continue;
+    if (!sharedOwnerId || userIdsEqual(sharedOwnerId, user.id)) continue;
 
-    const { data: sharedSubs } = await supabase
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", sharedOwnerId)
-      .order("next_payment_date", { ascending: true });
+    const sharedSubs = await fetchSubscriptionsForFamilyShareCounterparty(
+      supabase,
+      sharedOwnerId,
+    );
 
     const meta: FamilyShareMeta = {
       linkId: link.id,
@@ -339,7 +363,7 @@ export async function fetchDashboardSubscriptionsWithFamilyShare(): Promise<{
       tintColor: link.partnerDisplayColor,
     };
 
-    for (const row of (sharedSubs ?? []) as SubscriptionRow[]) {
+    for (const row of sharedSubs) {
       const id = String(row.id);
       if (seenIds.has(id)) continue;
       seenIds.add(id);
