@@ -111,14 +111,18 @@ export async function fetchFamilySharingLinksForSession(): Promise<
 
     out.push({
       id: row.id,
+      ownerUserId: row.owner_user_id,
       inviteEmail: row.invite_email,
       status: row.status as FamilySharingLinkStatus,
       partnerUserId: row.partner_user_id,
       partnerLabel: isIncoming
         ? partnerNames.get(row.owner_user_id) ?? row.invite_email
-        : partnerLabelFromRow(row, partnerNames),
+        : isOwner
+          ? partnerLabelFromRow(row, partnerNames)
+          : partnerNames.get(row.owner_user_id) ?? row.invite_email,
       partnerDisplayColor: normalizePartnerColor(row.partner_display_color),
       combineInTotals: row.combine_in_totals === true,
+      isOwner,
       isIncoming,
     });
   }
@@ -127,11 +131,12 @@ export async function fetchFamilySharingLinksForSession(): Promise<
 
 export async function fetchFamilySharingDashboardBootstrap(): Promise<FamilySharingDashboardBootstrap> {
   const enabled = await isIntegrationEnabled("family_sharing");
+  const { user } = await loadAuthContext();
   if (!enabled) {
-    return { enabled: false, links: [] };
+    return { enabled: false, viewerUserId: user?.id, links: [] };
   }
   const links = await fetchFamilySharingLinksForSession();
-  return { enabled: true, links };
+  return { enabled: true, viewerUserId: user?.id, links };
 }
 
 export async function fetchDashboardSubscriptionsWithFamilyShare(): Promise<{
@@ -156,32 +161,67 @@ export async function fetchDashboardSubscriptionsWithFamilyShare(): Promise<{
       ? (ownRaw as SubscriptionRow[]).map((r) => mapSubscriptionRowToClient(r))
       : [];
 
-  const activeOutgoing = familyBootstrap.links.filter(
-    (l) => !l.isIncoming && l.status === "active" && l.partnerUserId,
+  const activeLinks = familyBootstrap.links.filter(
+    (l) => l.status === "active" && l.partnerUserId,
   );
 
-  if (!activeOutgoing.length) {
+  if (!activeLinks.length) {
     return { subscriptions: own, familyBootstrap };
   }
 
   const shared: SubscriptionWithFamilyShare[] = [];
-  for (const link of activeOutgoing) {
-    const pid = link.partnerUserId;
-    if (!pid) continue;
-    const { data: partnerSubs } = await supabase
+  const seenIds = new Set(own.map((s) => String(s.id)));
+
+  const inviterIds = [
+    ...new Set(
+      activeLinks
+        .filter(
+          (l) =>
+            !l.isOwner &&
+            l.partnerUserId === user.id &&
+            l.ownerUserId !== user.id,
+        )
+        .map((l) => l.ownerUserId),
+    ),
+  ];
+  const inviterNames =
+    inviterIds.length > 0 ? await loadPartnerNames(inviterIds) : new Map<string, string>();
+
+  for (const link of activeLinks) {
+    let sharedOwnerId: string | null = null;
+    let sharedLabel = link.partnerLabel;
+
+    if (link.isOwner && link.partnerUserId !== user.id) {
+      sharedOwnerId = link.partnerUserId;
+    } else if (
+      !link.isOwner &&
+      link.partnerUserId === user.id &&
+      link.ownerUserId !== user.id
+    ) {
+      sharedOwnerId = link.ownerUserId;
+      sharedLabel =
+        inviterNames.get(link.ownerUserId) ?? link.inviteEmail;
+    }
+
+    if (!sharedOwnerId || sharedOwnerId === user.id) continue;
+
+    const { data: sharedSubs } = await supabase
       .from("subscriptions")
       .select("*")
-      .eq("user_id", pid)
+      .eq("user_id", sharedOwnerId)
       .order("next_payment_date", { ascending: true });
 
     const meta: FamilyShareMeta = {
       linkId: link.id,
-      partnerUserId: pid,
-      partnerLabel: link.partnerLabel,
+      partnerUserId: sharedOwnerId,
+      partnerLabel: sharedLabel,
       tintColor: link.partnerDisplayColor,
     };
 
-    for (const row of (partnerSubs ?? []) as SubscriptionRow[]) {
+    for (const row of (sharedSubs ?? []) as SubscriptionRow[]) {
+      const id = String(row.id);
+      if (seenIds.has(id)) continue;
+      seenIds.add(id);
       const base = mapSubscriptionRowToClient(row);
       shared.push({
         ...base,

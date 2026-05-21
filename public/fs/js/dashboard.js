@@ -16,7 +16,27 @@ var calendarView = null;
 var subtrackCachedFamilySharedSubs = [];
 
 /* ---- Family sharing (bootstrap no #subtrack-family-sharing-bootstrap-json) ---- */
+var subtrackFamilySharingBootstrapCache = null;
+
+function subtrackApplyFamilySharingBootstrap(data) {
+    if (!data || typeof data !== 'object') return;
+    subtrackFamilySharingBootstrapCache = {
+        enabled: data.enabled === true,
+        viewerUserId:
+            typeof data.viewerUserId === 'string' ? data.viewerUserId : '',
+        links: Array.isArray(data.links) ? data.links : [],
+    };
+    if (typeof subscriptions !== 'undefined' && subscriptions.length) {
+        subtrackEnrichAllSubscriptionsFamilyShare();
+        subtrackRefreshFamilySharedCache();
+        if (typeof renderList === 'function') renderList();
+    }
+}
+
 function subtrackReadFamilySharingBootstrap() {
+    if (subtrackFamilySharingBootstrapCache) {
+        return subtrackFamilySharingBootstrapCache;
+    }
     var raw =
         typeof subtrackReadBootstrapJsonTextById === 'function'
             ? subtrackReadBootstrapJsonTextById('subtrack-family-sharing-bootstrap-json')
@@ -27,6 +47,8 @@ function subtrackReadFamilySharingBootstrap() {
         if (!parsed || typeof parsed !== 'object') return { enabled: false, links: [] };
         return {
             enabled: parsed.enabled === true,
+            viewerUserId:
+                typeof parsed.viewerUserId === 'string' ? parsed.viewerUserId : '',
             links: Array.isArray(parsed.links) ? parsed.links : [],
         };
     } catch (e) {
@@ -34,20 +56,74 @@ function subtrackReadFamilySharingBootstrap() {
     }
 }
 
-function subtrackSubscriptionIsShared(s) {
-    return !!(s && s.familyShare && s.familyShare.partnerUserId);
+function subtrackSyncFamilySharingBootstrapFromApi() {
+    if (typeof fetch === 'undefined') return Promise.resolve();
+    return fetch('/api/family-sharing', { credentials: 'same-origin' })
+        .then(function (res) {
+            if (!res.ok) return null;
+            return res.json();
+        })
+        .then(function (data) {
+            if (data) subtrackApplyFamilySharingBootstrap(data);
+        })
+        .catch(function () {
+            /* paliek SSR bootstrap */
+        });
 }
 
 function subtrackFamilySharingCombineActive() {
     var boot = subtrackReadFamilySharingBootstrap();
     if (!boot.enabled || !boot.links || !boot.links.length) return false;
+    var viewerId = boot.viewerUserId || '';
     for (var i = 0; i < boot.links.length; i++) {
         var l = boot.links[i];
-        if (!l.isIncoming && l.status === 'active' && l.combineInTotals === true) {
+        if (l.status !== 'active' || l.combineInTotals !== true) continue;
+        if (l.isOwner === true) return true;
+        if (
+            viewerId &&
+            l.partnerUserId === viewerId &&
+            !l.isOwner
+        ) {
             return true;
         }
     }
     return false;
+}
+
+/** Atjaunina krāsu/etiķeti no family-sharing bootstrap (pēc krāsas maiņas). */
+function subtrackResolveFamilyShareDisplay(familyShare) {
+    if (!familyShare || !familyShare.linkId) return familyShare;
+    var boot = subtrackReadFamilySharingBootstrap();
+    if (!boot.links || !boot.links.length) return familyShare;
+    for (var i = 0; i < boot.links.length; i++) {
+        var l = boot.links[i];
+        if (l.id === familyShare.linkId && l.status === 'active') {
+            return {
+                linkId: l.id,
+                partnerUserId: familyShare.partnerUserId,
+                partnerLabel: familyShare.partnerLabel,
+                tintColor: l.partnerDisplayColor || familyShare.tintColor,
+            };
+        }
+    }
+    return familyShare;
+}
+
+function subtrackEnrichSubscriptionFamilyShare(sub) {
+    if (!subtrackSubscriptionIsShared(sub) || !sub.familyShare) return sub;
+    var fs = subtrackResolveFamilyShareDisplay(sub.familyShare);
+    if (fs === sub.familyShare) return sub;
+    var copy = {};
+    var k;
+    for (k in sub) {
+        if (Object.prototype.hasOwnProperty.call(sub, k)) copy[k] = sub[k];
+    }
+    copy.familyShare = fs;
+    return copy;
+}
+
+function subtrackEnrichAllSubscriptionsFamilyShare() {
+    subscriptions = subscriptions.map(subtrackEnrichSubscriptionFamilyShare);
 }
 
 function subtrackSubscriptionsForStatsList() {
@@ -66,20 +142,25 @@ function subtrackSubscriptionsOwnOnly() {
 }
 
 function subtrackRefreshFamilySharedCache() {
-    subtrackCachedFamilySharedSubs = subscriptions.filter(function (s) {
-        return subtrackSubscriptionIsShared(s);
-    });
+    subtrackCachedFamilySharedSubs = subscriptions
+        .filter(function (s) {
+            return subtrackSubscriptionIsShared(s);
+        })
+        .map(subtrackEnrichSubscriptionFamilyShare);
 }
 
 function subtrackMergeFamilySharedIntoSubscriptions() {
     var own = subscriptions.filter(function (s) {
         return !subtrackSubscriptionIsShared(s);
     });
-    if (subtrackCachedFamilySharedSubs.length) {
-        subscriptions = own.concat(subtrackCachedFamilySharedSubs);
-    } else {
-        subscriptions = own;
-    }
+    var ownIds = {};
+    own.forEach(function (s) {
+        if (s && s.id != null) ownIds[String(s.id)] = true;
+    });
+    var shared = subtrackCachedFamilySharedSubs.filter(function (s) {
+        return s && s.id != null && !ownIds[String(s.id)];
+    });
+    subscriptions = own.concat(shared);
 }
 
 function subtrackFamilySharingTintCss(hex) {
@@ -108,6 +189,7 @@ function subtrackFamilySharingTintCss(hex) {
  * šajā brīdī jau ir noticis – inicializāciju jāpalaiž arī tad.
  */
 function continueDashboardBoot() {
+    subtrackEnrichAllSubscriptionsFamilyShare();
     subtrackRefreshFamilySharedCache();
     setDefaultDate();
     renderList();
@@ -125,8 +207,12 @@ function fsBootDashboard() {
         window.__subtrackSubsApiSyncedOnce;
     if (!skip && typeof subtrackReloadSubscriptionsFromBootstrap === 'function') {
         subtrackReloadSubscriptionsFromBootstrap();
+        subtrackRefreshFamilySharedCache();
     }
-    subtrackSyncSubscriptionsFromApi().then(function () {
+    Promise.all([
+        subtrackSyncSubscriptionsFromApi(),
+        subtrackSyncFamilySharingBootstrapFromApi(),
+    ]).then(function () {
         continueDashboardBoot();
     });
 }
@@ -134,6 +220,8 @@ function fsBootDashboard() {
 window.fsBootDashboard = fsBootDashboard;
 window.subtrackRefreshFamilySharedCache = subtrackRefreshFamilySharedCache;
 window.subtrackMergeFamilySharedIntoSubscriptions = subtrackMergeFamilySharedIntoSubscriptions;
+window.subtrackApplyFamilySharingBootstrap = subtrackApplyFamilySharingBootstrap;
+window.subtrackEnrichAllSubscriptionsFamilyShare = subtrackEnrichAllSubscriptionsFamilyShare;
 
 /* ---- Render ---- */
 function renderList(scrollToItemId) {
@@ -509,8 +597,11 @@ function renderPaymentCalendar() {
         if (list && list.length) {
             for (var fci = 0; fci < list.length; fci++) {
                 var fsub = list[fci];
-                if (subtrackSubscriptionIsShared(fsub) && fsub.familyShare && fsub.familyShare.tintColor) {
-                    familyCalColor = fsub.familyShare.tintColor;
+                if (subtrackSubscriptionIsShared(fsub) && fsub.familyShare) {
+                    var calShare = subtrackResolveFamilyShareDisplay(fsub.familyShare);
+                    if (calShare && calShare.tintColor) {
+                        familyCalColor = calShare.tintColor;
+                    }
                     break;
                 }
             }
@@ -958,13 +1049,14 @@ function buildItem(s) {
     var itemStyle = '';
     var itemExtraClass = '';
     if (isShared && s.familyShare) {
+        var shareDisplay = subtrackResolveFamilyShareDisplay(s.familyShare);
         itemExtraClass = ' sub-item--family-shared';
         itemStyle =
             ' style="background:' +
-            escAttr(subtrackFamilySharingTintCss(s.familyShare.tintColor)) +
+            escAttr(subtrackFamilySharingTintCss(shareDisplay.tintColor)) +
             ';"';
         var sharedLbl = FsT('family_sharing.badge_shared') || 'Shared';
-        var partnerName = escHtml(s.familyShare.partnerLabel || '');
+        var partnerName = escHtml(shareDisplay.partnerLabel || '');
         sharedBadge =
             '<span class="sub-family-share-badge" title="' +
             escAttr(partnerName) +
@@ -1247,7 +1339,7 @@ function partitionSubscriptionsForNextPayStats() {
     var dueToday = [];
     var future = [];
 
-    subtrackSubscriptionsForStatsList().forEach(function (s) {
+    subtrackSubscriptionsOwnOnly().forEach(function (s) {
         if (typeof isSubscriptionDueActive === 'function' && !isSubscriptionDueActive(s, today)) {
             return;
         }
@@ -1428,26 +1520,20 @@ function updateStats() {
         else markEl.classList.add('hidden');
     }
 
-    var hintEl = document.getElementById('stat-total-combined-hint');
-    if (hintEl) {
-        if (combineOn) {
-            var hintTxt = FsT('fs.dashboard.stat_total_combined_hint') || '';
-            hintEl.textContent = hintTxt;
-            hintEl.classList.remove('hidden');
-        } else {
-            hintEl.textContent = '';
-            hintEl.classList.add('hidden');
-        }
-    }
-
     var ownEl = document.getElementById('stat-own-only');
     if (ownEl) {
         if (combineOn) {
-            var ownLbl = FsT('fs.dashboard.stat_own_only_label') || '';
-            ownEl.textContent = ownLbl + ': €' + ownTotal.toFixed(2);
+            var ownTip = FsT('fs.dashboard.stat_own_only_label') || '';
+            ownEl.textContent = '€' + ownTotal.toFixed(2);
+            ownEl.setAttribute('data-tooltip', ownTip);
+            ownEl.setAttribute('tabindex', '0');
+            ownEl.setAttribute('aria-label', ownTip + ' €' + ownTotal.toFixed(2));
             ownEl.classList.remove('hidden');
         } else {
             ownEl.textContent = '';
+            ownEl.removeAttribute('data-tooltip');
+            ownEl.setAttribute('tabindex', '-1');
+            ownEl.removeAttribute('aria-label');
             ownEl.classList.add('hidden');
         }
     }

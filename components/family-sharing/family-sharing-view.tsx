@@ -38,7 +38,7 @@ function FamilySharingSwitch({
   );
 }
 
-function OutgoingLinkCard({
+function PartnerActiveCard({
   link,
   t,
   busyId,
@@ -53,24 +53,124 @@ function OutgoingLinkCard({
   ) => Promise<boolean>;
 }) {
   const busy = busyId === link.id;
-  const statusLabel =
-    link.status === "active"
-      ? t("family_sharing.status_active")
-      : t("family_sharing.status_pending");
-
   return (
     <article className="stat-card family-sharing-card">
       <div className="family-sharing-card-head">
         <div>
           <h3 className="family-sharing-card-title">{link.partnerLabel}</h3>
-          <p className="family-sharing-card-meta">{link.inviteEmail}</p>
+          <p className="family-sharing-card-meta">{t("family_sharing.lead_as_partner")}</p>
         </div>
-        <span className="family-sharing-status">{statusLabel}</span>
+        <span className="family-sharing-status">{t("family_sharing.status_active")}</span>
       </div>
-      {link.status === "active" ? (
+      <div className="family-sharing-outgoing-settings">
+        <span className="stat-label family-sharing-outgoing-color-label">
+          {t("family_sharing.label_color")}
+        </span>
+        <div className="family-sharing-outgoing-color-row">
+          <div className="color-picker-row family-sharing-color-picker--readonly">
+            {FS_COLOR_DOTS.map((c) => (
+              <span
+                key={c}
+                className={
+                  "color-dot" + (link.partnerDisplayColor === c ? " selected" : "")
+                }
+                style={{ background: c }}
+                aria-hidden
+              />
+            ))}
+          </div>
+          <div className="family-sharing-outgoing-aside">
+            <FamilySharingSwitch
+              checked={link.combineInTotals}
+              disabled={busy}
+              ariaLabel={t("family_sharing.label_combine")}
+              onChange={(next) => void onPatch(link.id, { combineInTotals: next })}
+            />
+          </div>
+        </div>
+        <div className="family-sharing-outgoing-footer">
+          <p className="form-hint family-sharing-combine-hint">{t("family_sharing.hint_combine")}</p>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm family-sharing-revoke-link"
+            disabled={busy}
+            onClick={() => void onPatch(link.id, { action: "leave" })}
+          >
+            {t("family_sharing.btn_leave")}
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function OutgoingLinkCard({
+  link,
+  t,
+  busyId,
+  onPatch,
+}: {
+  link: FamilySharingLinkClient;
+  t: (k: string) => string;
+  busyId: string | null;
+  onPatch: (
+    id: string,
+    body: Record<string, unknown>,
+  ) => Promise<boolean>;
+}) {
+  if (!link.isOwner) {
+    return null;
+  }
+  const busy = busyId === link.id;
+  const statusLabel =
+    link.status === "active"
+      ? t("family_sharing.status_active")
+      : t("family_sharing.status_pending");
+
+  const showInviteEmailSubtitle =
+    link.partnerLabel.trim().toLowerCase() !== link.inviteEmail.trim().toLowerCase();
+
+  return (
+    <article className="stat-card family-sharing-card">
+      {link.status === "pending" ? (
         <>
-          <div className="form-group">
-            <label>{t("family_sharing.label_color")}</label>
+          <div className="family-sharing-pending-title-row">
+            <div className="family-sharing-pending-title-main">
+              <h3 className="family-sharing-card-title">
+                {showInviteEmailSubtitle ? link.partnerLabel : link.inviteEmail}
+              </h3>
+              {showInviteEmailSubtitle ? (
+                <p className="family-sharing-card-meta">{link.inviteEmail}</p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm family-sharing-revoke-link"
+              disabled={busy}
+              onClick={() => void onPatch(link.id, { action: "revoke" })}
+            >
+              {t("family_sharing.btn_revoke")}
+            </button>
+          </div>
+          <p className="family-sharing-card-meta family-sharing-pending-status">
+            {statusLabel}
+          </p>
+        </>
+      ) : (
+        <div className="family-sharing-card-head">
+          <div>
+            <h3 className="family-sharing-card-title">{link.partnerLabel}</h3>
+            <p className="family-sharing-card-meta">{link.inviteEmail}</p>
+          </div>
+          <span className="family-sharing-status">{statusLabel}</span>
+        </div>
+      )}
+      {link.status === "active" ? (
+        <div className="family-sharing-outgoing-settings">
+          <span className="stat-label family-sharing-outgoing-color-label">
+            {t("family_sharing.label_color")}
+          </span>
+          <div className="family-sharing-outgoing-color-row">
             <div className="color-picker-row">
               {FS_COLOR_DOTS.map((c) => (
                 <button
@@ -86,33 +186,28 @@ function OutgoingLinkCard({
                 />
               ))}
             </div>
-          </div>
-          <div className="family-sharing-field family-sharing-field--row">
-            <div>
-              <span className="stat-label family-sharing-field-label-inline">
-                {t("family_sharing.label_combine")}
-              </span>
-              <p className="form-hint family-sharing-field-hint">{t("family_sharing.hint_combine")}</p>
+            <div className="family-sharing-outgoing-aside">
+              <FamilySharingSwitch
+                checked={link.combineInTotals}
+                disabled={busy}
+                ariaLabel={t("family_sharing.label_combine")}
+                onChange={(next) => void onPatch(link.id, { combineInTotals: next })}
+              />
             </div>
-            <FamilySharingSwitch
-              checked={link.combineInTotals}
-              disabled={busy}
-              ariaLabel={t("family_sharing.label_combine")}
-              onChange={(next) => void onPatch(link.id, { combineInTotals: next })}
-            />
           </div>
-        </>
+          <div className="family-sharing-outgoing-footer">
+            <p className="form-hint family-sharing-combine-hint">{t("family_sharing.hint_combine")}</p>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm family-sharing-revoke-link"
+              disabled={busy}
+              onClick={() => void onPatch(link.id, { action: "revoke" })}
+            >
+              {t("family_sharing.btn_revoke")}
+            </button>
+          </div>
+        </div>
       ) : null}
-      <div className="family-sharing-card-actions">
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm"
-          disabled={busy}
-          onClick={() => void onPatch(link.id, { action: "revoke" })}
-        >
-          {t("family_sharing.btn_revoke")}
-        </button>
-      </div>
     </article>
   );
 }
@@ -134,21 +229,19 @@ function IncomingLinkCard({
   const busy = busyId === link.id;
   return (
     <article className="stat-card family-sharing-card family-sharing-card--incoming">
-      <div className="family-sharing-card-head">
-        <div>
+      <div className="family-sharing-incoming-head">
+        <div className="family-sharing-incoming-title-row">
           <h3 className="family-sharing-card-title">{link.partnerLabel}</h3>
-          <p className="family-sharing-card-meta">{t("family_sharing.status_pending")}</p>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm family-sharing-incoming-accept"
+            disabled={busy}
+            onClick={() => void onPatch(link.id, { action: "accept" })}
+          >
+            {t("family_sharing.btn_accept")}
+          </button>
         </div>
-      </div>
-      <div className="family-sharing-card-actions">
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          disabled={busy}
-          onClick={() => void onPatch(link.id, { action: "accept" })}
-        >
-          {t("family_sharing.btn_accept")}
-        </button>
+        <p className="family-sharing-card-meta">{t("family_sharing.status_pending")}</p>
       </div>
     </article>
   );
@@ -170,8 +263,11 @@ export function FamilySharingView({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [inviteBusy, setInviteBusy] = useState(false);
 
-  const outgoing = links.filter((l) => !l.isIncoming);
+  const sentInvites = links.filter((l) => l.isOwner);
   const incoming = links.filter((l) => l.isIncoming);
+  const sharedWithMe = links.filter(
+    (l) => !l.isOwner && !l.isIncoming && l.status === "active",
+  );
 
   const reload = useCallback(async () => {
     const res = await fetch("/api/family-sharing");
@@ -190,8 +286,8 @@ export function FamilySharingView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { success?: boolean; message?: string };
+      if (!res.ok || data.success === false) {
         pushDomToast(
           typeof data.message === "string" ? data.message : t("fs.dashboard.toast_api_save_failed"),
           "error",
@@ -200,7 +296,7 @@ export function FamilySharingView({
       }
       if (body.action === "accept") {
         pushDomToast(t("family_sharing.toast_accepted"), "success");
-      } else if (body.action === "revoke") {
+      } else if (body.action === "revoke" || body.action === "leave") {
         pushDomToast(t("family_sharing.toast_revoked"), "info");
       } else {
         pushDomToast(t("family_sharing.toast_saved"), "success");
@@ -335,14 +431,44 @@ export function FamilySharingView({
                 {t("family_sharing.section_outgoing")}
               </h2>
             </div>
-            {outgoing.length === 0 ? (
+            {sentInvites.length === 0 ? (
               <div className="stat-card family-sharing-empty-card">
                 <p className="family-sharing-empty-text">{t("family_sharing.empty_outgoing")}</p>
               </div>
             ) : (
               <div className="family-sharing-links-grid">
-                {outgoing.map((link) => (
+                {sentInvites.map((link) => (
                   <OutgoingLinkCard
+                    key={link.id}
+                    link={link}
+                    t={t}
+                    busyId={busyId}
+                    onPatch={patchLink}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section
+            className="family-sharing-section-block"
+            aria-labelledby="fs-shared-with-me-heading"
+          >
+            <div className="section-header family-sharing-section-block-header">
+              <h2 id="fs-shared-with-me-heading" className="section-heading">
+                {t("family_sharing.section_shared_with_me")}
+              </h2>
+            </div>
+            {sharedWithMe.length === 0 ? (
+              <div className="stat-card family-sharing-empty-card">
+                <p className="family-sharing-empty-text">
+                  {t("family_sharing.empty_shared_with_me")}
+                </p>
+              </div>
+            ) : (
+              <div className="family-sharing-links-grid">
+                {sharedWithMe.map((link) => (
+                  <PartnerActiveCard
                     key={link.id}
                     link={link}
                     t={t}

@@ -30,6 +30,9 @@ function markNotifyItemPaid(rawId) {
         return String(x.id) === String(rawId);
     });
     if (!s) return;
+    if (typeof subtrackSubscriptionIsShared === 'function' && subtrackSubscriptionIsShared(s)) {
+        return;
+    }
     var paidOnIso = normalizeSubscriptionDateIso(s.date);
     if (!paidOnIso) return;
     var today = new Date();
@@ -344,7 +347,12 @@ function refreshDashNotifications() {
     var upcomingHorizonEnd = new Date(today);
     upcomingHorizonEnd.setDate(upcomingHorizonEnd.getDate() + 7);
 
-    var overdue = subscriptions.filter(function (s) {
+    var notifySubs =
+        typeof subtrackSubscriptionsForNotifyList === 'function'
+            ? subtrackSubscriptionsForNotifyList()
+            : subscriptions;
+
+    var overdue = notifySubs.filter(function (s) {
         var dIso = normalizeSubscriptionDateIso(s.date);
         if (!dIso) return false;
         if (typeof isSubscriptionDueActive === 'function' && !isSubscriptionDueActive(s, today)) {
@@ -358,7 +366,7 @@ function refreshDashNotifications() {
         );
     });
 
-    var dueToday = subscriptions.filter(function (s) {
+    var dueToday = notifySubs.filter(function (s) {
         if (typeof isSubscriptionDueActive === 'function' && !isSubscriptionDueActive(s, today)) {
             return false;
         }
@@ -370,7 +378,7 @@ function refreshDashNotifications() {
         );
     });
 
-    var upcoming = subscriptions.filter(function (s) {
+    var upcoming = notifySubs.filter(function (s) {
         var dIso = normalizeSubscriptionDateIso(s.date);
         if (!dIso) return false;
         if (typeof isSubscriptionDueActive === 'function' && !isSubscriptionDueActive(s, today)) {

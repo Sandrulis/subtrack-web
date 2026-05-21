@@ -484,6 +484,19 @@ function escAttr(str) {
         .replace(/'/g, '&#39;');
 }
 
+/** Ģimenes dalīšana: cita personas ieraksts (tikai lasāms panelī). */
+function subtrackSubscriptionIsShared(s) {
+    return !!(s && s.familyShare && s.familyShare.partnerUserId);
+}
+
+/** Paziņojumi (zvans, kavētie, šodien, gaidāmie) – tikai paši abonementi. */
+function subtrackSubscriptionsForNotifyList() {
+    if (typeof subscriptions === 'undefined') return [];
+    return subscriptions.filter(function (s) {
+        return !subtrackSubscriptionIsShared(s);
+    });
+}
+
 /** REST: viena abonementa URL (session cookie). */
 function apiSubscriptionUrl(id) {
     return '/api/subscriptions/' + encodeURIComponent(String(id));
@@ -523,7 +536,12 @@ function subtrackSyncSubscriptionsFromApi() {
                     if (o.date) o.date = normalizeSubscriptionDateIso(o.date);
                     return o;
                 });
-                if (typeof window.subtrackMergeFamilySharedIntoSubscriptions === 'function') {
+                if (typeof window.subtrackEnrichAllSubscriptionsFamilyShare === 'function') {
+                    window.subtrackEnrichAllSubscriptionsFamilyShare();
+                }
+                if (typeof window.subtrackRefreshFamilySharedCache === 'function') {
+                    window.subtrackRefreshFamilySharedCache();
+                } else if (typeof window.subtrackMergeFamilySharedIntoSubscriptions === 'function') {
                     window.subtrackMergeFamilySharedIntoSubscriptions();
                 }
                 subtrackMarkSubsSyncedFromApi();

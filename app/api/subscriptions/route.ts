@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { fetchSubscriptionsForSession } from "@/lib/subscriptions/fetch-subscriptions-server";
+import { fetchDashboardSubscriptionsWithFamilyShare } from "@/lib/family-sharing/family-sharing-server";
 import { fetchPaidCalendarDaysForSession } from "@/lib/subscriptions/fetch-paid-calendar-server";
 import {
   mapSubscriptionRowToClient,
@@ -24,11 +24,14 @@ function parseFreeSubscriptionLimit(raw: unknown): number | null {
 
 export async function GET() {
   try {
-    const [list, paidCalendarDays] = await Promise.all([
-      fetchSubscriptionsForSession(),
+    const [bundle, paidCalendarDays] = await Promise.all([
+      fetchDashboardSubscriptionsWithFamilyShare(),
       fetchPaidCalendarDaysForSession(),
     ]);
-    return NextResponse.json({ subscriptions: list, paidCalendarDays });
+    return NextResponse.json({
+      subscriptions: bundle.subscriptions,
+      paidCalendarDays,
+    });
   } catch {
     return NextResponse.json(
       { success: false, message: "Failed to load subscriptions" },

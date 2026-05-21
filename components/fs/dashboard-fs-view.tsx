@@ -271,12 +271,14 @@ export function DashboardFsView({
                         *
                       </span>
                     </div>
-                    <div className="stat-note">{t("landing.mock.stat_total_note")}</div>
-                    <p
-                      id="stat-total-combined-hint"
-                      className="stat-total-combined-hint hidden"
-                    />
-                    <p id="stat-own-only" className="stat-own-only hidden" />
+                    <div className="stat-card-total-footer">
+                      <div className="stat-note">{t("landing.mock.stat_total_note")}</div>
+                      <span
+                        id="stat-own-only"
+                        className="stat-own-only hidden"
+                        tabIndex={-1}
+                      />
+                    </div>
                   </div>
                   <div className="stat-card">
                     <div className="stat-label">{t("landing.mock.stat_active_label")}</div>
