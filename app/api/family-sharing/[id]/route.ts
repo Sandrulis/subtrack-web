@@ -199,7 +199,7 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
     (rec.color !== undefined || rec.combineInTotals !== undefined);
 
   let updateClient: SupabaseClient = supabase;
-  if (isStateAction || isMetaUpdate) {
+  if (isStateAction) {
     const admin = createServiceRoleSupabaseClient();
     if (!admin) {
       return NextResponse.json(
@@ -211,6 +211,14 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
       );
     }
     updateClient = admin;
+  } else if (isMetaUpdate) {
+    const admin = createServiceRoleSupabaseClient();
+    updateClient = admin ?? supabase;
+    if (!admin) {
+      console.warn(
+        "[PATCH /api/family-sharing/:id] SUPABASE_SERVICE_ROLE_KEY missing; meta update via session client",
+      );
+    }
   }
 
   let updateQuery = updateClient.from("family_sharing_links").update(patch).eq("id", id);

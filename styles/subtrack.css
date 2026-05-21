@@ -5372,6 +5372,27 @@ button.dash-exit {
 .color-dot:hover { transform: scale(1.15); }
 .color-dot.selected { border-color: var(--text); }
 
+.family-sharing-color-dot {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.family-sharing-color-dot.is-saving {
+    cursor: wait;
+    opacity: 0.85;
+}
+
+.family-sharing-color-dot-spinner {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    border-color: rgba(255, 255, 255, 0.35);
+    border-top-color: var(--text, #0f172a);
+}
+
 .icon-picker-row {
     display: flex;
     gap: 6px;

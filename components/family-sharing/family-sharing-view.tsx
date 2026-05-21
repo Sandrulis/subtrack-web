@@ -109,6 +109,50 @@ function FamilySharingLeaveButton({
   );
 }
 
+function FamilySharingColorPicker({
+  selectedColor,
+  disabled,
+  savingColor,
+  onPick,
+}: {
+  selectedColor: string;
+  disabled: boolean;
+  savingColor: string | null;
+  onPick: (color: string) => void;
+}) {
+  return (
+    <div className="color-picker-row family-sharing-color-picker-row">
+      {FS_COLOR_DOTS.map((c) => {
+        const isSaving = savingColor === c;
+        const isSelected = selectedColor === c;
+        return (
+          <button
+            key={c}
+            type="button"
+            className={
+              "color-dot family-sharing-color-dot" +
+              (isSelected ? " selected" : "") +
+              (isSaving ? " is-saving" : "")
+            }
+            style={{ background: c }}
+            disabled={disabled || (savingColor !== null && !isSaving)}
+            aria-busy={isSaving}
+            aria-label={c}
+            onClick={() => onPick(c)}
+          >
+            {isSaving ? (
+              <span
+                className="btn-spinner family-sharing-color-dot-spinner"
+                aria-hidden="true"
+              />
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function FamilySharingSwitch({
   checked,
   disabled,
@@ -140,12 +184,14 @@ function PartnerActiveCard({
   link,
   t,
   busyId,
+  colorBusy,
   onPatch,
   onRequestConfirm,
 }: {
   link: FamilySharingLinkClient;
   t: (k: string) => string;
   busyId: string | null;
+  colorBusy: { linkId: string; color: string } | null;
   onPatch: (
     id: string,
     body: Record<string, unknown>,
@@ -157,7 +203,8 @@ function PartnerActiveCard({
   ) => void;
 }) {
   const cardBusy = busyId === link.id;
-  const anyBusy = busyId !== null;
+  const anyBusy = busyId !== null || colorBusy !== null;
+  const savingColor = colorBusy?.linkId === link.id ? colorBusy.color : null;
   return (
     <article className="stat-card family-sharing-card">
       <div className="family-sharing-card-head">
@@ -185,21 +232,12 @@ function PartnerActiveCard({
           {t("family_sharing.label_color")}
         </span>
         <div className="family-sharing-outgoing-color-row">
-          <div className="color-picker-row">
-            {FS_COLOR_DOTS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                className={
-                  "color-dot" + (link.partnerDisplayColor === c ? " selected" : "")
-                }
-                style={{ background: c }}
-                disabled={anyBusy}
-                aria-label={c}
-                onClick={() => void onPatch(link.id, { color: c })}
-              />
-            ))}
-          </div>
+          <FamilySharingColorPicker
+            selectedColor={link.partnerDisplayColor}
+            disabled={anyBusy}
+            savingColor={savingColor}
+            onPick={(c) => void onPatch(link.id, { color: c })}
+          />
           <div className="family-sharing-outgoing-aside family-sharing-outgoing-aside--combine">
             <FamilySharingSwitch
               checked={link.combineInTotals}
@@ -221,12 +259,14 @@ function OutgoingLinkCard({
   link,
   t,
   busyId,
+  colorBusy,
   onPatch,
   onRequestConfirm,
 }: {
   link: FamilySharingLinkClient;
   t: (k: string) => string;
   busyId: string | null;
+  colorBusy: { linkId: string; color: string } | null;
   onPatch: (
     id: string,
     body: Record<string, unknown>,
@@ -241,7 +281,8 @@ function OutgoingLinkCard({
     return null;
   }
   const cardBusy = busyId === link.id;
-  const anyBusy = busyId !== null;
+  const anyBusy = busyId !== null || colorBusy !== null;
+  const savingColor = colorBusy?.linkId === link.id ? colorBusy.color : null;
   const linkStatus = familyLinkStatus(link);
   const statusLabel =
     linkStatus === "active"
@@ -316,21 +357,12 @@ function OutgoingLinkCard({
             {t("family_sharing.label_color")}
           </span>
           <div className="family-sharing-outgoing-color-row">
-            <div className="color-picker-row">
-              {FS_COLOR_DOTS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={
-                    "color-dot" + (link.partnerDisplayColor === c ? " selected" : "")
-                  }
-                  style={{ background: c }}
-                  disabled={anyBusy}
-                  aria-label={c}
-                  onClick={() => void onPatch(link.id, { color: c })}
-                />
-              ))}
-            </div>
+            <FamilySharingColorPicker
+              selectedColor={link.partnerDisplayColor}
+              disabled={anyBusy}
+              savingColor={savingColor}
+              onPick={(c) => void onPatch(link.id, { color: c })}
+            />
             <div className="family-sharing-outgoing-aside family-sharing-outgoing-aside--combine">
               <FamilySharingSwitch
                 checked={link.combineInTotals}
@@ -526,6 +558,9 @@ export function FamilySharingView({
   const [email, setEmail] = useState("");
   const [inviteColor, setInviteColor] = useState(FS_COLOR_DOTS[3] ?? "#f59e0b");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [colorBusy, setColorBusy] = useState<{ linkId: string; color: string } | null>(
+    null,
+  );
   const [inviteBusy, setInviteBusy] = useState(false);
   const [confirmPending, setConfirmPending] = useState<FamilySharingConfirmState | null>(
     null,
@@ -629,8 +664,13 @@ export function FamilySharingView({
   }
 
   async function patchLink(id: string, body: Record<string, unknown>): Promise<boolean> {
-    if (busyId) return false;
-    setBusyId(id);
+    const isColorPatch = body.color !== undefined;
+    if (busyId || colorBusy) return false;
+    if (isColorPatch) {
+      setColorBusy({ linkId: id, color: String(body.color) });
+    } else {
+      setBusyId(id);
+    }
     try {
       const res = await fetch(`/api/family-sharing/${id}`, {
         method: "PATCH",
@@ -658,6 +698,7 @@ export function FamilySharingView({
       return true;
     } finally {
       setBusyId(null);
+      setColorBusy(null);
     }
   }
 
@@ -819,6 +860,7 @@ export function FamilySharingView({
                         link={link}
                         t={t}
                         busyId={busyId}
+                        colorBusy={colorBusy}
                         onPatch={patchLink}
                         onRequestConfirm={requestConfirm}
                       />
@@ -837,6 +879,7 @@ export function FamilySharingView({
                           link={link}
                           t={t}
                           busyId={busyId}
+                          colorBusy={colorBusy}
                           onPatch={patchLink}
                           onRequestConfirm={requestConfirm}
                         />
@@ -864,6 +907,7 @@ export function FamilySharingView({
                       link={link}
                       t={t}
                       busyId={busyId}
+                      colorBusy={colorBusy}
                       onPatch={patchLink}
                       onRequestConfirm={requestConfirm}
                     />
