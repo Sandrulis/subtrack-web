@@ -91,8 +91,8 @@ export function FsScripts({ srcs }: { srcs: readonly string[] }) {
         if (cancelled) break;
         try {
           await loadScriptOnce(src);
-        } catch (e) {
-          console.error(e);
+        } catch {
+          /* ignore */
         }
       }
     })();

@@ -40,7 +40,6 @@ async function runLinkUpdate(
     }
     if (error) {
       lastMessage = error.message ?? lastMessage;
-      console.error("[PATCH /api/family-sharing/:id] update attempt", error);
     }
   }
   return { ok: false, message: lastMessage };
@@ -240,12 +239,6 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
     updateClients.push(supabase);
   }
 
-  if ((isStateAction || isMetaUpdate) && !admin) {
-    console.warn(
-      "[PATCH /api/family-sharing/:id] SUPABASE_SERVICE_ROLE_KEY missing on server",
-    );
-  }
-
   if (isStateAction && !admin) {
     return NextResponse.json(
       {
@@ -327,8 +320,7 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error("[PATCH /api/family-sharing/:id]", err);
+  } catch {
     return NextResponse.json(
       { success: false, message: "Internal server error" },
       { status: 500 },

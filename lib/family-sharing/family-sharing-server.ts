@@ -105,7 +105,6 @@ async function fetchFamilySharingLinkRows(
     return (full.data ?? []) as LinkRow[];
   }
   if (!isMissingTintColumnError(full.error)) {
-    console.error("[family-sharing] fetch links:", full.error.message ?? full.error);
     return [];
   }
 
@@ -116,7 +115,6 @@ async function fetchFamilySharingLinkRows(
     .order("created_at", { ascending: false });
 
   if (fallback.error) {
-    console.error("[family-sharing] fetch links (base):", fallback.error.message ?? fallback.error);
     return [];
   }
 
@@ -171,10 +169,6 @@ async function fetchSubscriptionsForFamilyShareCounterparty(
     .eq("user_id", counterpartyUserId)
     .order("next_payment_date", { ascending: true });
   if (error) {
-    console.error(
-      "[family-sharing] dashboard shared subs:",
-      error.message ?? error,
-    );
     return [];
   }
   return (data ?? []) as SubscriptionRow[];

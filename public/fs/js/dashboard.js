@@ -2038,8 +2038,8 @@ function loadVisualSuggestBootstrap() {
         if (parsed && Array.isArray(parsed.brandRules)) {
             visualSuggestBootstrap.brandRules = parsed.brandRules;
         }
-    } catch (e) {
-        console.error(e);
+    } catch (_e) {
+        /* invalid bootstrap JSON */
     }
 }
 
@@ -2198,8 +2198,8 @@ function loadFsIconSearchBootstrap() {
         if (parsed && Array.isArray(parsed.icons)) {
             fsIconSearchRows = parsed.icons;
         }
-    } catch (e) {
-        console.error(e);
+    } catch (_e) {
+        /* invalid bootstrap JSON */
     }
 }
 

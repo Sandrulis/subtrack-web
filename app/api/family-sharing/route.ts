@@ -46,8 +46,7 @@ export async function GET() {
       viewerUserId: user.id,
       links,
     });
-  } catch (err) {
-    console.error("[GET /api/family-sharing]", err);
+  } catch {
     return NextResponse.json(
       { success: false, message: "Internal server error" },
       { status: 500 },

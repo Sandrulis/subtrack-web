@@ -34,8 +34,8 @@ export function AnalyticsFsView({
         }
         if (cancelled) return;
         window.fsBootAnalytics?.();
-      } catch (e) {
-        console.error(e);
+      } catch {
+        /* ignore */
       }
     })();
     return () => {

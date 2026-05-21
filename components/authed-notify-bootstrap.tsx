@@ -42,8 +42,8 @@ export function AuthedNotifyBootstrap({
           if (typeof reload === "function") reload();
         }
         window.fsBootDashAlerts?.();
-      } catch (e) {
-        console.error(e);
+      } catch {
+        /* ignore */
       }
     })();
 

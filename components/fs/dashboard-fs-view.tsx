@@ -73,8 +73,8 @@ export function DashboardFsView({
         await loadScriptOnce("/fs/js/dashboard.js");
         if (cancelled) return;
         window.fsBootDashboard?.();
-      } catch (e) {
-        console.error(e);
+      } catch {
+        /* ignore */
       }
     })();
     return () => {
