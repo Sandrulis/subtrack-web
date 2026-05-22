@@ -1,17 +1,14 @@
 "use client";
 
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
-import {
-  isIosSafariInstallable,
-  isStandaloneDisplayMode,
-  type BeforeInstallPromptEvent,
-} from "@/lib/pwa/install-prompt";
+import { usePwaDeferredInstall } from "@/components/pwa/pwa-deferred-install-provider";
+import { isIosSafariInstallable, isStandaloneDisplayMode } from "@/lib/pwa/install-prompt";
 import { useCallback, useEffect, useState } from "react";
 
 export function PwaSettingsInstall() {
   const { t, pwa } = useSubtrackIntl();
   const [mounted, setMounted] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const { deferredPrompt, clearDeferredPrompt } = usePwaDeferredInstall();
   const [ios, setIos] = useState(false);
   const [standalone, setStandalone] = useState(false);
 
@@ -21,21 +18,12 @@ export function PwaSettingsInstall() {
     setStandalone(isStandaloneDisplayMode());
   }, []);
 
-  useEffect(() => {
-    const onBip = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
-    window.addEventListener("beforeinstallprompt", onBip);
-    return () => window.removeEventListener("beforeinstallprompt", onBip);
-  }, []);
-
   const onInstall = useCallback(async () => {
     if (!deferredPrompt) return;
     await deferredPrompt.prompt();
     await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
-  }, [deferredPrompt]);
+    clearDeferredPrompt();
+  }, [deferredPrompt, clearDeferredPrompt]);
 
   if (!pwa.installSettingsEnabled) return null;
   if (mounted && standalone) return null;

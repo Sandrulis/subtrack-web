@@ -7,31 +7,21 @@ import {
   writePwaBannerDismissed,
 } from "@/components/pwa/pwa-install-banner";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
-import type { BeforeInstallPromptEvent } from "@/lib/pwa/install-prompt";
+import { usePwaDeferredInstall } from "@/components/pwa/pwa-deferred-install-provider";
+import { PWA_INSTALL_BANNER_PATHS } from "@/lib/pwa/install-prompt-capture";
 import { isStandaloneDisplayMode } from "@/lib/pwa/install-prompt";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-const BANNER_PATHS = new Set(["/dashboard", "/analytics", "/settings"]);
-
 export function PwaInstallHost() {
   const { pwa } = useSubtrackIntl();
   const pathname = usePathname() ?? "";
+  const { deferredPrompt, clearDeferredPrompt } = usePwaDeferredInstall();
   const [mounted, setMounted] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissVersion, setDismissVersion] = useState(0);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    const onBip = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
-    window.addEventListener("beforeinstallprompt", onBip);
-    return () => window.removeEventListener("beforeinstallprompt", onBip);
   }, []);
 
   const dismissed = useMemo(
@@ -41,7 +31,7 @@ export function PwaInstallHost() {
 
   const visible =
     mounted &&
-    BANNER_PATHS.has(pathname) &&
+    PWA_INSTALL_BANNER_PATHS.has(pathname) &&
     shouldShowPwaBanner({
       installBannerEnabled: pwa.installBannerEnabled,
       dismissed,
@@ -49,17 +39,18 @@ export function PwaInstallHost() {
 
   const onDismiss = useCallback(() => {
     writePwaBannerDismissed();
+    clearDeferredPrompt();
     setDismissVersion((v) => v + 1);
-  }, []);
+  }, [clearDeferredPrompt]);
 
   const onInstallClick = useCallback(async () => {
     if (!deferredPrompt) return;
     await deferredPrompt.prompt();
     await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
+    clearDeferredPrompt();
     writePwaBannerDismissed();
     setDismissVersion((v) => v + 1);
-  }, [deferredPrompt]);
+  }, [deferredPrompt, clearDeferredPrompt]);
 
   if (!visible || isStandaloneDisplayMode()) return null;
 

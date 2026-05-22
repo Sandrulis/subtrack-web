@@ -6,6 +6,7 @@ import "./globals.css";
 import { HtmlLangBridge } from "@/components/html-lang-bridge";
 import { NavBrandBridge } from "@/components/brand/nav-brand-bridge";
 import { CookieConsentRoot } from "@/components/legal/cookie-consent-root";
+import { PwaDeferredInstallProvider } from "@/components/pwa/pwa-deferred-install-provider";
 import { PwaInstallHost } from "@/components/pwa/pwa-install-host";
 import { PwaSwRegister } from "@/components/pwa/pwa-sw-register";
 import { FontAwesomeDeferredHead } from "@/components/font-awesome-deferred-head";
@@ -127,17 +128,19 @@ export default async function RootLayout({
           languageOptions={catalog.options}
           dbMap={dbMap}
         >
-          <NavBrandBridge
-            label={systemSiteName}
-            logoTopbar={brandLogo?.topbar ?? null}
-          >
-            <PwaSwRegister pwa={publicSettings.pwa} />
-            <UmamiAnalytics />
-            {children}
-            <PwaInstallHost />
+          <PwaDeferredInstallProvider>
+            <NavBrandBridge
+              label={systemSiteName}
+              logoTopbar={brandLogo?.topbar ?? null}
+            >
+              <PwaSwRegister pwa={publicSettings.pwa} />
+              <UmamiAnalytics />
+              {children}
+              <PwaInstallHost />
             <ModalBackdropCloseConfirmHost />
             <CookieConsentRoot />
-          </NavBrandBridge>
+            </NavBrandBridge>
+          </PwaDeferredInstallProvider>
         </SubtrackIntlProvider>
       </body>
     </html>

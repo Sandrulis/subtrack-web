@@ -6,6 +6,12 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
 import { allowServerActionRateLimit } from "@/lib/security/server-action-rate-limit";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
+import {
+  registerUserWithLocalizedConfirmEmail,
+  sendPasswordResetWithLocalizedEmail,
+} from "@/lib/auth/auth-localized-email";
+import { canSendAuthEmailsViaResend } from "@/lib/emails/send-transactional";
+import { resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
 
 /** Signup e-pasta pārbaude: max pieprasījumi uz IP minūtē (M2 enumerācijas mazināšana). */
 const SIGNUP_EMAIL_EXISTS_MAX_PER_MIN = 24;
@@ -125,6 +131,38 @@ export async function signUpAction(formData: FormData) {
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
     "http://localhost:3000";
 
+  if (canSendAuthEmailsViaResend()) {
+    const { locale } = await resolveRequestUiLocales();
+    const custom = await registerUserWithLocalizedConfirmEmail({
+      email,
+      password,
+      firstName,
+      lastName,
+      siteUrl: site,
+      locale,
+    });
+
+    if (!custom.ok) {
+      if (custom.stage === "email") {
+        redirect(
+          "/signup?error=" +
+            errParam(
+              "Konts var būt izveidots, bet apstiprinājuma e-pastu neizdevās nosūtīt. Mēģini vēlreiz vai sazinies ar atbalstu.",
+            ),
+        );
+      }
+      redirect("/signup?error=" + errParam(custom.message));
+    }
+
+    revalidatePath("/", "layout");
+    redirect(
+      "/login?message=" +
+        errParam(
+          "Konts izveidots. Pārbaudi pastkasti un apstiprini e-pastu, lai pieteiktos.",
+        ),
+    );
+  }
+
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -182,6 +220,19 @@ export async function requestPasswordResetAction(
   const site =
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
     "http://localhost:3000";
+
+  if (canSendAuthEmailsViaResend()) {
+    const { locale } = await resolveRequestUiLocales();
+    const custom = await sendPasswordResetWithLocalizedEmail({
+      email,
+      siteUrl: site,
+      locale,
+    });
+    if (!custom.ok) {
+      return { ok: false, error: custom.error };
+    }
+    return { ok: true };
+  }
 
   const supabase = await createServerSupabaseClient();
   await supabase.auth.resetPasswordForEmail(email, {

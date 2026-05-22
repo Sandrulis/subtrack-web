@@ -1,6 +1,7 @@
 import { resolveEmailCopy } from "./merge-template-copy";
 import { renderEmailHtml } from "./render-email-html";
-import type { EmailTemplatesStore } from "./template-types";
+import type { EmailTemplateId, EmailTemplatesStore } from "./template-types";
+import { getSupabasePublicConfig } from "@/lib/supabase/env";
 import { buildPreviewRenderContext } from "./preview-context";
 import {
   formatAmountForEmail,
@@ -58,6 +59,66 @@ async function sendViaResend(input: {
 
   const data = (await res.json().catch(() => ({}))) as { id?: string };
   return { ok: true, id: data.id };
+}
+
+export async function sendAuthTemplateEmail(input: {
+  templateId: EmailTemplateId;
+  to: string;
+  locale: string;
+  actionUrl: string;
+  systemName: string;
+  siteUrl: string;
+  templatesStore: EmailTemplatesStore;
+}): Promise<SendEmailResult> {
+  const { templateId, to, locale, actionUrl, systemName, siteUrl, templatesStore } =
+    input;
+
+  const copy = resolveEmailCopy(templateId, locale, templatesStore, systemName);
+  const ctx = buildPreviewRenderContext(templateId, systemName, siteUrl);
+  ctx.actionUrl = actionUrl;
+
+  const html = renderEmailHtml(copy, ctx);
+  return sendViaResend({ to, subject: copy.subject, html });
+}
+
+export async function sendConfirmSignupEmail(input: {
+  to: string;
+  locale: string;
+  actionUrl: string;
+  systemName: string;
+  siteUrl: string;
+  templatesStore: EmailTemplatesStore;
+}): Promise<SendEmailResult> {
+  return sendAuthTemplateEmail({
+    templateId: "confirm_signup",
+    ...input,
+  });
+}
+
+/** Auth e-pasti (reģistrācija, aizmirstā parole) caur Resend + admin šabloni. */
+export function canSendAuthEmailsViaResend(): boolean {
+  return (
+    isTransactionalEmailConfigured() &&
+    !!getSupabasePublicConfig() &&
+    !!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+  );
+}
+
+/** @deprecated use canSendAuthEmailsViaResend */
+export const canSendSignupConfirmViaResend = canSendAuthEmailsViaResend;
+
+export async function sendResetPasswordEmail(input: {
+  to: string;
+  locale: string;
+  actionUrl: string;
+  systemName: string;
+  siteUrl: string;
+  templatesStore: EmailTemplatesStore;
+}): Promise<SendEmailResult> {
+  return sendAuthTemplateEmail({
+    templateId: "reset_password",
+    ...input,
+  });
 }
 
 export async function sendOverduePaymentEmail(input: {
