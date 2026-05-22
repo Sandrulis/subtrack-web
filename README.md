@@ -1,6 +1,6 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.4.27` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`).
+**Versija:** `0.4.28` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`).
 
 **SubTrack** (repozitorijs `subtrack-web`) ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, **`public.subscription_payments`** maksājumu žurnālam, RLS); CRUD notiek caur **Route Handlers** (`app/api/subscriptions/*`) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
@@ -39,7 +39,7 @@
 | **Galvenais saturs** | **`<main id="main">`** – sākumlapa (`app/page.tsx`), auth (`login`/`signup`), juridiskās (`legal-document-page.tsx`), forgot-password; panelis jau **`main.main-content`** (`dashboard-fs-view.tsx`). |
 | **Kontrasts** | Tumšāks **`--text-muted`** (`#475569`); akcentiem landing **`--primary-dark`**; CTA apakšvirksts bez `opacity` (`styles/subtrack.css`). |
 | **Ikonas** | Font Awesome 6 no CDN – **nebloķējoša** ielāde **`FontAwesomeDeferredHead`** (`components/font-awesome-deferred-head.tsx`, `lib/icons/font-awesome-cdn.ts`): `preload` + inline skripts, `noscript` fallback; ikonas īsi pēc pirmā paint (**0.4.26**). **0.4.22** sinhronā `media="print"` tika noņemta (ikonas pazuda). |
-| **Veiktspēja** | Custom domēns vs **`*.vercel.app`** parasti **nemaina** lab Lighthouse skaitļus; svarīgāk deploy, JS/CSS apjoms un mobilais **LCP**. **`/`** ielādē **`styles/landing.css`** (~68 KB moduļi, ne visa **`subtrack.css`** ~181 KB); pārējās lapas – **`styles/subtrack-app.bundle.css`**. Pēc **`styles/subtrack.css`** labojuma: **`npm run css:split`** (automātiski **`npm run build`**). **0.4.24** RSC; **0.4.26** FA nebloķējošs + mobilais hero mock. Pārbaude: [PageSpeed Insights](https://pagespeed.web.dev/) uz **tās pašas** production URL. |
+| **Veiktspēja** | Custom domēns vs **`*.vercel.app`** parasti **nemaina** lab Lighthouse skaitļus; svarīgāk deploy, JS/CSS apjoms un mobilais **LCP**. **`/`** ielādē **`styles/landing.css`** (~69 KB, bez visa **`subtrack.css`** ~181 KB); pārējās lapas – **`styles/subtrack-app.bundle.css`**. **`css:split`** ģenerē arī **`styles/modules/*`** (rediģēšanai) un **vienus** bundle failus (**bez `@import`** – Turbopack/Tailwind). **0.4.24** RSC; **0.4.26** FA nebloķējošs. Pārbaude: [PageSpeed Insights](https://pagespeed.web.dev/) uz **tās pašas** production URL. |
 | **Meklētāji (GSC)** | **`app/robots.ts`**, **`app/sitemap.ts`**, **`lib/seo/search-crawl.ts`**. Domēna verifikācija un sitemap – **[Google Search Console](#google-search-console-pēc-verifikācijas)** (TXT **Porkbun**; Supabase **nav** jāmaina GSC dēļ). |
 
 ## PWA (SubTrack)
@@ -530,6 +530,10 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 ## Izmaiņu žurnāls
 
 Šeit īss pieraksts par izlaistām izmaiņām. **PWA** – **[PWA (SubTrack)](#pwa-subtrack)**. **0.4.x** no **0.4.0** (= agrāk **0.3.54**).
+
+### 0.4.28 (2026-05-22)
+
+- **CSS split – Turbopack** – `landing.css` / `subtrack-app.bundle.css` kā **vieni** faili (bez `@import`), lai novērstu `CssSyntaxError` dev/build; `scripts/split-landing-css.mjs` atjaunināts.
 
 ### 0.4.27 (2026-05-22)
 
