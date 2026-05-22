@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
-import { navUserHasProEntitlement } from "@/lib/auth/pro-plan-access";
+import { navUserHasPaidProMembership } from "@/lib/auth/pro-plan-access";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 
 type NavUserMenuProps = {
@@ -27,10 +27,14 @@ export function NavUserMenu({
   const displayName =
     userDisplay?.displayName?.trim() || t("session.user_fallback_name");
   const initials = userDisplay?.initials?.trim() || "?";
-  const hasProTier = navUserHasProEntitlement(userDisplay);
-  const triggerAria = hasProTier
+  const hasPaidPro = navUserHasPaidProMembership(userDisplay);
+  const hasTrialOnly =
+    userDisplay?.proTrialActive === true && !hasPaidPro;
+  const triggerAria = hasPaidPro
     ? `${displayName} (${t("session.paid_plan_badge_aria")}): ${t("session.user_menu_aria_suffix")}`
-    : `${displayName}: ${t("session.user_menu_aria_suffix")}`;
+    : hasTrialOnly
+      ? `${displayName} (${t("trial.badge_aria")}): ${t("session.user_menu_aria_suffix")}`
+      : `${displayName}: ${t("session.user_menu_aria_suffix")}`;
   const menuId = useId();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -112,7 +116,7 @@ export function NavUserMenu({
       >
         <span className="dash-user">
           <span className="dash-user-avatar-wrap">
-            {hasProTier ? (
+            {hasPaidPro ? (
               <span className="dash-paid-crown" aria-hidden="true">
                 <i className="fa-solid fa-crown" />
               </span>

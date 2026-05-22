@@ -9,6 +9,10 @@ import {
 import type { SubscriptionRow } from "@/lib/subscriptions/subscription-client";
 import { getUiPhraseForRequest, resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
+import {
+  normalizeProTrialConfig,
+  userRowHasProEntitlement,
+} from "@/lib/auth/pro-trial-access";
 import { coercePgBool } from "@/lib/system-settings-public";
 
 function parseFreeSubscriptionLimit(raw: unknown): number | null {
@@ -23,6 +27,17 @@ function parseFreeSubscriptionLimit(raw: unknown): number | null {
 }
 
 export async function GET() {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json(
+      { success: false, message: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
   try {
     const [bundle, paidCalendarDays] = await Promise.all([
       fetchDashboardSubscriptionsWithFamilyShare(),
@@ -75,21 +90,27 @@ export async function POST(request: Request) {
 
   const { data: sys, error: sysErr } = await supabase
     .from("system_settings")
-    .select("paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit")
+    .select(
+      "paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, pro_trial_enabled, pro_trial_days",
+    )
     .eq("id", 1)
     .maybeSingle();
 
   if (!sysErr && sys && coercePgBool(sys.paid_plan_enabled)) {
     const freeLimit = parseFreeSubscriptionLimit(sys.paid_plan_free_subscription_limit);
     if (freeLimit !== null && freeLimit >= 0) {
+      const trialConfig = normalizeProTrialConfig(sys);
+      const paidPlanEnabled = coercePgBool(
+        (sys as { paid_plan_enabled?: unknown } | null)?.paid_plan_enabled,
+      );
       const { data: urow } = await supabase
         .from("users")
-        .select("paid_plan_active, pro_vip")
+        .select("paid_plan_active, pro_vip, pro_trial_used, pro_trial_started_at")
         .eq("id", user.id)
         .maybeSingle();
-      const isPaid =
-        urow?.paid_plan_active === true ||
-        (urow as { pro_vip?: boolean } | null)?.pro_vip === true;
+      const isPaid = userRowHasProEntitlement(urow, trialConfig, {
+        paidPlanEnabled,
+      });
       if (!isPaid) {
         const { count, error: cErr } = await supabase
           .from("subscriptions")

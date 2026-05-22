@@ -18,6 +18,13 @@ const ISO639_1_TO_REGION: Record<string, string> = {
   lt: "LT",
 };
 
+/** Īss kods pogā (EN, LV) – ne 🇬🇧, kas dažos OS rāda kā „GB”. */
+export function languageCodeToUiAbbrev(code: string): string {
+  const primary = code.trim().toLowerCase().split("-")[0] ?? "";
+  if (primary.length < 2) return "??";
+  return primary.slice(0, 2).toUpperCase();
+}
+
 export function languageCodeToFlagEmoji(code: string): string {
   const primary = code.trim().toLowerCase().split("-")[0] ?? "";
   if (primary.length < 2) return "🌐";

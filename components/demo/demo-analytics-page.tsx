@@ -62,7 +62,7 @@ export function DemoAnalyticsPage({
   userDisplay?: NavUserDisplay | null;
   analyticsSnapshot: DemoAnalyticsSnapshot;
 }) {
-  const { t } = useSubtrackIntl();
+  const { t, paidPlan } = useSubtrackIntl();
   const snap = analyticsSnapshot;
   const pieRows = snap.pieRows;
   const pieTotal = pieRows.reduce((s, x) => s + x.amount, 0);
@@ -93,12 +93,22 @@ export function DemoAnalyticsPage({
           <div>
             <div className="demo-analytics-heading-row">
               <h1 className="page-title">{t("nav.analytics")}</h1>
-              <span
-                className="subtrack-demo-topbar-badge"
-                title={t("demo.banner")}
-              >
-                {t("demo.nav.badge")}
-              </span>
+              {paidPlan.enabled ? (
+                <span
+                  className="dash-nav-pro-pill pro-trial-analytics-badge"
+                  title={t("nav.analytics_demo_hint")}
+                  aria-label={t("nav.analytics_demo_hint")}
+                >
+                  {t("nav.pro_badge")}
+                </span>
+              ) : (
+                <span
+                  className="subtrack-demo-topbar-badge"
+                  title={t("demo.banner")}
+                >
+                  {t("demo.nav.badge")}
+                </span>
+              )}
             </div>
             <p className="page-subtitle">{t("fs.analytics.page_subtitle")}</p>
           </div>

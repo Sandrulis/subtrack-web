@@ -1,6 +1,7 @@
 ﻿import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
 import { calendarWeekdayHeadersForIntl } from "@/lib/calendar-weekday-headers";
 import { getLandingUiPhrases } from "@/lib/landing/get-landing-ui-phrases";
+import { buildPaidPlanAnnualPitchCopy } from "@/lib/paid-plan-annual";
 import { getPublicSystemSettings } from "@/lib/system-settings-public";
 import { applySystemNamePlaceholders } from "@/lib/system-name-placeholder";
 import { resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
@@ -389,16 +390,36 @@ export async function LandingPageContent() {
   const t = buildLandingPhraseLookup(phrases, systemSiteName);
   const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
 
-  let paidPitch: { blurb: string } | null = null;
+  let paidPitch: {
+    blurb: string;
+    monthlyFmt: string;
+    annual: ReturnType<typeof buildPaidPlanAnnualPitchCopy>;
+  } | null = null;
   if (paidPlan?.enabled) {
-    const price = new Intl.NumberFormat(intlLocale, {
-      style: "currency",
-      currency: "EUR",
-    }).format(paidPlan.priceEur);
+    const fmtEur = (amount: number) =>
+      new Intl.NumberFormat(intlLocale, {
+        style: "currency",
+        currency: "EUR",
+      }).format(amount);
+    const monthlyFmt = fmtEur(paidPlan.priceEur);
     const blurb = t("landing.pricing.blurb")
       .replace(/\{count\}/g, String(paidPlan.freeSubscriptionLimit))
-      .replace(/\{price\}/g, price);
-    paidPitch = { blurb };
+      .replace(/\{price\}/g, monthlyFmt);
+    const annual =
+      paidPlan.annualBillingEnabled && paidPlan.annualPriceEur != null
+        ? buildPaidPlanAnnualPitchCopy(
+            paidPlan.priceEur,
+            paidPlan.annualPriceEur,
+            fmtEur,
+            t,
+            {
+              line: "landing.pricing.annual_line",
+              discount: "landing.pricing.annual_discount",
+              equiv: "landing.pricing.annual_equiv",
+            },
+          )
+        : null;
+    paidPitch = { blurb, monthlyFmt, annual };
   }
 
   return (
@@ -454,19 +475,49 @@ export async function LandingPageContent() {
       {paidPitch ? (
         <section className="landing-pricing-section" id="pricing">
           <div className="landing-pricing-inner">
-            <div className="landing-pricing-visual">
+            <div className="landing-pricing-visual" aria-hidden>
+              <div className="landing-pricing-visual-glow" />
               <Image
                 src="/landing-coffee.svg"
-                alt={t("landing.pricing.alt_coffee")}
-                width={120}
-                height={120}
+                alt=""
+                width={140}
+                height={140}
                 className="landing-pricing-coffee-img"
               />
             </div>
-            <div className="landing-pricing-copy">
+            <div className="landing-pricing-panel">
               <div className="section-label">{t("landing.pricing.label")}</div>
               <h2 className="landing-pricing-title">{t("landing.pricing.title")}</h2>
               <p className="landing-pricing-lead">{t("subscribe.hero.lead")}</p>
+              <div className="landing-pricing-highlight">
+                <div className="landing-pricing-monthly-pill">
+                  <span className="landing-pricing-monthly-value">{paidPitch.monthlyFmt}</span>
+                  <span className="landing-pricing-monthly-period">
+                    {t("landing.pricing.monthly_suffix")}
+                  </span>
+                </div>
+                {paidPitch.annual ? (
+                  <div className="landing-pricing-annual-card">
+                    <div className="landing-pricing-annual-row">
+                      <span className="landing-pricing-annual-label">
+                        {t("landing.pricing.annual_label")}
+                      </span>
+                      <span className="landing-pricing-annual-amount">
+                        {paidPitch.annual.annualFormatted}
+                      </span>
+                      {paidPitch.annual.discountPercent != null ? (
+                        <span className="landing-pricing-annual-badge">
+                          {t("landing.pricing.annual_badge_off").replace(
+                            /\{discount\}/g,
+                            String(paidPitch.annual.discountPercent),
+                          )}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="landing-pricing-annual-equiv">{paidPitch.annual.equiv}</p>
+                  </div>
+                ) : null}
+              </div>
               <p className="landing-pricing-blurb">{paidPitch.blurb}</p>
               <div className="landing-pricing-cta">
                 <Link href="/signup" className="btn btn-primary btn-lg">

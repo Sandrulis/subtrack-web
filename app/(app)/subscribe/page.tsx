@@ -32,6 +32,9 @@ export default async function SubscribePage() {
       userDisplay={userDisplay}
       priceEur={paid.priceEur}
       freeTierLimit={paid.freeSubscriptionLimit}
+      annualPriceEur={
+        paid.annualBillingEnabled ? paid.annualPriceEur : null
+      }
     />
   );
 }

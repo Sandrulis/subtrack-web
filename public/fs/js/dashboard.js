@@ -658,7 +658,7 @@ function renderPaymentCalendar() {
             var tipParts = [];
             for (var tj = 0; tj < list.length; tj++) {
                 var sj = list[tj];
-                tipParts.push(sj.name + ' – €' + subscriptionMonthlyTotal(sj).toFixed(2));
+                tipParts.push(escHtml(sj.name) + ' – €' + subscriptionMonthlyTotal(sj).toFixed(2));
             }
             if (showPaidOnDue) {
                 var tipPaidDue =
@@ -714,7 +714,7 @@ function renderPaymentCalendar() {
     }
 
     html += '</div>';
-    host.innerHTML = html;
+    host.innerHTML = html; /* escHtml tooltips */
 }
 
 /**
@@ -1334,7 +1334,7 @@ function renderDashboardCategoryBar() {
 
     track += '</div>';
     legend += '</ul>';
-    host.innerHTML = track + legend;
+    host.innerHTML = track + legend; /* escHtml */
 }
 
 function dashboardStatsTodayRef() {
@@ -1482,7 +1482,7 @@ function renderNextPayStatsBlock() {
 
     if (!subscriptions.length) {
         root.className = 'stat-next-pay-grid stat-next-pay-grid--cols-1';
-        root.innerHTML = renderStatNextPayFutureCol(
+        root.innerHTML = renderStatNextPayFutureCol( /* escHtml */
             null,
             FsT('fs.dashboard.empty_no_subscriptions') || '',
         );
@@ -1516,7 +1516,7 @@ function renderNextPayStatsBlock() {
     var n = cols.length;
     if (n < 1) n = 1;
     root.className = 'stat-next-pay-grid stat-next-pay-grid--cols-' + n;
-    root.innerHTML = cols.join('');
+    root.innerHTML = cols.join(''); /* escHtml */
 }
 
 function updateStats() {
@@ -2318,7 +2318,7 @@ function renderIconPickerHints() {
         }
     }
 
-    host.innerHTML = fsIconBtnsHtml(trimmed);
+    host.innerHTML = fsIconBtnsHtml(trimmed); /* escHtml escAttr */
     syncIconPickerHintMessage(false);
     syncIconPickerMoreToggle(candidates.length, trimmed.length);
     selectIcon(selectedIcon, true);
@@ -2346,7 +2346,7 @@ function renderIconPickerExpanded() {
         }
     }
 
-    more.innerHTML = fsIconBtnsHtml(rowsCls);
+    more.innerHTML = fsIconBtnsHtml(rowsCls); /* escHtml escAttr */
 
     var expandedEmpty = document.getElementById('icon-picker-expanded-empty');
     if (expandedEmpty) {

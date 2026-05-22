@@ -1,39 +1,4 @@
 /* Landing hero mock: pay-calendar, stat cards, sub-list (bāze no paneļa) */
-.dashboard-overview-calendar-col {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.dashboard-overview-right-col {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-}
-
-.dashboard-overview-head-col .page-header {
-    margin-bottom: 0;
-}
-
-.dashboard-overview-stats-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
-    min-width: 0;
-    align-items: stretch;
-}
-
-.dashboard-overview-stats-row > .stat-card {
-    height: 100%;
-}
-
-.dashboard-overview-next-slot {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-}
-
 .dashboard-top-calendar {
     min-width: 0;
 }
@@ -45,6 +10,22 @@
     border-radius: var(--radius);
     padding: 18px 18px 14px;
     box-shadow: var(--shadow-sm);
+}
+
+/* Pro badge – augšējā labā stūrī (nevis visa kartes platums) */
+.pay-calendar-card > .pay-calendar-pro-badge,
+.pay-calendar-card > .pro-trial-pro-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    left: auto;
+    z-index: 3;
+    margin: 0;
+    width: auto;
+    max-width: none;
+    align-self: auto;
+    flex: none;
+    pointer-events: none;
 }
 
 .pay-calendar-toolbar {
@@ -372,6 +353,51 @@
     border: 1px solid rgba(37, 99, 235, 0.42);
 }
 
+.dashboard-get-pro-link--empty {
+    margin-top: 4px;
+}
+
+.page-title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.page-title--with-trial-badge {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+}
+
+.page-title--with-trial-badge .pro-trial-analytics-badge {
+    position: relative;
+    top: -5px;
+    flex-shrink: 0;
+    margin-left: 2px;
+}
+
+.page-header-title-stack {
+    min-width: 0;
+    width: 100%;
+}
+
+.page-subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 3px;
+}
+
+/* =============================================
+   Stats cards
+   ============================================= */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 18px;
+    margin-bottom: 32px;
+}
+
 .stat-card {
     background: var(--bg-white);
     border: 1px solid var(--border);
@@ -498,41 +524,35 @@
 
 .stat-next-pay-col--overdue .stat-next-body,
 .stat-next-pay-col--today .stat-next-body,
-.stat-next-pay-col--next-compact .stat-next-body {
-    justify-content: flex-start;
+.dashboard-category-bar-meta {
+    color: var(--text-muted);
+    font-weight: 600;
+    white-space: nowrap;
 }
 
-.stat-value--next {
-    /*
-     * Datuma rinda „Nākamais maksājums”: tā paša izmēra kā kopējās summas .stat-value.
-     */
-    font-size: 32px;
+/* PC (pele): leģenda paslēpta, katra segmenta tooltip virs joslas */
+@media (hover: hover) and (pointer: fine) {
+    .dashboard-category-bar-legend {
+        display: none;
+    }
+
+    .dashboard-category-bar-track {
+        overflow: visible;
+    }
+
+    .dashboard-category-bar-seg[data-tooltip]::after {
+        top: auto;
+        bottom: calc(100% + 8px);
+    }
 }
 
-.stat-next-body .stat-value--next {
-    flex: initial;
+/* Mobilais / touch: leģenda zem joslas, bez hover tooltip */
+@media (hover: none), (pointer: coarse) {
+    .dashboard-category-bar-seg[data-tooltip]::after {
+        display: none !important;
+    }
 }
 
-.stat-next-body .stat-next-amount {
-    flex-shrink: 0;
-    margin-top: 0;
-    font-size: 20px;
-    line-height: 1.2;
-    align-self: center;
-}
-
-.stat-next-amount {
-    font-size: 17px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-    color: var(--text);
-    margin-top: 2px;
-    min-height: 0;
-}
-
-.stat-next-amount:empty {
-    display: none;
-}
 .section-heading {
     font-size: 17px;
     font-weight: 700;
@@ -686,93 +706,3 @@
     transform: translateY(-5px);
 }
 
-.sub-date {
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-top: 2px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-
-.sub-date i.fa-solid {
-    font-size: 12px;
-    opacity: .85;
-}
-
-.sub-date.soon { color: var(--warning); }
-.sub-date.overdue { color: var(--danger); }
-
-.sub-date-overdue-meta {
-    font-weight: 600;
-}
-
-.sub-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-shrink: 0;
-    min-width: 0;
-}
-
-.sub-amount-wrap {
-    text-align: right;
-    margin-left: auto;
-}
-
-.sub-amount {
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--text);
-    letter-spacing: -0.5px;
-    text-align: right;
-}
-
-.sub-amount.sub-amount--editing {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 4px;
-}
-
-.sub-amount-currency {
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--text);
-}
-
-.sub-amount-inline-input {
-    width: 5.5rem;
-    max-width: 100%;
-    font-size: 18px;
-    font-weight: 800;
-    text-align: right;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 4px 8px;
-    color: var(--text);
-    background: var(--surface);
-}
-
-.sub-amount-inline-input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.15);
-}
-
-.sub-actions .icon-btn.change-amount {
-    color: #6b5b95;
-}
-
-.sub-actions .icon-btn.change-amount:hover:not(:disabled) {
-    background: #f5f3f9;
-    color: #5a4d82;
-}
-
-.sub-period {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-weight: 500;
-    text-align: right;
-}

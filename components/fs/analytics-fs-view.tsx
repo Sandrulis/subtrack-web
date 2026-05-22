@@ -10,6 +10,8 @@ import {
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import type { SubscriptionClient } from "@/lib/subscriptions/subscription-client";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import type { ProTrialProgress } from "@/lib/auth/pro-trial-access";
+import { ProTrialProBadge, ProTrialProgressBlock } from "@/components/pro-trial/pro-trial-chrome";
 
 const ANALYTICS_TAIL_SCRIPTS = ["/fs/js/analytics.js"] as const;
 
@@ -21,6 +23,7 @@ export function AnalyticsFsView({
   initialSubscriptions: SubscriptionClient[];
 }) {
   const { t } = useSubtrackIntl();
+  const trialProgress: ProTrialProgress | null = userDisplay?.proTrialProgress ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -45,19 +48,24 @@ export function AnalyticsFsView({
 
   return (
     <>
-      <template
-        id="subtrack-subs-bootstrap-json"
-        // eslint-disable-next-line react/no-danger -- FS JSON bootstrap pirms skriptiem (skat. FsI18nBootstrap)
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(initialSubscriptions).replace(/</g, "\\u003c"),
-        }}
-      />
       <div className="app-layout app-layout-stacked">
         <NavDash active="analytics" userDisplay={userDisplay} />
         <main className="main-content">
+          {trialProgress ? (
+            <ProTrialProgressBlock progress={trialProgress} fullWidth />
+          ) : null}
           <div className="page-header">
-            <div>
-              <h1 className="page-title">{t("nav.analytics")}</h1>
+            <div className="page-header-title-stack">
+              <h1
+                className={
+                  "page-title" + (trialProgress ? " page-title--with-trial-badge" : "")
+                }
+              >
+                {t("nav.analytics")}
+                {trialProgress ? (
+                  <ProTrialProBadge className="pro-trial-analytics-badge" />
+                ) : null}
+              </h1>
               <p className="page-subtitle">{t("fs.analytics.page_subtitle")}</p>
             </div>
           </div>

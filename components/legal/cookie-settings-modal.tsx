@@ -69,9 +69,15 @@ export function CookieSettingsModal({
         <div className="modal-body cookie-consent-modal-body">
           <p className="cookie-consent-modal-lead">{t("legal.cookie.modal.lead")}</p>
           <ul className="cookie-consent-categories">
-            <li className="cookie-consent-category">
+            <li className="cookie-consent-category cookie-consent-category--locked">
               <div className="cookie-consent-category-head">
-                <h3>{t("legal.cookie.category.necessary.title")}</h3>
+                <h3>
+                  <i
+                    className="fa-solid fa-shield-halved cookie-consent-category-icon"
+                    aria-hidden="true"
+                  />
+                  {t("legal.cookie.category.necessary.title")}
+                </h3>
                 <span className="cookie-consent-badge">
                   {t("legal.cookie.modal.always_on")}
                 </span>
@@ -80,7 +86,13 @@ export function CookieSettingsModal({
             </li>
             <li className="cookie-consent-category">
               <div className="cookie-consent-category-head">
-                <h3>{t("legal.cookie.category.functional.title")}</h3>
+                <h3>
+                  <i
+                    className="fa-solid fa-language cookie-consent-category-icon"
+                    aria-hidden="true"
+                  />
+                  {t("legal.cookie.category.functional.title")}
+                </h3>
                 <label className="cookie-consent-switch">
                   <input
                     type="checkbox"
@@ -94,7 +106,13 @@ export function CookieSettingsModal({
             </li>
             <li className="cookie-consent-category">
               <div className="cookie-consent-category-head">
-                <h3>{t("legal.cookie.category.analytics.title")}</h3>
+                <h3>
+                  <i
+                    className="fa-solid fa-chart-line cookie-consent-category-icon"
+                    aria-hidden="true"
+                  />
+                  {t("legal.cookie.category.analytics.title")}
+                </h3>
                 <label className="cookie-consent-switch">
                   <input
                     type="checkbox"

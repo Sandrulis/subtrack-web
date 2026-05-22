@@ -87,17 +87,10 @@ function isMissingTintColumnError(error: { message?: string; code?: string }): b
   return msg.includes("partner_tint_color") || error.code === "42703";
 }
 
-/**
- * Lasīšana ar service_role (ja ENV ir), pēc tam filtrs serverī pēc lietotāja.
- * Novērš Vercel/prod RLS, kur sesija redz tikai daļu saites (bez 093 vai vecs SELECT).
- */
+/** Lasīšana tikai ar sesijas klientu (RLS `093_family_sharing_select_active_invitee`). */
 async function fetchFamilySharingLinkRowsForViewer(
   sessionSupabase: SupabaseClient,
 ): Promise<LinkRow[]> {
-  const admin = createServiceRoleSupabaseClient();
-  if (admin) {
-    return fetchFamilySharingLinkRows(admin);
-  }
   return fetchFamilySharingLinkRows(sessionSupabase);
 }
 
@@ -165,16 +158,13 @@ function profileEmail(profiles: Map<string, UserProfile>, userId: string): strin
 }
 
 /**
- * Partnera/owner kopīgie abonementi dashboardam – service_role (ja ENV),
- * tikai pēc aktīvās saites validācijas serverī (RLS EXISTS uz links bieži tukšs Vercel).
+ * Partnera/owner kopīgie abonementi – sesijas RLS (`subscriptions_select_family_shared`).
  */
 async function fetchSubscriptionsForFamilyShareCounterparty(
   sessionSupabase: SupabaseClient,
   counterpartyUserId: string,
 ): Promise<SubscriptionRow[]> {
-  const admin = createServiceRoleSupabaseClient();
-  const client = admin ?? sessionSupabase;
-  const { data, error } = await client
+  const { data, error } = await sessionSupabase
     .from("subscriptions")
     .select("*")
     .eq("user_id", counterpartyUserId)
@@ -185,16 +175,20 @@ async function fetchSubscriptionsForFamilyShareCounterparty(
   return (data ?? []) as SubscriptionRow[];
 }
 
-async function loadUserProfiles(userIds: string[]): Promise<Map<string, UserProfile>> {
+async function loadUserProfiles(
+  userIds: string[],
+  allowedIds: Set<string>,
+): Promise<Map<string, UserProfile>> {
   const out = new Map<string, UserProfile>();
-  if (!userIds.length) return out;
+  const ids = userIds.filter((id) => allowedIds.has(id));
+  if (!ids.length) return out;
   try {
     const admin = createServiceRoleSupabaseClient();
     if (!admin) return out;
     const { data } = await admin
       .from("users")
       .select("id, name, surname, email")
-      .in("id", userIds);
+      .in("id", ids);
     for (const u of data ?? []) {
       const id = String(u.id);
       const email = normalizeInviteEmail(String(u.email ?? ""));
@@ -238,7 +232,22 @@ export async function fetchFamilySharingLinksForSession(
   const ownerIds = rows
     .map((r) => r.owner_user_id)
     .filter((id): id is string => typeof id === "string" && id.length > 0);
-  const profiles = await loadUserProfiles([...new Set([...partnerIds, ...ownerIds])]);
+  const allowedProfileIds = new Set<string>();
+  for (const row of rows) {
+    const isOwnerRow = userIdsEqual(row.owner_user_id, user.id);
+    const isPartyRow =
+      userIdsEqual(row.partner_user_id, user.id) ||
+      normalizeInviteEmail(row.invite_email) === sessionEmail ||
+      (authEmail.length > 0 &&
+        normalizeInviteEmail(row.invite_email) === authEmail);
+    if (!isOwnerRow && !isPartyRow) continue;
+    allowedProfileIds.add(row.owner_user_id);
+    if (row.partner_user_id) allowedProfileIds.add(row.partner_user_id);
+  }
+  const profiles = await loadUserProfiles(
+    [...new Set([...partnerIds, ...ownerIds])],
+    allowedProfileIds,
+  );
 
   const out: FamilySharingLinkClient[] = [];
   for (const row of rows) {
@@ -335,8 +344,11 @@ export async function fetchDashboardSubscriptionsWithFamilyShare(): Promise<{
         .map((l) => l.ownerUserId),
     ),
   ];
+  const inviterIdSet = new Set(inviterIds);
   const inviterProfiles =
-    inviterIds.length > 0 ? await loadUserProfiles(inviterIds) : new Map<string, UserProfile>();
+    inviterIds.length > 0
+      ? await loadUserProfiles(inviterIds, inviterIdSet)
+      : new Map<string, UserProfile>();
 
   for (const link of activeLinks) {
     let sharedOwnerId: string | null = null;

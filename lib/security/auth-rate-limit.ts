@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { rateLimitAllow } from "@/lib/security/rate-limit-allow";
 import {
   effectiveRateLimitMax,
   isRateLimitDisabled,
-  slidingWindowAllow,
 } from "@/lib/security/sliding-window-rate-limit";
 
 type Rule = { prefix: string; max: number; windowMs: number };
@@ -17,6 +17,10 @@ const RULES: Rule[] = [
   { prefix: "/forgot-password", max: 40, windowMs: 60_000 },
   { prefix: "/change-password", max: 60, windowMs: 60_000 },
   { prefix: "/auth/callback", max: 120, windowMs: 60_000 },
+  { prefix: "/api/subscriptions", max: 120, windowMs: 60_000 },
+  { prefix: "/api/family-sharing", max: 80, windowMs: 60_000 },
+  { prefix: "/api/push", max: 40, windowMs: 60_000 },
+  { prefix: "/api/admin", max: 30, windowMs: 60_000 },
 ];
 
 function clientIp(request: NextRequest): string {
@@ -31,9 +35,9 @@ function clientIp(request: NextRequest): string {
 }
 
 /** Atgriež 429 NextResponse vai null, kad ierobežojums nepieciešams. */
-export function authRateLimitedResponse(
+export async function authRateLimitedResponse(
   request: NextRequest,
-): NextResponse | null {
+): Promise<NextResponse | null> {
   if (isRateLimitDisabled()) {
     return null;
   }
@@ -47,7 +51,7 @@ export function authRateLimitedResponse(
     const max = effectiveRateLimitMax(rule.max);
     const ip = clientIp(request);
     const key = `${ip}:${rule.prefix}`;
-    if (!slidingWindowAllow(key, rule.windowMs, max, now)) {
+    if (!(await rateLimitAllow(key, rule.windowMs, max, now))) {
       const sec = Math.max(1, Math.ceil(rule.windowMs / 1000));
       return NextResponse.json(
         { success: false, message: "Too many requests. Try again later." },

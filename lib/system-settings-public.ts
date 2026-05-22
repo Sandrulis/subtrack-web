@@ -10,6 +10,7 @@ import {
   normalizePwaRow,
   type PublicPwaSettings,
 } from "@/lib/pwa/public-pwa-settings";
+import { parsePaidPlanPriceField } from "@/lib/paid-plan-annual";
 import {
   DISPLAY_PREFERENCES_DEFAULTS,
   mergeDisplayPreferences,
@@ -24,6 +25,10 @@ export type SubtrackPublicPaidPlan = {
   enabled: boolean;
   priceEur: number;
   freeSubscriptionLimit: number;
+  /** Admin slēdzis „gada norēķins”. */
+  annualBillingEnabled: boolean;
+  /** Gada cena EUR no DB; publiski rāda, ja derīga un slēdzis ieslēgts. */
+  annualPriceEur: number | null;
 };
 
 export type { PublicBrandLogoAssets } from "@/lib/brand/logo-assets";
@@ -42,6 +47,8 @@ const PAID_PLAN_DEFAULTS: SubtrackPublicPaidPlan = {
   enabled: false,
   priceEur: 1.99,
   freeSubscriptionLimit: 5,
+  annualBillingEnabled: false,
+  annualPriceEur: null,
 };
 
 export function coercePgBool(v: unknown): boolean {
@@ -66,12 +73,16 @@ export function normalizePaidPlanRow(data: unknown): SubtrackPublicPaidPlan {
       : typeof limitRaw === "string"
         ? Number.parseInt(limitRaw, 10)
         : NaN;
+  const annualBillingEnabled = enabled && coercePgBool(r.paid_plan_annual_enabled);
+  const annualPriceEur = parsePaidPlanPriceField(r.paid_plan_annual_price_eur);
   return {
     enabled,
     priceEur: Number.isFinite(price) ? price : PAID_PLAN_DEFAULTS.priceEur,
     freeSubscriptionLimit: Number.isFinite(limit)
       ? Math.max(0, limit)
       : PAID_PLAN_DEFAULTS.freeSubscriptionLimit,
+    annualBillingEnabled,
+    annualPriceEur,
   };
 }
 
@@ -92,7 +103,7 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
   const { data, error } = await supabase
     .from("system_settings")
     .select(
-      "system_name, logo_revision, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, pwa_enabled, pwa_install_banner_enabled, pwa_install_settings_enabled, pwa_cache_revision, pwa_theme_color, pwa_background_color, pwa_short_name",
+      "system_name, logo_revision, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, pwa_enabled, pwa_install_banner_enabled, pwa_install_settings_enabled, pwa_cache_revision, pwa_theme_color, pwa_background_color, pwa_short_name",
     )
     .eq("id", 1)
     .maybeSingle();
@@ -134,7 +145,7 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
  * Pēc `/admin/system` saglabāšanas: `revalidateTag("system-settings")`.
  */
 export async function getPublicSystemSettings(): Promise<PublicSystemSettings> {
-  return unstable_cache(fetchPublicSystemSettings, ["subtrack-system-settings-v4"], {
+  return unstable_cache(fetchPublicSystemSettings, ["subtrack-system-settings-v6"], {
     revalidate: 3600,
     tags: ["system-settings"],
   })();

@@ -9,20 +9,12 @@ import {
   mapOverdueRows,
   type OverdueSubscriptionRow,
 } from "@/lib/subscriptions/overdue-for-email";
+import { authorizeCron } from "@/lib/security/cron-auth";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
 import { DISPLAY_PREFERENCES_DEFAULTS } from "@/lib/user-display-preferences";
 
 function todayIsoUtc(): string {
   return new Date().toISOString().slice(0, 10);
-}
-
-function authorizeCron(request: Request): boolean {
-  const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) return false;
-  const auth = request.headers.get("authorization") ?? "";
-  if (auth === `Bearer ${secret}`) return true;
-  const q = new URL(request.url).searchParams.get("secret");
-  return q === secret;
 }
 
 export async function GET(request: Request) {

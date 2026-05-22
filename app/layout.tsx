@@ -1,12 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import Script from "next/script";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { HtmlLangBridge } from "@/components/html-lang-bridge";
+import { NavBrandBridge } from "@/components/brand/nav-brand-bridge";
 import { CookieConsentRoot } from "@/components/legal/cookie-consent-root";
 import { PwaInstallHost } from "@/components/pwa/pwa-install-host";
 import { PwaSwRegister } from "@/components/pwa/pwa-sw-register";
 import { FontAwesomeDeferredHead } from "@/components/font-awesome-deferred-head";
+import { FONT_AWESOME_DEFERRED_INJECT } from "@/lib/icons/font-awesome-deferred-inject";
 import { UmamiAnalytics } from "@/components/analytics/umami-analytics";
 import { ModalBackdropCloseConfirmHost } from "@/components/ui/modal-backdrop-close-confirm-host";
 import { SubtrackIntlProvider } from "@/components/subtrack-intl-provider";
@@ -103,6 +106,9 @@ export default async function RootLayout({
     >
       <head>
         <FontAwesomeDeferredHead />
+        <Script id="subtrack-fa-defer" strategy="afterInteractive">
+          {FONT_AWESOME_DEFERRED_INJECT}
+        </Script>
       </head>
       <body className={bodyClassName}>
         <HtmlLangBridge
@@ -119,12 +125,17 @@ export default async function RootLayout({
           languageOptions={catalog.options}
           dbMap={dbMap}
         >
-          <PwaSwRegister pwa={publicSettings.pwa} />
-          <UmamiAnalytics />
-          {children}
-          <PwaInstallHost />
-          <ModalBackdropCloseConfirmHost />
-          <CookieConsentRoot />
+          <NavBrandBridge
+            label={systemSiteName}
+            logoTopbar={brandLogo?.topbar ?? null}
+          >
+            <PwaSwRegister pwa={publicSettings.pwa} />
+            <UmamiAnalytics />
+            {children}
+            <PwaInstallHost />
+            <ModalBackdropCloseConfirmHost />
+            <CookieConsentRoot />
+          </NavBrandBridge>
         </SubtrackIntlProvider>
       </body>
     </html>

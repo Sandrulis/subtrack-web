@@ -11,6 +11,7 @@ import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
 import { DEFAULT_SYSTEM_NAME } from "@/lib/pwa/defaults";
 import { normalizePaidPlanRow } from "@/lib/system-settings-public";
+import { normalizeProTrialConfig } from "@/lib/auth/pro-trial-access";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -24,7 +25,7 @@ export default async function AdminSystemPage() {
   const { data, error } = await supabase
     .from("system_settings")
     .select(
-      "system_name, logo_revision, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit",
+      "system_name, logo_revision, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, pro_trial_enabled, pro_trial_days",
     )
     .eq("id", 1)
     .maybeSingle();
@@ -37,6 +38,7 @@ export default async function AdminSystemPage() {
       : DEFAULT_SYSTEM_NAME;
 
   const initialPaidPlan = normalizePaidPlanRow(data);
+  const initialProTrial = normalizeProTrialConfig(data);
 
   const logoRevisionRaw = data?.logo_revision;
   const initialLogoRevision =
@@ -59,6 +61,7 @@ export default async function AdminSystemPage() {
         brandStoragePublicBase={brandStoragePublicBase}
         initialDefaults={initialDefaults}
         initialPaidPlan={initialPaidPlan}
+        initialProTrial={initialProTrial}
       />
     </div>
   );

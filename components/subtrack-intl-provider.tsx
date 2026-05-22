@@ -39,6 +39,8 @@ const PAID_PLAN_CTX_DEFAULT: SubtrackPublicPaidPlan = {
   enabled: false,
   priceEur: 1.99,
   freeSubscriptionLimit: 5,
+  annualBillingEnabled: false,
+  annualPriceEur: null,
 };
 
 const SubtrackIntlReactContext = createContext<SubtrackIntlCtx>({

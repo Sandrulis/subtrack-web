@@ -1,16 +1,27 @@
 import { ImageResponse } from "next/og";
 import { SubtrackBrandMark } from "@/lib/pwa/brand-mark";
-import { DEFAULT_SYSTEM_NAME } from "@/lib/pwa/defaults";
-import { landingPageTitle } from "@/lib/seo/landing-seo";
 import { getPublicSystemSettings } from "@/lib/system-settings-public";
+import { getUiPhrasesForRequest } from "@/lib/ui/server-ui-phrases";
 
-export const alt = landingPageTitle(DEFAULT_SYSTEM_NAME);
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function OpenGraphImage() {
   const { systemName: brand, brandLogo } = await getPublicSystemSettings();
-
+  const phrases = await getUiPhrasesForRequest([
+    "landing.trust.title",
+    "landing.hero.users_line",
+  ] as const);
+  const headline =
+    phrases["landing.trust.title"]?.trim() &&
+    phrases["landing.trust.title"] !== "landing.trust.title"
+      ? phrases["landing.trust.title"]
+      : "Control spending, avoid missed payments, and see everything together.";
+  const subline =
+    phrases["landing.hero.users_line"]?.trim() &&
+    phrases["landing.hero.users_line"] !== "landing.hero.users_line"
+      ? phrases["landing.hero.users_line"]
+      : "A simple way to keep monthly spending under control.";
   return new ImageResponse(
     (
       <div
@@ -66,7 +77,7 @@ export default async function OpenGraphImage() {
             marginBottom: 28,
           }}
         >
-          Abonementi un periodiskie maksājumi vienuviet
+          {headline}
         </div>
         <div
           style={{
@@ -76,7 +87,7 @@ export default async function OpenGraphImage() {
             maxWidth: 880,
           }}
         >
-          Kalendārs, analītika un atgādinājumi vienkāršā panelī
+          {subline}
         </div>
       </div>
     ),

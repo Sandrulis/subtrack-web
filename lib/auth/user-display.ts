@@ -1,8 +1,25 @@
 import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
+import {
+  computeProTrialProgress,
+  isProTrialActive,
+  type ProTrialProgress,
+} from "@/lib/auth/pro-trial-access";
+import {
+  maybeGrantProTrialForSession,
+  maybeRepairProTrialStartedAt,
+  sessionTrialSettingsFromRow,
+} from "@/lib/auth/grant-pro-trial-session";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
 import { loadAuthContext } from "@/lib/auth/load-auth-context";
 import { resolveSessionIsAdmin } from "@/lib/auth/is-admin";
+import {
+  DISPLAY_PREFERENCES_DEFAULTS,
+  formatDateForDisplayPreferences,
+  mergeDisplayPreferences,
+  sanitizeDisplayPreferencesPartial,
+} from "@/lib/user-display-preferences";
+import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 
 /** Paneļa augšējās joslas lietotāja attēlošana (serveris → props). */
 export type NavUserDisplay = {
@@ -14,6 +31,14 @@ export type NavUserDisplay = {
   paidPlanActive?: boolean;
   /** public.users.pro_vip; admin dāvināta Pro piekļuve */
   proVip?: boolean;
+  /** Vienreizējs izmēģinājums piešķirts reģistrācijā */
+  proTrialUsed?: boolean;
+  /** Izmēģinājuma sākums (ISO) */
+  proTrialStartedAt?: string | null;
+  /** Aktīvs Pro izmēģinājums (aprēķināts serverī) */
+  proTrialActive?: boolean;
+  /** Tikai kad `proTrialActive` */
+  proTrialProgress?: ProTrialProgress | null;
 };
 
 function firstGrapheme(s: string): string {
@@ -144,11 +169,56 @@ async function getSessionUserDisplayImpl(): Promise<NavUserDisplay | null> {
 
   if (authErr || !user) return null;
 
-  const { data: row, error: rowErr } = await supabase
+  const { data: sysRow } = await supabase
+    .from("system_settings")
+    .select("paid_plan_enabled, pro_trial_enabled, pro_trial_days")
+    .eq("id", 1)
+    .maybeSingle();
+
+  const { paidPlanEnabled: sysPaidPlanEnabled, trial: trialConfig } =
+    sessionTrialSettingsFromRow(sysRow);
+
+  let { data: row, error: rowErr } = await supabase
     .from("users")
-    .select("name, surname, is_admin, paid_plan_active, pro_vip")
+      .select(
+        "name, surname, is_admin, paid_plan_active, pro_vip, pro_trial_used, pro_trial_started_at, display_preferences",
+      )
     .eq("id", user.id)
     .maybeSingle();
+
+  if (!rowErr && row) {
+    const trialFieldsBeforeGrant = {
+      paidPlanActive:
+        (row as { paid_plan_active?: boolean }).paid_plan_active === true,
+      proVip: (row as { pro_vip?: boolean }).pro_vip === true,
+      proTrialUsed: (row as { pro_trial_used?: boolean }).pro_trial_used === true,
+      proTrialStartedAt:
+        typeof (row as { pro_trial_started_at?: string }).pro_trial_started_at ===
+        "string"
+          ? (row as { pro_trial_started_at: string }).pro_trial_started_at
+          : null,
+    };
+    const granted = await maybeGrantProTrialForSession(
+      trialFieldsBeforeGrant,
+      sysRow,
+      user.id,
+    );
+    const repaired =
+      granted || trialFieldsBeforeGrant.proTrialUsed
+        ? await maybeRepairProTrialStartedAt(user.id)
+        : false;
+    if (granted || repaired) {
+      const refetch = await supabase
+        .from("users")
+      .select(
+        "name, surname, is_admin, paid_plan_active, pro_vip, pro_trial_used, pro_trial_started_at, display_preferences",
+      )
+        .eq("id", user.id)
+        .maybeSingle();
+      row = refetch.data;
+      rowErr = refetch.error;
+    }
+  }
 
   const name = typeof row?.name === "string" ? row.name : "";
   const surname = typeof row?.surname === "string" ? row.surname : "";
@@ -165,13 +235,51 @@ async function getSessionUserDisplayImpl(): Promise<NavUserDisplay | null> {
     typeof (row as { pro_vip?: unknown }).pro_vip === "boolean"
       ? (row as { pro_vip: boolean }).pro_vip
       : false;
+  const proTrialUsed =
+    !rowErr &&
+    row &&
+    typeof (row as { pro_trial_used?: unknown }).pro_trial_used === "boolean"
+      ? (row as { pro_trial_used: boolean }).pro_trial_used
+      : false;
+  const startedRaw = (row as { pro_trial_started_at?: unknown } | null)?.pro_trial_started_at;
+  const proTrialStartedAt =
+    typeof startedRaw === "string" && startedRaw.trim() ? startedRaw : null;
+
+  const trialFields = {
+    paidPlanActive,
+    proVip,
+    proTrialUsed,
+    proTrialStartedAt,
+  };
+  const proTrialActive = isProTrialActive(trialFields, trialConfig, {
+    paidPlanEnabled: sysPaidPlanEnabled,
+  });
+  const displayPrefs = mergeDisplayPreferences(
+    sanitizeDisplayPreferencesPartial(
+      (row as { display_preferences?: unknown } | null)?.display_preferences,
+    ),
+    DISPLAY_PREFERENCES_DEFAULTS,
+  );
+  const intlLocale = uiLocaleCodeToBcp47ForIntl(displayPrefs.interface_language_code);
+  const proTrialProgress = proTrialActive
+    ? computeProTrialProgress(trialFields, trialConfig, (instant) =>
+        formatDateForDisplayPreferences(instant, displayPrefs, intlLocale),
+      )
+    : null;
 
   const trimmedName = name.trim();
   const trimmedSurname = surname.trim();
 
+  const trialExtras = {
+    proTrialUsed,
+    proTrialStartedAt,
+    proTrialActive,
+    proTrialProgress,
+  };
+
   if (!trimmedName && !trimmedSurname) {
     const fromMeta = profileFromAuthMetadata(user);
-    return { ...fromMeta, isAdmin, paidPlanActive, proVip };
+    return { ...fromMeta, isAdmin, paidPlanActive, proVip, ...trialExtras };
   }
 
   return {
@@ -179,6 +287,7 @@ async function getSessionUserDisplayImpl(): Promise<NavUserDisplay | null> {
     isAdmin,
     paidPlanActive,
     proVip,
+    ...trialExtras,
   };
 }
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { FsI18nBootstrap } from "@/components/fs/fs-i18n-bootstrap";
+import { FsDashboardBootstrapTemplates } from "@/components/fs/fs-dashboard-bootstrap-templates";
 import { DashboardFsView } from "@/components/fs/dashboard-fs-view";
 import { getSessionUserDisplay } from "@/lib/auth/user-display";
 import { fetchDashboardSubscriptionsWithFamilyShare } from "@/lib/family-sharing/family-sharing-server";
@@ -40,6 +41,12 @@ export default async function DashboardPage() {
   return (
     <>
       <FsI18nBootstrap phrases={fsI18n} intlLocale={intlLocale} />
+      <FsDashboardBootstrapTemplates
+        initialSubscriptions={initialSubscriptions}
+        initialPaidCalendarDays={initialPaidCalendarDays}
+        familySharingBootstrap={familySharingBootstrap}
+        freeTierGate={freeTierGate}
+      />
       <DashboardFsView
         userDisplay={userDisplay}
         initialSubscriptions={initialSubscriptions}

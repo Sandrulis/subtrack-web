@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { FsI18nBootstrap } from "@/components/fs/fs-i18n-bootstrap";
+import { FsDashboardBootstrapTemplates } from "@/components/fs/fs-dashboard-bootstrap-templates";
 import { DashboardFsView } from "@/components/fs/dashboard-fs-view";
 import { getSessionUserDisplaySafe } from "@/lib/auth/user-display";
 import { DEMO_DASHBOARD_PHRASE_KEYS } from "@/lib/demo/demo-dashboard-phrase-keys";
@@ -59,6 +60,11 @@ export default async function DemoDashboardRoute() {
   return (
     <>
       <FsI18nBootstrap phrases={fsI18n} intlLocale={intlLocale} />
+      <FsDashboardBootstrapTemplates
+        initialSubscriptions={initialSubscriptions}
+        freeTierGate={demoFreeTierGate}
+        demoMode
+      />
       <DashboardFsView
         userDisplay={userDisplay}
         initialSubscriptions={initialSubscriptions}

@@ -1,8 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none" aria-hidden="true">
-  <path fill="#7c4a21" d="M28 38h48v4H28v-4zm4-8h40v8H32v-8z"/>
-  <path fill="#a0622d" d="M30 42h44v52H30V42z"/>
-  <path fill="#6b3e1e" d="M30 82h44v12H30V82z" opacity=".35"/>
-  <path fill="#c98d5c" d="M74 50h18c8 0 14 6 14 14s-6 14-14 14H74V50z"/>
-  <path stroke="#e8c4a0" stroke-width="3" stroke-linecap="round" d="M36 56c4 10 12 16 22 16s18-6 22-16"/>
-  <path fill="#ede4d6" d="M34 36c2-8 8-14 16-14h20c8 0 14 6 16 14H34z" opacity=".9"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="lp-cup" x1="48" y1="52" x2="112" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#c4a484"/>
+      <stop offset="0.45" stop-color="#8b5a2b"/>
+      <stop offset="1" stop-color="#6b3f1f"/>
+    </linearGradient>
+    <linearGradient id="lp-coffee" x1="56" y1="68" x2="104" y2="96" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3d2314"/>
+      <stop offset="1" stop-color="#1a0f08"/>
+    </linearGradient>
+    <linearGradient id="lp-lid" x1="44" y1="44" x2="116" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f5ebe0"/>
+      <stop offset="1" stop-color="#d4b896"/>
+    </linearGradient>
+    <linearGradient id="lp-handle" x1="108" y1="58" x2="138" y2="98" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a67c52"/>
+      <stop offset="1" stop-color="#7a5230"/>
+    </linearGradient>
+    <filter id="lp-shadow" x="20" y="100" width="120" height="40" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feColorMatrix in="b" type="matrix" values="0 0 0 0 0.45 0 0 0 0 0.28 0 0 0 0 0.12 0 0 0 0.35 0"/>
+    </filter>
+  </defs>
+  <ellipse cx="80" cy="122" rx="52" ry="10" fill="#92400e" opacity="0.18" filter="url(#lp-shadow)"/>
+  <path fill="url(#lp-cup)" d="M52 58c0-14 11-26 28-26h0c17 0 28 12 28 26v44c0 8-6 14-14 14H66c-8 0-14-6-14-14V58z"/>
+  <path fill="url(#lp-coffee)" d="M58 72h44v18c0 6-4 10-10 10H68c-6 0-10-4-10-10V72z" opacity="0.95"/>
+  <path fill="url(#lp-lid)" d="M48 48c2-12 12-20 24-20h16c12 0 22 8 24 20v8H48v-8z"/>
+  <path fill="#fff" opacity="0.35" d="M54 50c1-6 7-11 14-11h24c7 0 13 5 14 11H54z"/>
+  <path stroke="url(#lp-handle)" stroke-width="10" stroke-linecap="round" d="M108 62c18 2 28 14 28 28s-10 26-28 28"/>
+  <path stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity="0.5" d="M66 78c6 8 14 12 22 12"/>
+  <g class="lp-steam" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" opacity="0.55">
+    <path d="M62 38c-4-10 2-18 8-22"/>
+    <path d="M80 32c-6-12 0-22 6-28"/>
+    <path d="M98 40c4-10-2-16-8-20"/>
+  </g>
 </svg>

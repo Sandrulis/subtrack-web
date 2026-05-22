@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import { getPublicSiteUrl } from "@/lib/site-url";
 import {
   buildSiteShareOpenGraphTwitterForRequest,
+  getBrandBylinePageTitle,
   getSiteShareDescription,
 } from "@/lib/seo/site-share-metadata";
 
-export function landingPageTitle(brand: string): string {
-  return `${brand} – abonementu un periodisko maksājumu pārvaldība`;
+export async function getLandingPageTitle(brand: string): Promise<string> {
+  return getBrandBylinePageTitle(brand);
 }
 
 export async function buildLandingPageMetadata(brand: string): Promise<Metadata> {
-  const title = landingPageTitle(brand);
+  const title = await getLandingPageTitle(brand);
   const description = await getSiteShareDescription(brand);
   const share = await buildSiteShareOpenGraphTwitterForRequest({
     brand,

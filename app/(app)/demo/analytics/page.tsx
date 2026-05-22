@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { FsI18nBootstrap } from "@/components/fs/fs-i18n-bootstrap";
+import { FsAnalyticsBootstrapTemplates } from "@/components/fs/fs-analytics-bootstrap-templates";
 import { FsDemoAnalyticsWindowFlag } from "@/components/fs/fs-demo-window-flags";
 import { DemoAnalyticsPage } from "@/components/demo/demo-analytics-page";
 import { getSessionUserDisplaySafe } from "@/lib/auth/user-display";
@@ -56,12 +57,7 @@ export default async function DemoAnalyticsRoute() {
     <>
       <FsDemoAnalyticsWindowFlag />
       <FsI18nBootstrap phrases={fsI18nMerged} intlLocale={intlLocale} />
-      <template
-        id="subtrack-subs-bootstrap-json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(subs).replace(/</g, "\\u003c"),
-        }}
-      />
+      <FsAnalyticsBootstrapTemplates initialSubscriptions={subs} />
       <DemoAnalyticsPage
         userDisplay={userDisplay}
         analyticsSnapshot={analyticsSnapshot}

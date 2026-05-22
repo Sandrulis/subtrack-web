@@ -9,8 +9,6 @@ import {
 } from "@/components/fs/load-fs-scripts";
 import { FsDemoDashboardWindowFlag } from "@/components/fs/fs-demo-window-flags";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
-import { getFsIconPickerSearchBootstrap } from "@/lib/fs-icon-picker-search";
-import { getSubscriptionVisualSuggestBootstrap } from "@/lib/subscription-visual-suggest";
 import { FA_ICONS_ALL, FS_COLOR_DOTS } from "@/lib/fs-icons";
 import type { FamilySharingDashboardBootstrap } from "@/lib/family-sharing/family-sharing-types";
 import type { SubscriptionWithFamilyShare } from "@/lib/family-sharing/family-sharing-types";
@@ -18,14 +16,11 @@ import type { DashboardFreeTierGatePayload } from "@/lib/subscriptions/dashboard
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { SubtrackTooltip } from "@/components/subtrack-tooltip";
 import Link from "next/link";
-
-const SUBTRACK_ICON_SEARCH_BOOTSTRAP = JSON.stringify({
-  icons: getFsIconPickerSearchBootstrap(),
-}).replace(/</g, "\\u003c");
-
-const SUBTRACK_VISUAL_SUGGEST_BOOTSTRAP = JSON.stringify(
-  getSubscriptionVisualSuggestBootstrap(),
-).replace(/</g, "\\u003c");
+import {
+  ProTrialCalendarBadge,
+  ProTrialProBadge,
+  ProTrialProgressBlock,
+} from "@/components/pro-trial/pro-trial-chrome";
 
 export function DashboardFsView({
   userDisplay,
@@ -62,6 +57,8 @@ export function DashboardFsView({
   const showCalendar =
     !freeTierGate.enforcement || freeTierGate.isPaidUser === true;
 
+  const trialProgress = userDisplay?.proTrialProgress ?? null;
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -85,42 +82,6 @@ export function DashboardFsView({
   return (
     <>
       {demoMode ? <FsDemoDashboardWindowFlag /> : null}
-      <template
-        id="subtrack-subs-bootstrap-json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(initialSubscriptions).replace(/</g, "\\u003c"),
-        }}
-      />
-      {!demoMode ? (
-        <template
-          id="subtrack-paid-calendar-bootstrap-json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(initialPaidCalendarDays).replace(/</g, "\\u003c"),
-          }}
-        />
-      ) : null}
-      <template
-        id="subtrack-icon-search-bootstrap"
-        dangerouslySetInnerHTML={{ __html: SUBTRACK_ICON_SEARCH_BOOTSTRAP }}
-      />
-      <template
-        id="subtrack-visual-suggest-bootstrap"
-        dangerouslySetInnerHTML={{ __html: SUBTRACK_VISUAL_SUGGEST_BOOTSTRAP }}
-      />
-      <template
-        id="subtrack-free-tier-gate-json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(freeTierGate).replace(/</g, "\\u003c"),
-        }}
-      />
-      {!demoMode ? (
-        <template
-          id="subtrack-family-sharing-bootstrap-json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(familySharingBootstrap).replace(/</g, "\\u003c"),
-          }}
-        />
-      ) : null}
       <div className="app-layout app-layout-stacked">
         <NavDash
           active="dashboard"
@@ -143,6 +104,9 @@ export function DashboardFsView({
           </div>
         ) : null}
         <main className="main-content">
+          {trialProgress ? (
+            <ProTrialProgressBlock progress={trialProgress} fullWidth />
+          ) : null}
           <div className="dashboard-overview">
             <div
               className={
@@ -154,7 +118,7 @@ export function DashboardFsView({
               <div className="dashboard-overview-calendar-col">
                 <div className="dashboard-top-calendar">
                   <div className="pay-calendar-card">
-                    {demoMode && paidPlan.enabled ? (
+                    {trialProgress ? <ProTrialCalendarBadge /> : demoMode && paidPlan.enabled ? (
                       <span
                         className="dash-nav-pro-pill pay-calendar-pro-badge"
                         title={t("nav.analytics_demo_hint")}
@@ -234,8 +198,16 @@ export function DashboardFsView({
             <div className="dashboard-overview-right-col">
                 <div className="dashboard-overview-head-col">
                   <div className="page-header">
-                    <div>
-                      <h1 className="page-title">{t("landing.mock.subscriptions_title")}</h1>
+                    <div className="page-header-title-stack">
+                      <h1
+                        className={
+                          "page-title" +
+                          (trialProgress ? " page-title--with-trial-badge" : "")
+                        }
+                      >
+                        {t("landing.mock.subscriptions_title")}
+                        {trialProgress ? <ProTrialProBadge /> : null}
+                      </h1>
                       <p className="page-subtitle">{t("landing.mock.subscriptions_subtitle")}</p>
                     </div>
                     <div className="page-header-actions-column">

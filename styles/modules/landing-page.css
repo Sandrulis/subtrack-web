@@ -513,58 +513,198 @@ body.landing-page .landing-cta {
 }
 
 .landing-pricing-section {
-    padding: 44px 0;
-    background: linear-gradient(135deg, #fffbeb 0%, #fff7ed 45%, #fef3c7 100%);
-    border-bottom: 1px solid rgba(251, 191, 36, 0.35);
+    padding: clamp(56px, 8vw, 88px) 0;
+    background:
+        radial-gradient(ellipse 80% 60% at 18% 50%, rgba(251, 191, 36, 0.28), transparent),
+        radial-gradient(ellipse 70% 50% at 88% 42%, rgba(20, 184, 166, 0.14), transparent),
+        linear-gradient(160deg, #fffbeb 0%, #fff7ed 42%, #f0fdfa 100%);
+    border-bottom: 1px solid rgba(251, 191, 36, 0.28);
 }
 
 .landing-pricing-inner {
-    max-width: 920px;
+    max-width: 960px;
     margin: 0 auto;
     display: flex;
     align-items: center;
-    gap: clamp(24px, 5vw, 48px);
+    gap: clamp(32px, 5vw, 56px);
     flex-wrap: wrap;
     justify-content: center;
 }
 
 .landing-pricing-visual {
+    position: relative;
     flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: min(200px, 40vw);
+    min-height: 180px;
+}
+
+.landing-pricing-visual-glow {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.38) 0%, transparent 68%);
+    animation: landing-pricing-glow-pulse 4s ease-in-out infinite;
+}
+
+@keyframes landing-pricing-glow-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.82;
+    }
+
+    50% {
+        transform: scale(1.07);
+        opacity: 1;
+    }
 }
 
 .landing-pricing-coffee-img {
+    position: relative;
     display: block;
-    width: min(112px, 28vw);
+    width: min(140px, 32vw);
     height: auto;
-    filter: drop-shadow(0 10px 24px rgba(180, 83, 9, 0.2));
+    filter: drop-shadow(0 16px 32px rgba(146, 64, 14, 0.22));
+    animation: landing-pricing-coffee-float 5s ease-in-out infinite;
 }
 
-.landing-pricing-copy {
-    flex: 1 1 280px;
-    max-width: 520px;
+@keyframes landing-pricing-coffee-float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+.landing-pricing-panel {
+    flex: 1 1 320px;
+    max-width: 540px;
+    padding: clamp(28px, 4vw, 36px);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    box-shadow:
+        0 4px 6px rgba(15, 23, 42, 0.04),
+        0 20px 50px rgba(180, 83, 9, 0.12);
+    backdrop-filter: blur(12px);
 }
 
 .landing-pricing-title {
-    font-size: clamp(22px, 3.6vw, 30px);
+    font-size: clamp(24px, 3.8vw, 32px);
     font-weight: 800;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.03em;
     color: var(--text);
     margin: 10px 0 14px;
-    line-height: 1.2;
+    line-height: 1.15;
 }
 
 .landing-pricing-lead {
-    margin: 0 0 12px;
+    margin: 0 0 20px;
     font-size: 16px;
-    line-height: 1.6;
+    line-height: 1.65;
+    color: var(--text-muted);
+}
+
+.landing-pricing-highlight {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px 14px;
+    margin-bottom: 18px;
+}
+
+.landing-pricing-monthly-pill {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 8px;
+    padding: 12px 18px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--primary-light) 0%, #ecfdf5 100%);
+    border: 1px solid rgba(20, 184, 166, 0.28);
+}
+
+.landing-pricing-monthly-value {
+    font-size: clamp(28px, 5vw, 36px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--primary-dark);
+    line-height: 1;
+}
+
+.landing-pricing-monthly-period {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.landing-pricing-annual-card {
+    flex: 1 1 200px;
+    min-width: min(100%, 220px);
+    align-self: flex-start;
+    padding: 12px 16px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border: 1px solid rgba(251, 191, 36, 0.45);
+}
+
+.landing-pricing-annual-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+}
+
+.landing-pricing-annual-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #b45309;
+}
+
+.landing-pricing-annual-amount {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.02em;
+}
+
+.landing-pricing-annual-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    box-shadow: 0 2px 8px rgba(180, 83, 9, 0.28);
+}
+
+.landing-pricing-annual-equiv {
+    margin: 8px 0 0;
+    font-size: 14px;
+    line-height: 1.45;
     color: var(--text-muted);
 }
 
 .landing-pricing-blurb {
     margin: 0 0 22px;
-    font-size: 16px;
+    font-size: 15px;
     line-height: 1.6;
     color: var(--text-muted);
+}
+
+.landing-pricing-cta {
+    margin-top: 4px;
 }
 
 .landing-pricing-cta .btn i {
@@ -572,13 +712,130 @@ body.landing-page .landing-cta {
 }
 
 @media (max-width: 640px) {
-    .landing-pricing-inner {
-        flex-direction: column;
-        text-align: center;
+    .landing-pricing-section {
+        padding: 40px 0 44px;
     }
 
-    .landing-pricing-copy .section-label {
-        text-align: center;
+    .landing-pricing-visual {
+        display: none;
+    }
+
+    .landing-pricing-inner {
+        flex-direction: column;
+        gap: 0;
+        align-items: stretch;
+    }
+
+    .landing-pricing-panel {
+        flex: none;
+        width: 100%;
+        max-width: none;
+        padding: 22px 18px 24px;
+        border-radius: 20px;
+        text-align: left;
+    }
+
+    .landing-pricing-panel .section-label {
+        text-align: left;
+    }
+
+    .landing-pricing-title {
+        font-size: 22px;
+        margin: 8px 0 10px;
+    }
+
+    .landing-pricing-lead {
+        font-size: 15px;
+        margin-bottom: 16px;
+    }
+
+    .landing-pricing-highlight {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .landing-pricing-monthly-pill,
+    .landing-pricing-annual-card {
+        width: 100%;
+        max-width: none;
+        flex: 0 0 auto;
+        box-sizing: border-box;
+    }
+
+    .landing-pricing-monthly-pill {
+        justify-content: center;
+        padding: 14px 16px;
+    }
+
+    .landing-pricing-annual-card {
+        padding: 12px 14px;
+    }
+
+    .landing-pricing-annual-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 6px 10px;
+        text-align: left;
+    }
+
+    .landing-pricing-annual-label {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .landing-pricing-annual-amount {
+        grid-column: 2;
+        grid-row: 1;
+        font-size: 22px;
+        justify-self: start;
+    }
+
+    .landing-pricing-annual-badge {
+        grid-column: 3;
+        grid-row: 1;
+        justify-self: end;
+        flex-shrink: 0;
+    }
+
+    .landing-pricing-annual-equiv {
+        grid-column: 1 / -1;
+        margin: 6px 0 0;
+        font-size: 13px;
+        text-align: left;
+    }
+
+    .landing-pricing-blurb {
+        font-size: 14px;
+        margin-bottom: 18px;
+    }
+
+    .landing-pricing-cta .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 380px) {
+    .landing-pricing-annual-row {
+        grid-template-columns: 1fr auto;
+    }
+
+    .landing-pricing-annual-label {
+        grid-column: 1 / -1;
+        grid-row: 1;
+    }
+
+    .landing-pricing-annual-amount {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .landing-pricing-annual-badge {
+        grid-column: 2;
+        grid-row: 2;
     }
 }
 
@@ -713,6 +970,17 @@ body.landing-page .landing-cta {
 
     header.dash-topbar .dash-topbar-rule {
         display: none;
+    }
+
+    header.dash-topbar .dash-nav-link-text {
+        display: none;
+    }
+
+    header.dash-topbar .dash-nav-link {
+        justify-content: center;
+        padding: 10px 12px;
+        min-width: 44px;
+        gap: 0;
     }
 
     body.landing-page {
@@ -1490,3 +1758,29 @@ body.landing-page .landing-cta {
     text-decoration: none;
     color: var(--primary);
 }
+
+.landing-footer {
+    border-top: 1px solid var(--border-light);
+    text-align: center;
+    padding-top: 28px;
+    padding-bottom: 28px;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.faq-section {
+    overflow-x: clip;
+    max-width: 100%;
+}
+
+.landing-footer .landing-code-inline {
+    font-size: 0.92em;
+}
+
+/* Apakšējā lapas gala josla - uz telefoniem un šauriem ekrāniem kā mobilajā UX. */
+@media (max-width: 768px) {
+    .landing-footer {
+        display: none;
+    }
+}
+

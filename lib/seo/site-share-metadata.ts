@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cache } from "react";
+import { pickFallbackPhrase } from "@/lib/i18n/fallback-lookup";
 import { applySystemNamePlaceholders } from "@/lib/system-name-placeholder";
 import { getPublicSiteUrl } from "@/lib/site-url";
 import { getUiPhraseForRequest, resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
@@ -23,6 +24,24 @@ export function localeCodeToOpenGraphLocale(code: string): string {
     pt: "pt_PT",
   };
   return map[primary] ?? "en_US";
+}
+
+/** Dokumenta / OG virsraksts: `{brand} – {landing.footer.byline}` aktīvajā valodā. */
+export async function getBrandBylinePageTitle(brand: string): Promise<string> {
+  const trimmedBrand = brand.trim();
+  const byline = await getUiPhraseForRequest("landing.footer.byline");
+  let line = applySystemNamePlaceholders(byline, trimmedBrand).trim();
+  if (!line || line === "landing.footer.byline") {
+    const { locale } = await resolveRequestUiLocales();
+    const fb = pickFallbackPhrase("landing.footer.byline", locale);
+    line = fb ? applySystemNamePlaceholders(fb, trimmedBrand).trim() : "";
+  }
+  if (!line) {
+    line =
+      pickFallbackPhrase("landing.footer.byline", "en") ??
+      "subscription and recurring payment management.";
+  }
+  return `${trimmedBrand} – ${line}`;
 }
 
 /** SEO / OG apraksts: `landing.hero.subtitle` ar `{SYSTEM_NAME}`, citādi footer byline. */

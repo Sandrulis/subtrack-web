@@ -225,6 +225,27 @@ export type DisplayPreferencesPreviewLabels = {
   ui: string;
 };
 
+/** Kalendāra datums pēc lietotāja `date_order` / `date_sep` un laika zonas. */
+export function formatDateForDisplayPreferences(
+  date: Date,
+  prefs: DisplayPreferences,
+  intlLocale: string,
+): string {
+  const parts = new Intl.DateTimeFormat(intlLocale, {
+    timeZone: prefs.timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const y = parts.find((p) => p.type === "year")?.value ?? "";
+  const m = parts.find((p) => p.type === "month")?.value ?? "";
+  const d = parts.find((p) => p.type === "day")?.value ?? "";
+  const sep = prefs.date_sep;
+  if (prefs.date_order === "ymd") return `${y}${sep}${m}${sep}${d}`;
+  if (prefs.date_order === "mdy") return `${m}${sep}${d}${sep}${y}`;
+  return `${d}${sep}${m}${sep}${y}`;
+}
+
 /** Piemēra teksts: fiksēts datums; laiks / 12h / nedēļas diena pēc `intlLocale`; etiķetes no tulkošanām. */
 export function formatDisplayPreferencesPreview(
   prefs: DisplayPreferences,

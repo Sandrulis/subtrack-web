@@ -15,9 +15,15 @@ const SIGNUP_EMAIL_EXISTS_MAX_PER_MIN = 24;
  * Pēc migrācijas `023_security_advisor_rpcs.sql` RPC ir tikai `service_role` –
  * iestatiet `SUPABASE_SERVICE_ROLE_KEY` serverī (.env.local).
  */
+export type SignupEmailExistsResult = {
+  exists: boolean;
+  /** true = pārāk daudz pieprasījumu vai servera kļūda; neinterpretēt kā „e-pasts brīvs”. */
+  unavailable?: boolean;
+};
+
 export async function signupEmailExistsAction(
   email: string,
-): Promise<{ exists: boolean }> {
+): Promise<SignupEmailExistsResult> {
   if (!getSupabasePublicConfig()) {
     return { exists: false };
   }
@@ -33,12 +39,12 @@ export async function signupEmailExistsAction(
     60_000,
   );
   if (!allowed) {
-    return { exists: false };
+    return { exists: false, unavailable: true };
   }
 
   const svc = createServiceRoleSupabaseClient();
   if (!svc) {
-    return { exists: false };
+    return { exists: false, unavailable: true };
   }
   const supabase = svc;
 
@@ -47,7 +53,7 @@ export async function signupEmailExistsAction(
   });
 
   if (error) {
-    return { exists: false };
+    return { exists: false, unavailable: true };
   }
 
   return { exists: Boolean(data) };
@@ -188,13 +194,13 @@ export async function requestPasswordResetAction(
 export async function signOutAction() {
   const cfg = getSupabasePublicConfig();
   if (!cfg) {
-    redirect("/login");
+    redirect("/");
   }
 
   const supabase = await createServerSupabaseClient();
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
-  redirect("/login");
+  redirect("/");
 }
 
 export async function changePasswordAction(formData: FormData) {

@@ -7,6 +7,7 @@ import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
+import { buildPaidPlanAnnualPitchCopy } from "@/lib/paid-plan-annual";
 import { useMemo } from "react";
 
 const PRO_BENEFIT_ICONS = [
@@ -19,21 +20,35 @@ export function SubscribeProView({
   userDisplay,
   priceEur,
   freeTierLimit,
+  annualPriceEur = null,
 }: {
   userDisplay?: NavUserDisplay | null;
   priceEur: number;
   freeTierLimit: number;
+  annualPriceEur?: number | null;
 }) {
   const { t, locale } = useSubtrackIntl();
   const intlLocale = useMemo(() => uiLocaleCodeToBcp47ForIntl(locale), [locale]);
 
-  const priceFmt = useMemo(
-    () =>
+  const fmtEur = useMemo(
+    () => (amount: number) =>
       new Intl.NumberFormat(intlLocale, {
         style: "currency",
         currency: "EUR",
-      }).format(Number.isFinite(priceEur) ? priceEur : 0),
-    [intlLocale, priceEur],
+      }).format(Number.isFinite(amount) ? amount : 0),
+    [intlLocale],
+  );
+
+  const priceFmt = useMemo(() => fmtEur(priceEur), [fmtEur, priceEur]);
+
+  const annualPitch = useMemo(
+    () =>
+      buildPaidPlanAnnualPitchCopy(priceEur, annualPriceEur, fmtEur, t, {
+        line: "subscribe.price.annual_line",
+        discount: "subscribe.price.annual_discount",
+        equiv: "subscribe.price.annual_equiv",
+      }),
+    [annualPriceEur, fmtEur, priceEur, t],
   );
 
   const benefitIds = ["unlimited", "calendar", "analytics"] as const;
@@ -80,6 +95,15 @@ export function SubscribeProView({
           <p className="subscribe-pro-price-label">{t("subscribe.price.title")}</p>
           <p className="subscribe-pro-price-value">{priceFmt}</p>
           <p className="subscribe-pro-price-interval">{t("subscribe.price.interval")}</p>
+          {annualPitch ? (
+            <p className="subscribe-pro-price-annual">
+              <span className="subscribe-pro-price-annual-line">
+                {annualPitch.line}
+                {annualPitch.discountSuffix ?? ""}
+              </span>
+              <span className="subscribe-pro-price-annual-equiv">{annualPitch.equiv}</span>
+            </p>
+          ) : null}
         </div>
 
         <section className="subscribe-pro-benefits">

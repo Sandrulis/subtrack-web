@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { FsI18nBootstrap } from "@/components/fs/fs-i18n-bootstrap";
+import { FsAnalyticsBootstrapTemplates } from "@/components/fs/fs-analytics-bootstrap-templates";
 import { AnalyticsFsView } from "@/components/fs/analytics-fs-view";
 import { getSessionUserDisplay } from "@/lib/auth/user-display";
 import {
@@ -37,6 +38,7 @@ export default async function AnalyticsPage() {
   return (
     <>
       <FsI18nBootstrap phrases={fsI18n} intlLocale={intlLocale} />
+      <FsAnalyticsBootstrapTemplates initialSubscriptions={initialSubscriptions} />
       <AnalyticsFsView
         userDisplay={userDisplay}
         initialSubscriptions={initialSubscriptions}

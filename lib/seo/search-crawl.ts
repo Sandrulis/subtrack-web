@@ -17,8 +17,6 @@ export const SEARCH_CRAWL_DISALLOW_PATHS = [
   "/signup",
   "/forgot-password",
   "/auth",
-  // Demonstrācijas (dublē produktu UI, nav galvenais SEO mērķis)
-  "/demo",
   // Administrācija un API
   "/admin",
   "/api",
@@ -35,6 +33,8 @@ export type SearchCrawlSitemapEntry = {
 /** Indeksējamas publiskās lapas (bez sesijas vai ar vispārīgu saturu). */
 export const SEARCH_CRAWL_SITEMAP_ENTRIES: SearchCrawlSitemapEntry[] = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
+  { path: "/demo/dashboard", changeFrequency: "weekly", priority: 0.85 },
+  { path: "/demo/analytics", changeFrequency: "weekly", priority: 0.85 },
   { path: "/privacy", changeFrequency: "monthly", priority: 0.3 },
   { path: "/terms", changeFrequency: "monthly", priority: 0.3 },
   { path: "/cookies", changeFrequency: "monthly", priority: 0.3 },

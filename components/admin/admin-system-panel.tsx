@@ -9,6 +9,12 @@ import { pushDomToast } from "@/lib/push-dom-toast";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import { AdminSystemLogoUpload } from "@/components/admin/admin-system-logo-upload";
+import {
+  formatPaidPlanDiscountPercent,
+  isValidPaidPlanAnnualPrice,
+  paidPlanAnnualDiscountPercent,
+  paidPlanAnnualEquivMonthlyFromAnnual,
+} from "@/lib/paid-plan-annual";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 export type AdminSystemPanelProps = {
@@ -21,6 +27,12 @@ export type AdminSystemPanelProps = {
     enabled: boolean;
     priceEur: number;
     freeSubscriptionLimit: number;
+    annualBillingEnabled: boolean;
+    annualPriceEur: number | null;
+  };
+  initialProTrial: {
+    enabled: boolean;
+    days: number;
   };
 };
 
@@ -58,7 +70,14 @@ function PaidPlanSwitch({
 function buildFormData(
   systemName: string,
   prefs: DisplayPreferences,
-  paid: { enabled: boolean; priceEur: number; freeSubscriptionLimit: number },
+  paid: {
+    enabled: boolean;
+    priceEur: number;
+    freeSubscriptionLimit: number;
+    annualBillingEnabled: boolean;
+    annualPriceEur: number | null;
+  },
+  trial: { enabled: boolean; days: number },
 ): FormData | null {
   const name = systemName.trim();
   if (!name) {
@@ -74,8 +93,17 @@ function buildFormData(
   fd.set("timezone", prefs.timezone);
   fd.set("week_start", prefs.week_start);
   fd.set("paid_plan_enabled", paid.enabled ? "1" : "0");
+  fd.set(
+    "paid_plan_annual_enabled",
+    paid.enabled && paid.annualBillingEnabled ? "1" : "0",
+  );
+  if (paid.enabled && paid.annualBillingEnabled && paid.annualPriceEur != null) {
+    fd.set("paid_plan_annual_price_eur", paid.annualPriceEur.toFixed(2));
+  }
   fd.set("paid_plan_price_eur", paid.priceEur.toFixed(2));
   fd.set("paid_plan_free_subscription_limit", String(paid.freeSubscriptionLimit));
+  fd.set("pro_trial_enabled", paid.enabled && trial.enabled ? "1" : "0");
+  fd.set("pro_trial_days", String(trial.days));
   return fd;
 }
 
@@ -85,8 +113,11 @@ function fdSignature(fd: FormData): string {
     `\0${String(fd.get("date_order"))}\0${String(fd.get("date_sep"))}` +
     `\0${String(fd.get("time_format"))}\0${String(fd.get("time_sep"))}` +
     `\0${String(fd.get("timezone"))}\0${String(fd.get("week_start"))}` +
-    `\0${String(fd.get("paid_plan_enabled"))}\0${String(fd.get("paid_plan_price_eur"))}` +
-    `\0${String(fd.get("paid_plan_free_subscription_limit"))}`
+    `\0${String(fd.get("paid_plan_enabled"))}\0${String(fd.get("paid_plan_annual_enabled"))}` +
+    `\0${String(fd.get("paid_plan_annual_price_eur"))}` +
+    `\0${String(fd.get("paid_plan_price_eur"))}` +
+    `\0${String(fd.get("paid_plan_free_subscription_limit"))}` +
+    `\0${String(fd.get("pro_trial_enabled"))}\0${String(fd.get("pro_trial_days"))}`
   );
 }
 
@@ -97,6 +128,7 @@ export function AdminSystemPanel({
   brandStoragePublicBase,
   initialDefaults,
   initialPaidPlan,
+  initialProTrial,
 }: AdminSystemPanelProps) {
   const { t, locale } = useSubtrackIntl();
   const [systemName, setSystemName] = useState(initialSystemName);
@@ -104,12 +136,22 @@ export function AdminSystemPanel({
     ...initialDefaults,
   }));
   const [paidPlanEnabled, setPaidPlanEnabled] = useState(initialPaidPlan.enabled);
+  const [paidPlanAnnualEnabled, setPaidPlanAnnualEnabled] = useState(
+    initialPaidPlan.annualBillingEnabled,
+  );
+  const [paidPlanAnnualPrice, setPaidPlanAnnualPrice] = useState(
+    initialPaidPlan.annualPriceEur != null
+      ? initialPaidPlan.annualPriceEur.toFixed(2)
+      : "",
+  );
   const [paidPlanPrice, setPaidPlanPrice] = useState(
     initialPaidPlan.priceEur.toFixed(2),
   );
   const [paidPlanFreeLimit, setPaidPlanFreeLimit] = useState(
     String(initialPaidPlan.freeSubscriptionLimit),
   );
+  const [proTrialEnabled, setProTrialEnabled] = useState(initialProTrial.enabled);
+  const [proTrialDays, setProTrialDays] = useState(String(initialProTrial.days));
   const [saveHud, setSaveHud] = useState<SaveHud>("idle");
 
   const hydratedRef = useRef(false);
@@ -124,6 +166,7 @@ export function AdminSystemPanel({
     systemName: initialSystemName,
     prefs: initialDefaults,
     paid: initialPaidPlan,
+    trial: initialProTrial,
   });
   snapshotRef.current = {
     systemName,
@@ -132,10 +175,48 @@ export function AdminSystemPanel({
       enabled: paidPlanEnabled,
       priceEur: Number.parseFloat(String(paidPlanPrice).replace(",", ".")) || 0,
       freeSubscriptionLimit: Number.parseInt(paidPlanFreeLimit, 10) || 0,
+      annualBillingEnabled: paidPlanEnabled && paidPlanAnnualEnabled,
+      annualPriceEur:
+        paidPlanEnabled && paidPlanAnnualEnabled
+          ? (() => {
+              const raw = String(paidPlanAnnualPrice).replace(",", ".").trim();
+              if (!raw) return null;
+              const n = Number.parseFloat(raw);
+              return Number.isFinite(n) ? Math.round(n * 100) / 100 : null;
+            })()
+          : null,
+    },
+    trial: {
+      enabled: paidPlanEnabled && proTrialEnabled,
+      days: Number.parseInt(proTrialDays, 10) || initialProTrial.days,
     },
   };
 
   const intlLocale = useMemo(() => uiLocaleCodeToBcp47ForIntl(locale), [locale]);
+
+  const fmtEur = useMemo(
+    () => (amount: number) =>
+      new Intl.NumberFormat(intlLocale, {
+        style: "currency",
+        currency: "EUR",
+      }).format(Number.isFinite(amount) ? amount : 0),
+    [intlLocale],
+  );
+
+  const annualPricePreview = useMemo(() => {
+    if (!paidPlanEnabled || !paidPlanAnnualEnabled) return null;
+    const monthly =
+      Number.parseFloat(String(paidPlanPrice).replace(",", ".")) || 0;
+    const annualRaw = String(paidPlanAnnualPrice).replace(",", ".").trim();
+    if (!annualRaw) return null;
+    const annual = Number.parseFloat(annualRaw);
+    if (!isValidPaidPlanAnnualPrice(annual)) return null;
+    const discount = paidPlanAnnualDiscountPercent(monthly, annual);
+    return {
+      equivMonthlyEur: paidPlanAnnualEquivMonthlyFromAnnual(annual),
+      discountPercent: discount != null && discount > 0 ? discount : null,
+    };
+  }, [paidPlanAnnualEnabled, paidPlanAnnualPrice, paidPlanEnabled, paidPlanPrice]);
 
   const preview = useMemo(
     () =>
@@ -149,8 +230,8 @@ export function AdminSystemPanel({
 
   async function persistFlushSilent(): Promise<void> {
     if (!hydratedRef.current || loadErrRef.current) return;
-    const { systemName: sn, prefs: p, paid: pd } = snapshotRef.current;
-    const fd = buildFormData(sn, p, pd);
+    const { systemName: sn, prefs: p, paid: pd, trial: tr } = snapshotRef.current;
+    const fd = buildFormData(sn, p, pd, tr);
     if (!fd) return;
     const sig = fdSignature(fd);
     if (sig === persistedSigRef.current) return;
@@ -164,8 +245,8 @@ export function AdminSystemPanel({
 
   async function persistDebouncedUi(): Promise<void> {
     if (loadErrRef.current) return;
-    const { systemName: sn, prefs: p, paid: pd } = snapshotRef.current;
-    const fd = buildFormData(sn, p, pd);
+    const { systemName: sn, prefs: p, paid: pd, trial: tr } = snapshotRef.current;
+    const fd = buildFormData(sn, p, pd, tr);
     if (!fd) {
       pushDomToast(t("admin.forms.err_system_name_required"), "error");
       return;
@@ -210,10 +291,15 @@ export function AdminSystemPanel({
   useEffect(() => {
     queueMicrotask(() => {
       hydratedRef.current = true;
-      const fd = buildFormData(initialSystemName, initialDefaults, initialPaidPlan);
+      const fd = buildFormData(
+        initialSystemName,
+        initialDefaults,
+        initialPaidPlan,
+        initialProTrial,
+      );
       if (fd) persistedSigRef.current = fdSignature(fd);
     });
-  }, [initialDefaults, initialSystemName, initialPaidPlan]);
+  }, [initialDefaults, initialSystemName, initialPaidPlan, initialProTrial]);
 
   useEffect(() => {
     return () => {
@@ -292,6 +378,10 @@ export function AdminSystemPanel({
               disabled={loadError !== null}
               onCheckedChange={(next) => {
                 setPaidPlanEnabled(next);
+                if (!next) {
+                  setPaidPlanAnnualEnabled(false);
+                  setProTrialEnabled(false);
+                }
                 scheduleAutosave();
               }}
               ariaLabelledBy="sys_paid_toggle_label"
@@ -299,43 +389,164 @@ export function AdminSystemPanel({
             <span id="sys_paid_toggle_label">{t("admin.forms.paid_plan_enable")}</span>
           </div>
           {paidPlanEnabled ? (
-            <div className="form-row" style={{ marginTop: 12 }}>
-              <div className="form-group">
-                <label htmlFor="sys_paid_price">{t("admin.forms.label_paid_plan_price")}</label>
-                <input
-                  id="sys_paid_price"
-                  type="number"
-                  name="paid_plan_price_eur"
-                  min={0.01}
-                  max={9999.99}
-                  step={0.01}
-                  value={paidPlanPrice}
+            <>
+              <div className="form-row" style={{ marginTop: 12 }}>
+                <div className="form-group">
+                  <label htmlFor="sys_paid_price">{t("admin.forms.label_paid_plan_price")}</label>
+                  <input
+                    id="sys_paid_price"
+                    type="number"
+                    name="paid_plan_price_eur"
+                    min={0.01}
+                    max={9999.99}
+                    step={0.01}
+                    value={paidPlanPrice}
+                    disabled={loadError !== null}
+                    onChange={(e) => {
+                      setPaidPlanPrice(e.target.value);
+                      scheduleAutosave();
+                    }}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="sys_paid_limit">
+                    {t("admin.forms.label_paid_plan_free_limit")}
+                  </label>
+                  <input
+                    id="sys_paid_limit"
+                    inputMode="numeric"
+                    name="paid_plan_free_subscription_limit"
+                    value={paidPlanFreeLimit}
+                    disabled={loadError !== null}
+                    onChange={(e) => {
+                      setPaidPlanFreeLimit(
+                        e.target.value.replace(/\D/g, "").slice(0, 6),
+                      );
+                      scheduleAutosave();
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="form-row form-row--paid-plan-annual" style={{ marginTop: 12 }}>
+                <div
+                  className="form-group form-group--switch-inline"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    marginBottom: 0,
+                  }}
+                >
+                  <PaidPlanSwitch
+                    checked={paidPlanAnnualEnabled}
+                    disabled={loadError !== null}
+                    onCheckedChange={(next) => {
+                      setPaidPlanAnnualEnabled(next);
+                      scheduleAutosave();
+                    }}
+                    ariaLabelledBy="sys_paid_annual_toggle_label"
+                  />
+                  <span id="sys_paid_annual_toggle_label">
+                    {t("admin.forms.paid_plan_annual_enable")}
+                  </span>
+                </div>
+                {paidPlanAnnualEnabled ? (
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label htmlFor="sys_paid_annual_price">
+                      {t("admin.forms.label_paid_plan_annual_price")}
+                    </label>
+                    <input
+                      id="sys_paid_annual_price"
+                      type="number"
+                      name="paid_plan_annual_price_eur"
+                      min={0.01}
+                      max={9999.99}
+                      step={0.01}
+                      value={paidPlanAnnualPrice}
+                      disabled={loadError !== null}
+                      onChange={(e) => {
+                        setPaidPlanAnnualPrice(e.target.value);
+                        scheduleAutosave();
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="form-group form-group--annual-price-placeholder" aria-hidden />
+                )}
+              </div>
+              {paidPlanAnnualEnabled ? (
+                <>
+                  <p className="form-hint" style={{ marginTop: 8 }}>
+                    {t("admin.forms.paid_plan_annual_hint")}
+                  </p>
+                  {annualPricePreview ? (
+                    <p className="form-hint" style={{ marginTop: 4 }}>
+                      {t("admin.forms.paid_plan_annual_hint_equiv_monthly").replace(
+                        /\{equiv\}/g,
+                        fmtEur(annualPricePreview.equivMonthlyEur),
+                      )}
+                    </p>
+                  ) : null}
+                  {annualPricePreview?.discountPercent != null ? (
+                    <p className="form-hint" style={{ marginTop: 4 }}>
+                      {t("admin.forms.paid_plan_annual_hint_discount").replace(
+                        /\{discount\}/g,
+                        formatPaidPlanDiscountPercent(annualPricePreview.discountPercent),
+                      )}
+                    </p>
+                  ) : null}
+                </>
+              ) : null}
+              <p className="form-hint" style={{ marginTop: 8 }}>
+                {t("admin.forms.paid_plan_hint")}
+              </p>
+              <div
+                className="form-group"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  flexWrap: "wrap",
+                  marginTop: 16,
+                }}
+              >
+                <PaidPlanSwitch
+                  checked={proTrialEnabled}
                   disabled={loadError !== null}
-                  onChange={(e) => {
-                    setPaidPlanPrice(e.target.value);
+                  onCheckedChange={(next) => {
+                    setProTrialEnabled(next);
                     scheduleAutosave();
                   }}
+                  ariaLabelledBy="sys_pro_trial_toggle_label"
                 />
+                <span id="sys_pro_trial_toggle_label">
+                  {t("admin.forms.pro_trial_enable")}
+                </span>
               </div>
-              <div className="form-group">
-                <label htmlFor="sys_paid_limit">
-                  {t("admin.forms.label_paid_plan_free_limit")}
-                </label>
-                <input
-                  id="sys_paid_limit"
-                  inputMode="numeric"
-                  name="paid_plan_free_subscription_limit"
-                  value={paidPlanFreeLimit}
-                  disabled={loadError !== null}
-                  onChange={(e) => {
-                    setPaidPlanFreeLimit(
-                      e.target.value.replace(/\D/g, "").slice(0, 6),
-                    );
-                    scheduleAutosave();
-                  }}
-                />
-              </div>
-            </div>
+              {proTrialEnabled ? (
+                <div className="form-group" style={{ marginTop: 12, maxWidth: 200 }}>
+                  <label htmlFor="sys_pro_trial_days">
+                    {t("admin.forms.label_pro_trial_days")}
+                  </label>
+                  <input
+                    id="sys_pro_trial_days"
+                    inputMode="numeric"
+                    name="pro_trial_days"
+                    min={1}
+                    max={365}
+                    value={proTrialDays}
+                    disabled={loadError !== null}
+                    onChange={(e) => {
+                      setProTrialDays(e.target.value.replace(/\D/g, "").slice(0, 3));
+                      scheduleAutosave();
+                    }}
+                  />
+                </div>
+              ) : null}
+              <p className="form-hint" style={{ marginTop: 8 }}>
+                {t("admin.forms.pro_trial_hint")}
+              </p>
+            </>
           ) : null}
 
           <p className="form-section-label" style={{ marginTop: "20px" }}>

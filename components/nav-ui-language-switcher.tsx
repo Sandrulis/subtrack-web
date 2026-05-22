@@ -3,7 +3,7 @@
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { updateSessionDisplayPreferences } from "@/lib/auth/display-preferences-client";
 import { applyUiLocaleInBrowser } from "@/lib/html-lang";
-import { languageCodeToFlagEmoji } from "@/lib/ui/language-code-flag-emoji";
+import { languageCodeToUiAbbrev } from "@/lib/ui/language-code-flag-emoji";
 import {
   DISPLAY_PREFERENCES_DEFAULTS,
   mergeDisplayPreferences,
@@ -79,7 +79,7 @@ export function NavUiLanguageSwitcher({ layout = "topbar" }: { layout?: Layout }
   if (languageOptions.length < 2) return null;
 
   const current = languageOptions.find((o) => o.code === locale) ?? languageOptions[0]!;
-  const flag = languageCodeToFlagEmoji(locale);
+  const localeAbbrev = languageCodeToUiAbbrev(locale);
 
   function applyLanguage(code: string) {
     const norm = code.trim().toLowerCase();
@@ -130,7 +130,7 @@ export function NavUiLanguageSwitcher({ layout = "topbar" }: { layout?: Layout }
     >
       {languageOptions.map((opt) => {
         const active = opt.code === locale;
-        const optFlag = languageCodeToFlagEmoji(opt.code);
+        const optAbbrev = languageCodeToUiAbbrev(opt.code);
         const ariaOpt = t("nav.ui_language_option_aria").replace("{label}", opt.label);
         return (
           <button
@@ -143,8 +143,8 @@ export function NavUiLanguageSwitcher({ layout = "topbar" }: { layout?: Layout }
             disabled={active}
             aria-label={ariaOpt}
           >
-            <span className="dash-lang-item-flag" aria-hidden="true">
-              {optFlag}
+            <span className="dash-lang-item-code" aria-hidden="true">
+              {optAbbrev}
             </span>
             <span className="dash-lang-item-label">{opt.label}</span>
             {active ? (
@@ -181,8 +181,8 @@ export function NavUiLanguageSwitcher({ layout = "topbar" }: { layout?: Layout }
           title={current.label}
           onClick={toggle}
         >
-          <span className="dash-lang-trigger-flag" aria-hidden="true">
-            {flag}
+          <span className="dash-lang-trigger-code" aria-hidden="true">
+            {localeAbbrev}
           </span>
           {layout === "topbar" ? (
             <span className="dash-lang-trigger-caret" aria-hidden="true">

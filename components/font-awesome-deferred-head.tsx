@@ -4,12 +4,11 @@ import {
 } from "@/lib/icons/font-awesome-cdn";
 
 /**
- * Nebloķējoša FA ielāde: pirmais paint (hero teksts, LCP) nav atkarīgs no ~70KB CDN CSS.
- * Ikonas parādās īsi pēc tam; bez JS – noscript sinhronais fallback.
+ * Nebloķējoša FA ielāde: pirmais paint nav atkarīgs no ~70KB CDN CSS.
+ * Skripts – `next/script` root layout (`afterInteractive`); šeit tikai resursu hinti.
  */
 export function FontAwesomeDeferredHead() {
   const href = FONT_AWESOME_CDN_STYLESHEET;
-  const inject = `(function(){var h=${JSON.stringify(href)};if(document.querySelector('link[data-subtrack-fa]'))return;var l=document.createElement("link");l.rel="stylesheet";l.href=h;l.crossOrigin="anonymous";l.setAttribute("data-subtrack-fa","1");document.head.appendChild(l);})();`;
 
   return (
     <>
@@ -23,7 +22,6 @@ export function FontAwesomeDeferredHead() {
           referrerPolicy="no-referrer"
         />
       </noscript>
-      <script dangerouslySetInnerHTML={{ __html: inject }} />
     </>
   );
 }

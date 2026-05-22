@@ -3,7 +3,7 @@ import { authRateLimitedResponse } from "@/lib/security/auth-rate-limit";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function proxy(request: NextRequest) {
-  const limited = authRateLimitedResponse(request);
+  const limited = await authRateLimitedResponse(request);
   if (limited) {
     return limited;
   }

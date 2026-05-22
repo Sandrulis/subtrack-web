@@ -4,6 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdminUser } from "@/lib/auth/require-admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
+import { parsePaidPlanPriceField } from "@/lib/paid-plan-annual";
 import {
   sanitizeDisplayPreferencesPartial,
   type DisplayPreferences,
@@ -78,6 +79,27 @@ export async function saveSystemSettingsAction(
   }
 
   const paid_plan_enabled = readFormBool(formData, "paid_plan_enabled");
+  const pro_trial_enabled =
+    paid_plan_enabled && readFormBool(formData, "pro_trial_enabled");
+  const trialDaysRaw = readFormString(formData, "pro_trial_days");
+  if (pro_trial_enabled) {
+    if (!/^\d+$/.test(trialDaysRaw)) {
+      return {
+        ok: false,
+        message: await getUiPhraseForRequest("admin.forms.err_pro_trial_days"),
+      };
+    }
+    const trialDays = Number.parseInt(trialDaysRaw, 10);
+    if (trialDays < 1 || trialDays > 365) {
+      return {
+        ok: false,
+        message: await getUiPhraseForRequest("admin.forms.err_pro_trial_days"),
+      };
+    }
+  }
+
+  const paid_plan_annual_enabled =
+    paid_plan_enabled && readFormBool(formData, "paid_plan_annual_enabled");
   const priceStr = readFormString(formData, "paid_plan_price_eur").replace(",", ".");
   const price = Number.parseFloat(priceStr);
   if (!Number.isFinite(price) || price < 0.01 || price > 9999.99) {
@@ -101,7 +123,29 @@ export async function saveSystemSettingsAction(
     };
   }
 
+  let paid_plan_annual_price_eur: number | null = null;
+  if (paid_plan_annual_enabled) {
+    const annualStr = readFormString(formData, "paid_plan_annual_price_eur").replace(",", ".");
+    if (annualStr !== "") {
+      const annualParsed = parsePaidPlanPriceField(annualStr);
+      if (annualParsed == null) {
+        return {
+          ok: false,
+          message: await getUiPhraseForRequest("admin.forms.err_paid_plan_annual_price"),
+        };
+      }
+      paid_plan_annual_price_eur = annualParsed;
+    }
+  }
+
   const supabase = await createServerSupabaseClient();
+
+  const pro_trial_days = pro_trial_enabled
+    ? Number.parseInt(trialDaysRaw, 10)
+    : Number.parseInt(
+        readFormString(formData, "pro_trial_days") || "14",
+        10,
+      ) || 14;
 
   const { error } = await supabase
     .from("system_settings")
@@ -109,14 +153,27 @@ export async function saveSystemSettingsAction(
       system_name,
       default_display_preferences: partial,
       paid_plan_enabled,
+      paid_plan_annual_enabled,
+      paid_plan_annual_price_eur,
       paid_plan_price_eur: Math.round(price * 100) / 100,
       paid_plan_free_subscription_limit: limit,
+      pro_trial_enabled,
+      pro_trial_days: Math.min(365, Math.max(1, pro_trial_days)),
     })
     .eq("id", 1);
 
   if (error) {
     let msg = error.message;
-    if (/paid_plan/i.test(msg) && /column/i.test(msg)) {
+    if (/paid_plan_annual_price/i.test(msg) && /column/i.test(msg)) {
+      msg =
+        "Migrācija `database/supabase/103_paid_plan_annual_price.sql` vēl nav palaista (trēkst kolonnas).";
+    } else if (/paid_plan_annual/i.test(msg) && /column/i.test(msg)) {
+      msg =
+        "Migrācija `database/supabase/101_paid_plan_annual.sql` vēl nav palaista (trēkst kolonnas).";
+    } else if (/pro_trial/i.test(msg) && /column/i.test(msg)) {
+      msg =
+        "Migrācija `database/supabase/107_pro_trial.sql` vēl nav palaista (trēkst kolonnas).";
+    } else if (/paid_plan/i.test(msg) && /column/i.test(msg)) {
       msg =
         "Migrācija `database/supabase/027_paid_plan.sql` vēl nav palaista (trēkst kolonnas).";
     } else if (/relation .* does not exist/i.test(msg) || /schema cache/i.test(msg)) {

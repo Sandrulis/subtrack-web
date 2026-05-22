@@ -40,6 +40,7 @@ export function SignupForm() {
   const [emailCheck, setEmailCheck] = useState<{
     email: string;
     exists: boolean;
+    unavailable?: boolean;
   } | null>(null);
   const [checkInflight, setCheckInflight] = useState<string | null>(null);
 
@@ -81,7 +82,11 @@ export function SignupForm() {
 
     signupEmailExistsAction(debouncedEmail.trim()).then((res) => {
       if (!active) return;
-      setEmailCheck({ email: target, exists: res.exists });
+      if (res.unavailable) {
+        setEmailCheck({ email: target, exists: false, unavailable: true });
+      } else {
+        setEmailCheck({ email: target, exists: res.exists });
+      }
       setCheckInflight((prev) => (prev === target ? null : prev));
     });
 
@@ -95,14 +100,22 @@ export function SignupForm() {
     checkInflight !== null &&
     checkInflight === normalizedDebounced;
 
+  const emailCheckUnavailable =
+    emailLooksValid &&
+    emailCheck !== null &&
+    emailCheck.email === normalizedDebounced &&
+    emailCheck.unavailable === true;
+
   const emailTaken =
     emailLooksValid &&
     emailCheck !== null &&
     emailCheck.email === normalizedDebounced &&
-    emailCheck.exists;
+    emailCheck.exists &&
+    !emailCheck.unavailable;
 
   const submitDisabled =
     emailTaken ||
+    emailCheckUnavailable ||
     !isValidEmail(emailTrimmed) ||
     password !== passwordConfirm ||
     checkingEmail ||
@@ -169,7 +182,9 @@ export function SignupForm() {
               ? "email-format-hint"
               : emailTaken
                 ? "email-taken-hint"
-                : undefined
+                : emailCheckUnavailable
+                  ? "email-check-unavailable-hint"
+                  : undefined
           }
           className={emailInputClass}
         />
@@ -188,6 +203,14 @@ export function SignupForm() {
             role="alert"
           >
             {t("auth.signup.email_taken")}
+          </p>
+        ) : emailCheckUnavailable ? (
+          <p
+            id="email-check-unavailable-hint"
+            className="form-hint form-hint--error"
+            role="alert"
+          >
+            {t("auth.signup.email_check_unavailable")}
           </p>
         ) : null}
       </div>

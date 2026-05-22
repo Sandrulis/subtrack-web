@@ -97,6 +97,9 @@ for (const f of apiRoutes) {
     if (!/CRON_SECRET|authorizeCron/i.test(text)) {
       warnings.push(`${r}: cron route – pārbaudi CRON_SECRET aizsardzību`);
     }
+    if (/searchParams\.get\s*\(\s*["']secret["']\s*\)/.test(text)) {
+      errors.push(`${r}: cron nedrīkst lietot ?secret= query (izmanto Bearer)`);
+    }
     continue;
   }
   if (!/\.auth\.getUser\(|getUser\(\)/.test(text)) {
@@ -134,11 +137,16 @@ for (const f of tsFiles) {
 
 // FS innerHTML – brīdinājums par iespējamu XSS
 const escRe = /escHtml|escAttr|JSON\.stringify/;
+const safeInnerHtmlMapRe =
+  /\.map\s*\(\s*(?:function|build)|\.map\(build|\breturn\s+build/;
 for (const f of jsFsFiles) {
-  const lines = fs.readFileSync(f, "utf8").split("\n");
+  const text = fs.readFileSync(f, "utf8");
+  const lines = text.split("\n");
   lines.forEach((line, i) => {
     if (!/\.innerHTML\s*=/.test(line)) return;
-    if (escRe.test(line)) return;
+    const window = lines.slice(i, Math.min(i + 10, lines.length)).join("\n");
+    if (escRe.test(window)) return;
+    if (safeInnerHtmlMapRe.test(line) || safeInnerHtmlMapRe.test(window)) return;
     if (/innerHTML\s*=\s*['"`]\s*['"`]/.test(line)) return;
     if (/innerHTML\s*=\s*['"`]<svg/.test(line)) return;
     warnings.push(

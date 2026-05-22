@@ -77,20 +77,26 @@ export function CookieConsentRoot() {
           role="region"
           aria-label={t("legal.cookie.banner.aria")}
         >
+          <div className="cookie-consent-banner-scrim" aria-hidden="true" />
           <div className="cookie-consent-banner-inner">
-            <div className="cookie-consent-banner-text">
-              <p className="cookie-consent-banner-title">
-                {t("legal.cookie.banner.title")}
-              </p>
-              <p className="cookie-consent-banner-lead">
-                {t("legal.cookie.banner.lead")}{" "}
-                <Link href="/cookies">{t("legal.footer.cookies")}</Link>
-              </p>
+            <div className="cookie-consent-banner-main">
+              <div className="cookie-consent-banner-icon" aria-hidden="true">
+                <i className="fa-solid fa-cookie-bite" />
+              </div>
+              <div className="cookie-consent-banner-text">
+                <p className="cookie-consent-banner-title">
+                  {t("legal.cookie.banner.title")}
+                </p>
+                <p className="cookie-consent-banner-lead">
+                  {t("legal.cookie.banner.lead")}{" "}
+                  <Link href="/cookies">{t("legal.footer.cookies")}</Link>
+                </p>
+              </div>
             </div>
             <div className="cookie-consent-banner-actions">
               <button
                 type="button"
-                className="btn btn-ghost btn-sm"
+                className="btn btn-outline btn-sm"
                 onClick={() =>
                   applyChoice({ functional: false, analytics: false })
                 }
@@ -99,7 +105,7 @@ export function CookieConsentRoot() {
               </button>
               <button
                 type="button"
-                className="btn btn-ghost btn-sm"
+                className="btn btn-outline btn-sm"
                 onClick={openCustomize}
               >
                 {t("legal.cookie.banner.customize")}

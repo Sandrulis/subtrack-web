@@ -1,8 +1,8 @@
 import { headers } from "next/headers";
+import { rateLimitAllow } from "@/lib/security/rate-limit-allow";
 import {
   effectiveRateLimitMax,
   isRateLimitDisabled,
-  slidingWindowAllow,
 } from "@/lib/security/sliding-window-rate-limit";
 
 function clientIpFromHeaders(headerStore: Headers): string {
@@ -32,5 +32,5 @@ export async function allowServerActionRateLimit(
   const ip = clientIpFromHeaders(headerStore);
   const max = effectiveRateLimitMax(baseMax);
   const key = `${scope}:${ip}`;
-  return slidingWindowAllow(key, windowMs, max);
+  return rateLimitAllow(key, windowMs, max);
 }

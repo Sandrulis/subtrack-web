@@ -235,16 +235,10 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
     (rec.color !== undefined || rec.combineInTotals !== undefined);
 
   const admin = createServiceRoleSupabaseClient();
-  const updateClients: SupabaseClient[] = [];
-  if (isStateAction || isMetaUpdate) {
-    if (admin) {
-      updateClients.push(admin);
-    }
-    if (!admin || isMetaUpdate) {
-      updateClients.push(supabase);
-    }
-  } else {
-    updateClients.push(supabase);
+  /** Vispirms sesija (RLS); service_role tikai kā fallback state darbībām. */
+  const updateClients: SupabaseClient[] = [supabase];
+  if ((isStateAction || isMetaUpdate) && admin) {
+    updateClients.push(admin);
   }
 
   if (isStateAction && !admin) {
