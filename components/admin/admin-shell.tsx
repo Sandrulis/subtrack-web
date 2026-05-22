@@ -15,6 +15,7 @@ export type AdminNavActive =
   | "languages"
   | "translations"
   | "email_design"
+  | "cron_jobs"
   | "pwa"
   | "todos"
   | "";
@@ -32,6 +33,7 @@ function navActiveFromPath(pathname: string): AdminNavActive {
   if (pathname.startsWith("/admin/languages")) return "languages";
   if (pathname.startsWith("/admin/translations")) return "translations";
   if (pathname.startsWith("/admin/email-design")) return "email_design";
+  if (pathname.startsWith("/admin/cron-jobs")) return "cron_jobs";
   if (pathname.startsWith("/admin/pwa")) return "pwa";
   if (pathname.startsWith("/admin/todos")) return "todos";
   return "";
@@ -52,6 +54,7 @@ const navItems: {
     | "admin.nav.integrations"
     | "admin.nav.system"
     | "admin.nav.email_design"
+    | "admin.nav.cron_jobs"
     | "admin.nav.pwa"
     | "admin.nav.todos";
 }[] = [
@@ -77,6 +80,11 @@ const navItems: {
     href: "/admin/email-design",
     key: "email_design",
     labelKey: "admin.nav.email_design",
+  },
+  {
+    href: "/admin/cron-jobs",
+    key: "cron_jobs",
+    labelKey: "admin.nav.cron_jobs",
   },
   { href: "/admin/todos", key: "todos", labelKey: "admin.nav.todos" },
 ];

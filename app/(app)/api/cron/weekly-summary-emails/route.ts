@@ -6,6 +6,7 @@ import {
   todayIsoUtc,
   userWantsEmail,
 } from "@/lib/cron/email-cron-common";
+import { isCronForceRun } from "@/lib/cron/cron-force-query";
 import { isWeeklySummarySendWindow } from "@/lib/cron/user-local-schedule";
 import { todayIsoInTimezone } from "@/lib/subscriptions/due-active";
 import {
@@ -62,7 +63,8 @@ export async function GET(request: Request) {
     }
 
     const { locale, timezone, weekStart } = parseUserLocaleAndTz(user.display_preferences);
-    if (!isWeeklySummarySendWindow(timezone)) {
+    const force = isCronForceRun(request);
+    if (!force && !isWeeklySummarySendWindow(timezone)) {
       skipped += 1;
       continue;
     }

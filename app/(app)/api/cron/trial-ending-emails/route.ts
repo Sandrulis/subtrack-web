@@ -6,6 +6,7 @@ import {
   todayIsoUtc,
   userWantsEmail,
 } from "@/lib/cron/email-cron-common";
+import { isCronForceRun } from "@/lib/cron/cron-force-query";
 import { getUserLocalParts } from "@/lib/cron/user-local-schedule";
 import {
   getProTrialEndInstant,
@@ -125,8 +126,9 @@ export async function GET(request: Request) {
     }
 
     const { timezone } = parseUserLocaleAndTz(row.display_preferences);
+    const force = isCronForceRun(request);
     const local = getUserLocalParts(timezone);
-    if (local.hour !== 9) {
+    if (!force && local.hour !== 9) {
       skipped += 1;
       continue;
     }

@@ -67,6 +67,16 @@ export function AdminEmailDesignIntro() {
   );
 }
 
+export function AdminCronJobsIntro() {
+  const { t } = useSubtrackIntl();
+  return (
+    <div className="admin-page-head">
+      <h1 className="admin-page-title">{t("admin.cron_jobs.heading")}</h1>
+      <p className="admin-page-lead">{t("admin.cron_jobs.lead")}</p>
+    </div>
+  );
+}
+
 export function AdminTranslationsIntro({ titleActions }: { titleActions?: ReactNode }) {
   const { t } = useSubtrackIntl();
   return (

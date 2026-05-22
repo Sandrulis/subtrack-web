@@ -5598,6 +5598,56 @@ html.subtrack-modal-open body {
     margin-top: 8px;
 }
 
+.admin-cron-jobs {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.admin-cron-env-list {
+    margin: 0;
+    padding-left: 1.25rem;
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.admin-cron-job-title {
+    margin: 0 0 4px;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.admin-cron-job-desc {
+    margin: 0 0 6px;
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.admin-cron-job-path {
+    margin: 0;
+    font-size: 13px;
+}
+
+.admin-cron-result-pre {
+    margin: 8px 0 0;
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-x: auto;
+    max-height: 280px;
+}
+
+.admin-cron-result-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
 /* =============================================
    Mobilais panelis + apakšējā navigācija (≤960px)
    Jābūt faila beigās – citādi vēlāki desktop noteikumi tos pārraksta.
