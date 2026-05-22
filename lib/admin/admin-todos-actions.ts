@@ -50,7 +50,7 @@ function doneExpiryCutoffIso(): string {
   return new Date(Date.now() - ADMIN_TODO_DONE_TTL_MS).toISOString();
 }
 
-export async function purgeExpiredAdminTodos(
+async function purgeExpiredAdminTodos(
   supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
 ): Promise<void> {
   const cutoff = doneExpiryCutoffIso();
