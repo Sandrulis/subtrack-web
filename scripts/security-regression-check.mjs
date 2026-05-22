@@ -29,8 +29,13 @@ function rel(p) {
   return path.relative(ROOT, p).replace(/\\/g, "/");
 }
 
+/** Noņem App Router route grupas, piem. `app/(app)/api` → `app/api`. */
+function normalizeAppRoutePath(routeRel) {
+  return routeRel.replace(/\/\([^)]+\)\//g, "/");
+}
+
 function isUnder(file, prefix) {
-  const r = rel(file);
+  const r = normalizeAppRoutePath(rel(file));
   return r === prefix || r.startsWith(`${prefix}/`);
 }
 
@@ -77,11 +82,15 @@ if (fs.existsSync(adminActionsDir)) {
   }
 }
 
-// L2.3 – API route handlers (izņēmumi: cron, dev-env-check)
-const apiDir = path.join(ROOT, "app", "api");
-const apiRoutes = walk(apiDir).filter((f) => f.endsWith(`${path.sep}route.ts`) || f.endsWith("/route.ts"));
+// L2.3 – API route handlers (izņēmumi: cron, dev-env-check); atbalsta route grupas app/(app)/api
+const appDir = path.join(ROOT, "app");
+const apiRoutes = walk(appDir).filter(
+  (f) =>
+    (f.endsWith(`${path.sep}route.ts`) || f.endsWith("/route.ts")) &&
+    normalizeAppRoutePath(rel(f)).includes("/api/"),
+);
 for (const f of apiRoutes) {
-  const r = rel(f);
+  const r = normalizeAppRoutePath(rel(f));
   const text = fs.readFileSync(f, "utf8");
   if (r.includes("dev-env-check")) continue;
   if (r.includes("cron/")) {
