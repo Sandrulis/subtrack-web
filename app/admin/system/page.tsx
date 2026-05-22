@@ -9,6 +9,7 @@ import {
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
+import { DEFAULT_SYSTEM_NAME } from "@/lib/pwa/defaults";
 import { normalizePaidPlanRow } from "@/lib/system-settings-public";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -33,7 +34,7 @@ export default async function AdminSystemPage() {
   const initialSystemName =
     typeof data?.system_name === "string" && data.system_name.trim()
       ? data.system_name.trim()
-      : "repazy";
+      : DEFAULT_SYSTEM_NAME;
 
   const initialPaidPlan = normalizePaidPlanRow(data);
 

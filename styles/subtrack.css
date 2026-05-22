@@ -5527,6 +5527,14 @@ button.dash-exit {
     line-height: 1.45;
 }
 
+.admin-todos-delete-confirm .admin-todos-delete-confirm-icon {
+    color: var(--danger);
+}
+
+.admin-todos-complete-confirm .admin-todos-complete-confirm-icon {
+    color: var(--primary);
+}
+
 /* Modālis atvērts: fons neritina (īpaši iOS Safari) */
 html.subtrack-modal-open,
 html.subtrack-modal-open body {
@@ -6783,6 +6791,232 @@ html.subtrack-modal-open body {
 .admin-sub-counts--empty {
     color: var(--text-muted);
     font-size: 13px;
+}
+
+/* Admin Kanban uzdevumi (/admin/todos): 2 kolonnas augšā, Pabeigts pilnā platumā apakšā */
+.admin-todos-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.admin-todos-columns-top {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+}
+
+.admin-todos-column--done-wide {
+    width: 100%;
+}
+
+.admin-todos-column--done-wide .admin-todos-column-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    align-items: start;
+}
+
+.admin-todos-column--done-wide .admin-todos-column-empty {
+    grid-column: 1 / -1;
+}
+
+.admin-todos-column {
+    display: flex;
+    flex-direction: column;
+    min-height: 12rem;
+    border-radius: var(--radius);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: var(--bg-subtle);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-todos-column-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.admin-todos-column-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.admin-todos-column-count {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: var(--bg-white);
+    border: 1px solid var(--border-light);
+    border-radius: 999px;
+    min-width: 1.5rem;
+    text-align: center;
+    padding: 2px 8px;
+}
+
+.admin-todos-column-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    flex: 1;
+    min-height: 5rem;
+}
+
+.admin-todos-column-empty {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 16px 8px;
+}
+
+.admin-todos-card-wrap {
+    position: relative;
+}
+
+.admin-todos-card-wrap--drop-before::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--primary);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.admin-todos-drop-slot {
+    flex-shrink: 0;
+    height: 3px;
+    margin: -2px 0 0;
+    border-radius: 2px;
+    background: var(--primary);
+}
+
+.admin-todos-card-wrap--dragging .admin-todos-card {
+    opacity: 0.45;
+}
+
+.admin-todos-card {
+    padding: 12px 12px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-white);
+    box-shadow: var(--shadow-sm);
+    cursor: grab;
+}
+
+.admin-todos-card:active {
+    cursor: grabbing;
+}
+
+.admin-todos-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.admin-todos-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.admin-todos-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.admin-todos-card .admin-todos-icon-btn {
+    width: auto;
+    height: auto;
+    min-width: 0;
+    padding: 3px 6px;
+    border-radius: 999px;
+    line-height: 1;
+}
+
+.admin-todos-card .admin-todos-icon-btn i {
+    font-size: 11px;
+    line-height: 1;
+}
+
+.admin-todos-card .admin-todos-icon-btn .admin-btn-icon {
+    width: 11px;
+    height: 11px;
+}
+
+.admin-todos-card-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.35;
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+}
+
+.admin-todos-priority {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.admin-todos-priority--low {
+    background: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
+}
+
+.admin-todos-priority--medium {
+    background: rgba(245, 158, 11, 0.14);
+    color: #92400e;
+}
+
+.admin-todos-priority--high {
+    background: rgba(239, 68, 68, 0.12);
+    color: #b91c1c;
+}
+
+.admin-todos-card-desc {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-muted);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.admin-todos-modal .modal-body.admin-todos-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+@media (max-width: 640px) {
+    .admin-todos-columns-top {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-todos-column--done-wide .admin-todos-column-body {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 768px) {

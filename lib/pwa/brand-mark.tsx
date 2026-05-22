@@ -1,5 +1,5 @@
-/** Kopīgs repazy zīmola kvadrāts OG / PWA ikonām (ImageResponse). */
-export function RepazyBrandMark({
+/** Kopīgs SubTrack zīmola kvadrāts OG / PWA ikonām (ImageResponse). */
+export function SubtrackBrandMark({
   letterSize = 36,
   boxSize = 72,
 }: {
@@ -21,7 +21,7 @@ export function RepazyBrandMark({
         fontWeight: 700,
       }}
     >
-      R
+      S
     </div>
   );
 }

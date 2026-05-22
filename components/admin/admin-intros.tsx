@@ -23,6 +23,20 @@ export function AdminPwaIntro() {
   );
 }
 
+export function AdminTodosIntro({ titleActions }: { titleActions?: ReactNode }) {
+  const { t } = useSubtrackIntl();
+  return (
+    <div className="admin-page-head">
+      <div className="admin-page-title-row">
+        <h1 className="admin-page-title">{t("admin.todos.heading")}</h1>
+        {titleActions ? (
+          <div className="admin-page-title-actions">{titleActions}</div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function AdminSystemIntro() {
   const { t } = useSubtrackIntl();
   return (

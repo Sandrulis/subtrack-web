@@ -14,7 +14,7 @@ declare const self: ServiceWorkerGlobalScope;
 
 const apiOnly = new NetworkOnly();
 const documentNetworkFirst = new NetworkFirst({
-  cacheName: "repazy-pages",
+  cacheName: "subtrack-pages",
   networkTimeoutSeconds: 8,
   plugins: [],
 });
@@ -78,10 +78,10 @@ self.addEventListener("push", (event) => {
     }
   })();
 
-  const title = data?.title?.trim() || "repazy";
+  const title = data?.title?.trim() || "SubTrack";
   const body = data?.body?.trim() || "";
   const url = data?.url?.trim() || "/dashboard";
-  const tag = data?.tag?.trim() || "repazy-payment";
+  const tag = data?.tag?.trim() || "subtrack-payment";
 
   const badgeCount =
     typeof data?.badgeCount === "number" && Number.isFinite(data.badgeCount)

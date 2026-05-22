@@ -3,6 +3,9 @@ import type { EmailTemplateCopy } from "./template-types";
 /** Vecais noklusējums DB/kodā – aizvietojam ar `{SYSTEM_NAME}`, ja iestatījumos ir cits nosaukums. */
 export const LEGACY_DEFAULT_PRODUCT_NAME = "SubTrack";
 
+/** Pagaidu produkta nosaukums (070) – arī aizvietojam ar vietturi. */
+export const LEGACY_INTERIM_PRODUCT_NAME = "repazy";
+
 const PLACEHOLDER = "{SYSTEM_NAME}";
 
 /** Saglabāšanai/rediģēšanai: fiksēts nosaukums → vietturis. */
@@ -14,6 +17,9 @@ export function ensureSystemNamePlaceholder(text: string, systemName: string): s
   }
   if (name !== LEGACY_DEFAULT_PRODUCT_NAME) {
     out = out.split(LEGACY_DEFAULT_PRODUCT_NAME).join(PLACEHOLDER);
+  }
+  if (name !== LEGACY_INTERIM_PRODUCT_NAME) {
+    out = out.split(LEGACY_INTERIM_PRODUCT_NAME).join(PLACEHOLDER);
   }
   return out;
 }

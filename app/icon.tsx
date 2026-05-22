@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { RepazyBrandMark } from "@/lib/pwa/brand-mark";
+import { SubtrackBrandMark } from "@/lib/pwa/brand-mark";
 
 export const size = { width: 512, height: 512 };
 export const contentType = "image/png";
@@ -32,7 +32,7 @@ export default async function Icon({ id }: { id: Promise<string> }) {
           background: "linear-gradient(135deg, #f0fdfa 0%, #f8fafc 48%, #f0f9ff 100%)",
         }}
       >
-        <RepazyBrandMark boxSize={inner} letterSize={letter} />
+        <SubtrackBrandMark boxSize={inner} letterSize={letter} />
       </div>
     ),
     { width: dim, height: dim },

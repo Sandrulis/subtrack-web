@@ -144,7 +144,7 @@ export async function GET(request: Request) {
       title,
       body,
       url: `${siteUrl}/dashboard`,
-      tag: `repazy-payment-${todayIso}`,
+      tag: `subtrack-payment-${todayIso}`,
       badgeCount: alerts.length,
     };
 

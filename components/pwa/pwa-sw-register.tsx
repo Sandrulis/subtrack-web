@@ -21,7 +21,13 @@ export function PwaSwRegister({ pwa }: { pwa: PublicPwaSettings }) {
           const keys = await caches.keys();
           await Promise.all(
             keys
-              .filter((k) => k.startsWith("repazy-") || k.startsWith("serwist-") || k.includes("pages"))
+              .filter(
+                (k) =>
+                  k.startsWith("subtrack-") ||
+                  k.startsWith("repazy-") ||
+                  k.startsWith("serwist-") ||
+                  k.includes("pages"),
+              )
               .map((k) => caches.delete(k)),
           );
           localStorage.setItem(PWA_CACHE_REVISION_KEY, revisionKey);

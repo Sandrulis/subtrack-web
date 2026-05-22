@@ -1,8 +1,10 @@
 import { ImageResponse } from "next/og";
-import { RepazyBrandMark } from "@/lib/pwa/brand-mark";
+import { SubtrackBrandMark } from "@/lib/pwa/brand-mark";
+import { DEFAULT_SYSTEM_NAME } from "@/lib/pwa/defaults";
+import { landingPageTitle } from "@/lib/seo/landing-seo";
 import { getPublicSystemSettings } from "@/lib/system-settings-public";
 
-export const alt = "repazy – abonementu un periodisko maksājumu pārvaldība";
+export const alt = landingPageTitle(DEFAULT_SYSTEM_NAME);
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -41,7 +43,7 @@ export default async function OpenGraphImage() {
               style={{ borderRadius: 18, objectFit: "cover" }}
             />
           ) : (
-            <RepazyBrandMark />
+            <SubtrackBrandMark />
           )}
           <div
             style={{
