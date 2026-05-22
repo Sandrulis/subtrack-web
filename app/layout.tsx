@@ -5,6 +5,7 @@ import { HtmlLangBridge } from "@/components/html-lang-bridge";
 import { CookieConsentRoot } from "@/components/legal/cookie-consent-root";
 import { PwaInstallHost } from "@/components/pwa/pwa-install-host";
 import { PwaSwRegister } from "@/components/pwa/pwa-sw-register";
+import { FontAwesomeDeferredHead } from "@/components/font-awesome-deferred-head";
 import { UmamiAnalytics } from "@/components/analytics/umami-analytics";
 import { ModalBackdropCloseConfirmHost } from "@/components/ui/modal-backdrop-close-confirm-host";
 import { SubtrackIntlProvider } from "@/components/subtrack-intl-provider";
@@ -97,13 +98,7 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
     >
       <head>
-        <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-          crossOrigin="anonymous"
-          referrerPolicy="no-referrer"
-        />
+        <FontAwesomeDeferredHead />
       </head>
       <body className={inter.className}>
         <HtmlLangBridge

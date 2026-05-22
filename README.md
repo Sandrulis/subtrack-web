@@ -1,6 +1,6 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.4.25` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`).
+**Versija:** `0.4.27` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`).
 
 **SubTrack** (repozitorijs `subtrack-web`) ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, **`public.subscription_payments`** maksājumu žurnālam, RLS); CRUD notiek caur **Route Handlers** (`app/api/subscriptions/*`) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
@@ -38,8 +38,8 @@
 | **Viewport / tālummaiņa** | **`generateViewport()`** (`app/layout.tsx`) – **`width: device-width`**, **`initialScale: 1`**; **nav** `userScalable: false` / `maximumScale: 1` (Lighthouse pieejamība). |
 | **Galvenais saturs** | **`<main id="main">`** – sākumlapa (`app/page.tsx`), auth (`login`/`signup`), juridiskās (`legal-document-page.tsx`), forgot-password; panelis jau **`main.main-content`** (`dashboard-fs-view.tsx`). |
 | **Kontrasts** | Tumšāks **`--text-muted`** (`#475569`); akcentiem landing **`--primary-dark`**; CTA apakšvirksts bez `opacity` (`styles/subtrack.css`). |
-| **Ikonas** | Font Awesome 6 no CDN **`app/layout.tsx`** – **sinhrona** `<link rel="stylesheet">` + **`preconnect`** uz `cdnjs.cloudflare.com` (**0.4.24**); atliktā ielāde ar `media="print"` tika noņemta **0.4.22**, jo salauza ikonas visā UI. |
-| **Veiktspēja** | Custom domēns vs **`*.vercel.app`** parasti **nemaina** lab Lighthouse skaitļus; svarīgāk deploy, JS/CSS apjoms un mobilais **LCP**. Sākumlapa **0.4.24**: galvenais saturs **RSC** (mazāks klienta JS); joprojām globāls **`subtrack.css`** un pilns FA CSS – nākamie soļi: landing CSS apakškopa / FA apakškopa. Pārbaude: [PageSpeed Insights](https://pagespeed.web.dev/) uz **tās pašas** production URL. |
+| **Ikonas** | Font Awesome 6 no CDN – **nebloķējoša** ielāde **`FontAwesomeDeferredHead`** (`components/font-awesome-deferred-head.tsx`, `lib/icons/font-awesome-cdn.ts`): `preload` + inline skripts, `noscript` fallback; ikonas īsi pēc pirmā paint (**0.4.26**). **0.4.22** sinhronā `media="print"` tika noņemta (ikonas pazuda). |
+| **Veiktspēja** | Custom domēns vs **`*.vercel.app`** parasti **nemaina** lab Lighthouse skaitļus; svarīgāk deploy, JS/CSS apjoms un mobilais **LCP**. **`/`** ielādē **`styles/landing.css`** (~68 KB moduļi, ne visa **`subtrack.css`** ~181 KB); pārējās lapas – **`styles/subtrack-app.bundle.css`**. Pēc **`styles/subtrack.css`** labojuma: **`npm run css:split`** (automātiski **`npm run build`**). **0.4.24** RSC; **0.4.26** FA nebloķējošs + mobilais hero mock. Pārbaude: [PageSpeed Insights](https://pagespeed.web.dev/) uz **tās pašas** production URL. |
 | **Meklētāji (GSC)** | **`app/robots.ts`**, **`app/sitemap.ts`**, **`lib/seo/search-crawl.ts`**. Domēna verifikācija un sitemap – **[Google Search Console](#google-search-console-pēc-verifikācijas)** (TXT **Porkbun**; Supabase **nav** jāmaina GSC dēļ). |
 
 ## PWA (SubTrack)
@@ -131,8 +131,8 @@ lib/i18n/pwa-fallback-phrases.ts
 |--------|----------------|
 | Framework | [Next.js](https://nextjs.org) 16 (App Router), [React](https://react.dev) 19 |
 | Valoda | TypeScript |
-| Stili | `styles/subtrack.css` (no `FS` prototipa); `app/globals.css` – pēc **`@import ../styles/subtrack.css`** arī **login sociālais** tweaks un **`admin-integration-*` / `admin-switch*`** (admin integrācijas slēdzis), lai **Turbopack + `@tailwindcss/postcss`** neuzrādītu **`CssSyntaxError`** lielākā vienotā **`subtrack.css`** importā; skatīt komentārus failā |
-| Ikonas | Font Awesome 6 **Free** – globāls CSS no CDN **`app/layout.tsx`** (`preconnect` + `stylesheet`; `fa-solid` / `fas` visā UI, admin, landing); daļa pogām arī **inline SVG** (piem. **`nav-dash`**, admin todos dzēst). Paneļa abonementa **ikona** – kurēts **`fa-solid`** saraksts **`lib/fs-icons.ts`** (**~102** `FA_ICONS_ALL`), ne visa FA bibliotēka; [licence](https://fontawesome.com/license/free). Meklēšana: **`lib/fs-icon-picker-search.ts`**. **Neatlikt** FA ielādi bez testa – Next.js head to salauž. |
+| Stili | Avots: **`styles/subtrack.css`**; runtime: **`/`** → **`styles/landing.css`** (`styles/modules/core.css`, `landing-page.css`, `landing-shell.css`, `shared-footer.css`); pārējās lapas → **`styles/subtrack-app.bundle.css`**. **`npm run css:split`** pēc **`subtrack.css`** izmaiņām. `app/globals.css` – login sociālais + admin slēdzis (ārpus `subtrack.css`) |
+| Ikonas | Font Awesome 6 **Free** – CDN caur **`FontAwesomeDeferredHead`** (`preload`, nebloķējošs `stylesheet`; `fa-solid` visā UI, admin, landing); daļa pogām arī **inline SVG** (piem. **`nav-dash`**, admin todos dzēst). Paneļa abonementa **ikona** – kurēts **`fa-solid`** saraksts **`lib/fs-icons.ts`** (**~102** `FA_ICONS_ALL`), ne visa FA bibliotēka; [licence](https://fontawesome.com/license/free). Meklēšana: **`lib/fs-icon-picker-search.ts`**. **Neatlikt** FA ielādi bez testa – Next.js head to salauž. |
 | Demo paneļi | `public/fs/js/*.js` (kalendārs, modāļi, paziņojumi; **`/dashboard`** CRUD pret `/api/subscriptions`; **`/demo/dashboard`** – tas pats UI, bez API; analītika – **`/fs/js/analytics.js`** kategoriju donut kā demo) |
 
 | Backend (pamats) | [Supabase](https://supabase.com) - `lib/supabase/*`, `proxy.ts`, `database/supabase/*.sql` |
@@ -313,8 +313,9 @@ Virknes UI: **`useSubtrackIntl().t('atslēga')`**, dati no **`site_translations`
 
 ```
 app/                      # App Router + `generateMetadata` ar tulkošanas atslēgām kur attiecas
-app/layout.tsx            # viewport (tālummaiņa atļauta), FA CDN (preconnect + stylesheet), SubtrackIntlProvider, PWA host
-app/page.tsx              # sākumlapa: inline `body.landing-page`, NavLanding, SSR LandingPageContent
+app/layout.tsx            # viewport, FontAwesomeDeferredHead, SubtrackIntlProvider, PWA host
+app/(marketing)/          # `/` – landing.css (CSS apakškopa)
+app/(app)/                # panelis, auth, admin, API lapas – subtrack-app.bundle.css
 app/globals.css           # `@import` `subtrack.css`; papildu CSS (login sociālais tweak, admin integrāciju slēdzis – sk. Tehniskais steks)
 app/api/subscriptions/    # autentificēts CRUD (cookie sesija, Supabase server klients)
 app/api/family-sharing/   # ģimenes dalīšana: GET/POST; PATCH (accept, decline, revoke, leave, krāsa, combine)
@@ -529,6 +530,14 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 ## Izmaiņu žurnāls
 
 Šeit īss pieraksts par izlaistām izmaiņām. **PWA** – **[PWA (SubTrack)](#pwa-subtrack)**. **0.4.x** no **0.4.0** (= agrāk **0.3.54**).
+
+### 0.4.27 (2026-05-22)
+
+- **Landing CSS apakškopa (LCP)** – route grupas: **`app/(marketing)/`** (`landing.css` ~68 KB), **`app/(app)/`** (`subtrack-app.bundle.css`); **`scripts/split-landing-css.mjs`**, **`npm run css:split`**. `app/globals.css` vairs neimportē visu `subtrack.css`.
+
+### 0.4.26 (2026-05-22)
+
+- **Mobilā veiktspēja (LCP)** – Font Awesome **nebloķē** pirmo paint: **`components/font-awesome-deferred-head.tsx`**, **`lib/icons/font-awesome-cdn.ts`**. Mobilajā (≤960px) hero mock – tikai **kalendārs** (paslēpts stats/saraksts); **`content-visibility`** uz **`.landing-hero-preview`**. Faili: **`app/layout.tsx`**, **`styles/subtrack.css`**.
 
 ### 0.4.25 (2026-05-22)
 

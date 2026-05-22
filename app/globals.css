@@ -1,4 +1,5 @@
-@import "../styles/subtrack.css";
+/* Pilns panelis/admin/auth CSS: `app/(app)/layout.tsx` → subtrack-app.bundle.css */
+/* Sākumlapa `/`: `app/(marketing)/layout.tsx` → landing.css */
 
 /*
  * Login: noņem pārlūka noklusējuma button izskatu un nostiprina sociālo pogu krāsas.

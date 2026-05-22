@@ -1,12 +1,13 @@
 {
   "name": "subtrack-web",
-  "version": "0.4.25",
+  "version": "0.4.27",
   "private": true,
   "scripts": {
     "dev": "concurrently -p none \"serwist build --watch\" \"next dev\"",
     "dev:next-only": "next dev",
     "dev:webpack": "next dev --webpack",
-    "build": "next build && serwist build",
+    "css:split": "node scripts/split-landing-css.mjs",
+    "build": "node scripts/split-landing-css.mjs && next build && serwist build",
     "start": "next start",
     "lint": "eslint",
     "audit": "npm audit --audit-level=high",

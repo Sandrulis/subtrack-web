@@ -1,0 +1,1101 @@
+/* =============================================
+   SubTrack - Shared Styles
+   ============================================= */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --primary: #00a38d;
+    --primary-dark: #008a78;
+    --primary-light: #d5f5ef;
+    --danger: #ef4444;
+    --danger-light: #fef2f2;
+    --warning: #f59e0b;
+
+    --bg: #f5f7fb;
+    --bg-white: #ffffff;
+    --bg-subtle: #f0f4f8;
+
+    --text: #1e1e2e;
+    --text-muted: #475569;
+    --text-light: #94a3b8;
+
+    --border: #e4e7ef;
+    --border-light: #f1f3fa;
+
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --shadow: 0 4px 16px rgba(0,0,0,.07);
+    --shadow-lg: 0 10px 40px rgba(0,0,0,.1);
+
+    --radius-sm: 8px;
+    --radius: 14px;
+    --radius-lg: 20px;
+
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+
+    /* Horizontālais ritms: topbar, panelis, admin, landing (≤960px, iPhone landscape) */
+    --app-shell-pad-x: 24px;
+    --app-shell-max: 1120px;
+}
+
+html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+    max-width: 100%;
+    /* iOS Safari: clip bieži nepietiek; hidden + width ierobežo horizontālo ritināšanu */
+}
+
+@supports (overflow: clip) {
+    html {
+        overflow-x: clip;
+    }
+}
+
+body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    max-width: 100%;
+    width: 100%;
+    position: relative;
+    touch-action: pan-y pinch-zoom;
+}
+
+@supports (overflow: clip) {
+    body {
+        overflow-x: clip;
+    }
+}
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* =============================================
+   Utility
+   ============================================= */
+.hidden { display: none !important; }
+
+/* =============================================
+   Hover tooltips (SubtrackTooltip – pointer devices only)
+   ============================================= */
+.subtrack-tooltip-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+}
+
+.subtrack-tooltip-wrap--fill {
+    display: block;
+    width: 100%;
+}
+
+.subtrack-tooltip-bubble {
+    position: fixed;
+    box-sizing: border-box;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    background: #111827;
+    color: #ffffff;
+    font-size: 12px;
+    line-height: 1.35;
+    font-weight: 500;
+    text-align: center;
+    width: max-content;
+    max-width: min(280px, 94vw);
+    word-break: normal;
+    overflow-wrap: break-word;
+    white-space: normal;
+    transform: translate(-50%, calc(-100% - 8px));
+    box-shadow: var(--shadow);
+    z-index: 10050;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.12s ease, visibility 0.12s ease;
+}
+
+.subtrack-tooltip-bubble.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+@media (hover: none), (pointer: coarse) {
+    .subtrack-tooltip-bubble {
+        display: none !important;
+    }
+}
+
+/* =============================================
+   Auth pages (login, signup, forgot)
+   ============================================= */
+.auth-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, #f0fdfa 0%, #f8fafc 50%, #f0f9ff 100%);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+}
+
+.auth-page-inner {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px var(--app-shell-pad-x) 56px;
+    min-height: 0;
+}
+
+.auth-card {
+    background: var(--bg-white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 40px 40px;
+    width: 100%;
+    max-width: 440px;
+    border: 1px solid var(--border-light);
+}
+
+.auth-card h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+}
+
+.auth-card .auth-subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 28px;
+}
+
+.auth-card-icon {
+    margin-bottom: 16px;
+    color: var(--primary);
+}
+
+.auth-card--settings {
+    max-width: 560px;
+}
+
+.settings-autosave-status {
+    margin: -12px 0 24px;
+    min-height: 1.35em;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--text-muted);
+}
+
+.settings-autosave-status.is-pending,
+.settings-autosave-status.is-saving {
+    color: var(--text-light);
+}
+
+.settings-autosave-status.is-saving {
+    color: var(--primary-dark);
+}
+
+.settings-autosave-status.is-error {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+/*
+ * Auth / iestatījumu kartes ar formām: vienotas atstarpes starp laukiem
+ * (login, signup, forgot, change-password, settings)
+ */
+.auth-card--form h1 {
+    margin-bottom: 10px;
+}
+
+.auth-card--form .auth-subtitle {
+    margin-bottom: 36px;
+}
+
+.auth-card--form form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.auth-card--form form fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+}
+
+.auth-card--form form > .form-group,
+.auth-card--form form > .form-row,
+.auth-card--form form fieldset > .form-group,
+.auth-card--form form fieldset > .form-row {
+    margin-bottom: 0;
+}
+
+.auth-card--form form > .form-row .form-group,
+.auth-card--form form fieldset > .form-row .form-group {
+    margin-bottom: 0;
+}
+
+.auth-card--form .form-row {
+    gap: 16px;
+}
+
+.auth-card--form .form-hint {
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+.auth-card--form .password-strength {
+    margin-top: 10px;
+}
+
+.auth-card--form .auth-submit-wrap {
+    margin-top: 4px;
+    margin-bottom: 0;
+}
+
+.auth-card--form .auth-legal-note {
+    margin-top: 20px;
+}
+
+.auth-submit-btn-inner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.auth-submit-spinner {
+    width: 18px;
+    height: 18px;
+}
+
+.auth-submit-wrap .btn-primary.is-loading,
+.auth-submit-wrap .btn-primary:disabled {
+    cursor: wait;
+    transform: none;
+    box-shadow: none;
+}
+
+.auth-submit-status {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.45;
+}
+
+/* Ieejas karte: nedaudz mūsdienīgāks reljefs (tikai .auth-card--login) */
+.auth-card--login {
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 12px 40px -12px rgba(15, 23, 42, 0.12);
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
+.auth-card--login .auth-submit-wrap .btn-primary {
+    min-height: 48px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 163, 141, 0.22);
+}
+
+.auth-card--login .auth-submit-wrap .btn-primary:hover {
+    box-shadow: 0 6px 20px rgba(0, 163, 141, 0.28);
+    transform: translateY(-1px);
+}
+
+.auth-card--login .auth-submit-wrap .btn-primary:active {
+    transform: translateY(0);
+}
+
+.auth-card--login .form-group input {
+    border-radius: 12px;
+    border-color: rgba(148, 163, 184, 0.45);
+}
+
+.auth-card--login .auth-footer {
+    margin-top: 32px;
+}
+
+.auth-card--form .auth-footer {
+    margin-top: 28px;
+}
+
+/* Sociālo kontu pogas ieejā (UI; OAuth vēlāk) */
+.auth-social {
+    margin-top: 36px;
+    padding-top: 0;
+    border-top: none;
+}
+
+.auth-social-divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.auth-social-divider-line {
+    flex: 1;
+    min-width: 8px;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        var(--border-light) 15%,
+        var(--border-light) 85%,
+        transparent
+    );
+}
+
+.auth-social-divider-text {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-light);
+}
+
+.auth-social-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.btn-social {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 12px;
+    min-height: 50px;
+    padding-left: 20px;
+    padding-right: 20px;
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease,
+        box-shadow 0.18s ease,
+        transform 0.15s ease;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.btn-social:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.btn-social .fa-brands {
+    font-size: 19px;
+    line-height: 1;
+}
+
+.btn-social-label {
+    letter-spacing: -0.01em;
+}
+
+.btn-social-google {
+    background: #fff;
+    border-color: rgba(15, 23, 42, 0.1);
+    color: #1e293b;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.btn-social-google:hover {
+    background: #f8fafc;
+    border-color: rgba(15, 23, 42, 0.14);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+}
+
+.btn-social-google:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.btn-social-google .fa-google {
+    color: #4285f4;
+}
+
+.btn-social-apple {
+    background: linear-gradient(180deg, #27272a 0%, #18181b 100%);
+    border-color: rgba(15, 23, 42, 0.5);
+    color: #fafafa;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
+}
+
+.btn-social-apple:hover {
+    background: linear-gradient(180deg, #3f3f46 0%, #27272a 100%);
+    border-color: rgba(15, 23, 42, 0.6);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+    transform: translateY(-1px);
+}
+
+.btn-social-apple:active {
+    transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-card--login .auth-submit-wrap .btn-primary:hover,
+    .btn-social-google:hover,
+    .btn-social-apple:hover {
+        transform: none;
+    }
+}
+
+/* Pirmā sadaļas galvene zem apakšvirsraksta (iestatījumi) */
+.auth-card--form form > .form-section-label:first-of-type {
+    margin-top: 0;
+}
+
+.auth-card--form .dash-settings-hint-box {
+    margin-bottom: 24px;
+}
+
+.auth-legal-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 16px;
+    margin-bottom: 0;
+    text-align: center;
+    line-height: 1.65;
+}
+
+.auth-legal-note a {
+    font-weight: 600;
+}
+
+.auth-flash {
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 14px;
+    margin-bottom: 20px;
+    line-height: 1.45;
+}
+
+.auth-flash--error {
+    background: var(--danger-light, #fef2f2);
+    color: #991b1b;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.auth-flash--info {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    border: 1px solid rgba(0, 163, 141, 0.25);
+}
+
+/* Paroles lauks ar redzamības pārslēdzēju */
+.form-password-wrap {
+    position: relative;
+    display: block;
+}
+
+.form-password-wrap .input-has-password-toggle {
+    width: 100%;
+    padding-right: 46px;
+    box-sizing: border-box;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.password-toggle-btn:hover {
+    color: var(--primary);
+    background: var(--primary-light);
+}
+
+.password-toggle-btn:focus {
+    outline: none;
+}
+
+.password-toggle-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+}
+
+.form-hint--below-password {
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+.form-hint--error {
+    margin-top: 8px;
+    margin-bottom: 0;
+    color: var(--danger);
+    font-weight: 600;
+}
+
+/* E-pasta formāts: vieglāks brīdinājums nekā „jau reģistrēts“ */
+.form-hint--email-format {
+    margin-top: 8px;
+    margin-bottom: 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.35;
+}
+
+.form-group input.input--signup-email-format {
+    background: #fffbeb;
+    border-color: #ca8a04;
+}
+
+.form-group input.input--signup-email-format:focus {
+    border-color: #ca8a04;
+    box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.18);
+}
+
+.form-group input.input--signup-invalid {
+    background: var(--danger-light);
+    border-color: var(--danger);
+}
+
+.form-group input.input--signup-invalid:focus {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
+}
+
+.form-password-wrap--invalid-match input.input-has-password-toggle {
+    background: var(--danger-light);
+    border-color: var(--danger);
+}
+
+.form-password-wrap--invalid-match input.input-has-password-toggle:focus {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
+}
+
+.password-strength {
+    margin-top: 10px;
+}
+
+.password-strength-label {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 7px;
+}
+
+.password-strength-label--very_weak {
+    color: #b91c1c;
+}
+
+.password-strength-label--weak {
+    color: var(--danger);
+}
+
+.password-strength-label--medium {
+    color: #ca8a04;
+}
+
+.password-strength-label--strong {
+    color: var(--primary);
+}
+
+.password-strength-label--strongest {
+    color: #15803d;
+}
+
+.password-strength-bars {
+    display: flex;
+    gap: 6px;
+}
+
+.password-strength-bar {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-light);
+}
+
+.password-strength-bar--very_weak.is-filled {
+    background: #b91c1c;
+}
+
+.password-strength-bar--weak.is-filled {
+    background: var(--danger);
+}
+
+.password-strength-bar--medium.is-filled {
+    background: #ca8a04;
+}
+
+.password-strength-bar--strong.is-filled {
+    background: var(--primary);
+}
+
+.password-strength-bar--strongest.is-filled {
+    background: #15803d;
+}
+
+.btn-primary:disabled,
+.btn-primary:disabled:hover {
+    opacity: 1;
+    cursor: not-allowed;
+    pointer-events: none;
+    background: #e2e8f0;
+    color: var(--text-muted);
+    box-shadow: none;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-family: var(--font);
+    color: var(--text);
+    background: #fff;
+    transition: border-color .18s, box-shadow .18s;
+    outline: none;
+}
+
+.form-group input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 163, 141, .12);
+}
+
+.form-group input::placeholder { color: var(--text-light); }
+
+.form-group textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 5.5rem;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-family: var(--font);
+    line-height: 1.5;
+    color: var(--text);
+    background: #fff;
+    transition: border-color .18s, box-shadow .18s;
+    outline: none;
+    resize: vertical;
+}
+
+.form-group textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 163, 141, .12);
+}
+
+.form-group textarea::placeholder {
+    color: var(--text-light);
+}
+
+.form-select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-family: var(--font);
+    color: var(--text);
+    background: #fff;
+    outline: none;
+    cursor: pointer;
+    transition: border-color .18s, box-shadow .18s;
+}
+
+.form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 163, 141, .12);
+}
+
+.form-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 5px;
+}
+
+.form-hint--tight {
+    margin-top: -4px;
+    margin-bottom: 14px;
+}
+
+/* Iestatījumu forma: mazs skaidrojums zem atlases zemītes */
+.form-hint--settings-under-select {
+    margin-top: 6px;
+    margin-bottom: 0;
+    font-size: 11px;
+}
+
+.form-section-label--spaced {
+    margin-top: 22px;
+}
+
+.modal-advanced {
+    margin-top: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
+}
+
+.modal-advanced-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+
+.modal-advanced-toggle:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.modal-advanced-chevron {
+    font-size: 12px;
+    transition: transform .22s ease;
+}
+
+.modal-advanced.is-open .modal-advanced-chevron {
+    transform: rotate(180deg);
+}
+
+.modal-advanced-panel {
+    margin-top: 14px;
+    padding-top: 4px;
+}
+
+.modal-device-add {
+    margin-top: 10px;
+}
+
+.sub-devices-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sub-device-editor {
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg-white);
+}
+
+.sub-device-editor-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.sub-device-editor-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.sub-device-remove {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: background .15s, color .15s;
+}
+
+.sub-device-remove:hover {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+.sub-amount-note {
+    font-size: 10px;
+    color: var(--text-light);
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+.form-section-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 20px 0 6px;
+}
+
+.form-optional {
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--text-light);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 11px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: background .17s, box-shadow .17s, transform .1s;
+    border: none;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.btn:active { transform: scale(.98); }
+
+/* Sociālajām pogām .btn atiestata border: none - atjaunojam apmali */
+.btn.btn-social {
+    border: 1px solid transparent;
+}
+
+.btn.btn-social:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    box-shadow: 0 4px 14px rgba(0, 163, 141, .3);
+    text-decoration: none;
+    color: #fff;
+}
+
+@keyframes btn-spinner-rotate {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.btn-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.38);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: btn-spinner-rotate 0.65s linear infinite;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.btn-primary .btn-spinner.hidden {
+    display: none;
+}
+
+.mark-paid-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(13, 148, 136, 0.22);
+    border-top-color: var(--primary, #0d9488);
+}
+
+.mark-paid-spinner.hidden,
+.mark-paid-icon.hidden {
+    display: none !important;
+}
+
+.icon-btn.mark-paid:disabled,
+.icon-btn.mark-paid.mark-paid--pending {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.icon-btn.mark-paid.mark-paid--pending:hover {
+    background: transparent;
+    color: var(--text-muted);
+}
+
+.dash-notify-today-ok.mark-paid--pending {
+    opacity: 0.55;
+}
+
+.delete-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(220, 38, 38, 0.22);
+    border-top-color: var(--danger, #dc2626);
+}
+
+.delete-spinner.hidden,
+.delete-icon.hidden {
+    display: none !important;
+}
+
+.icon-btn.delete:disabled,
+.icon-btn.delete.delete--pending {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.icon-btn.delete.delete--pending:hover {
+    background: transparent;
+    color: var(--text-muted);
+}
+
+#delete-confirm-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+#delete-confirm-btn .dash-delete-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.38);
+    border-top-color: #fff;
+}
+
+#delete-confirm-btn:disabled {
+    cursor: wait;
+    opacity: 0.92;
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 1.5px solid var(--border);
+    background: #fff;
+}
+
+.btn-outline:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    text-decoration: none;
+    color: var(--primary);
+}
+
+.btn-outline-light {
+    background: transparent;
+    color: #fff;
+    border: 1.5px solid rgba(255, 255, 255, 0.55);
+}
+
+.btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #fff;
+    text-decoration: none;
+    color: #fff;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: #fff;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, .3);
+    text-decoration: none;
+    color: #fff;
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+}
+
+.btn-ghost:hover {
+    background: var(--bg);
+    color: var(--text);
+    text-decoration: none;
+}
+
+.btn-ghost:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.btn-block { width: 100%; }
+.btn-sm { padding: 7px 14px; font-size: 13px; border-radius: 7px; }
+.btn-lg { padding: 14px 28px; font-size: 16px; }
+
+.auth-footer {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.auth-footer a { font-weight: 600; }
+
+.forgot-link {
+    font-size: 13px;
+    font-weight: 500;
+    float: right;
+    margin-top: -2px;
+}
