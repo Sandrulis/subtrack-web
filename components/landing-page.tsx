@@ -1,12 +1,12 @@
-﻿"use client";
-
-import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
-import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+﻿import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
 import { calendarWeekdayHeadersForIntl } from "@/lib/calendar-weekday-headers";
+import { getLandingUiPhrases } from "@/lib/landing/get-landing-ui-phrases";
+import { getPublicSystemSettings } from "@/lib/system-settings-public";
+import { resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import Link from "next/link";
 import Image from "next/image";
-import { useMemo, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 const HM_Y = 2026;
 const HM_M = 5;
@@ -149,14 +149,10 @@ export function LandingHeroDashboardMock({
   /** Ja maksas plāns ieslēgts: piezīme zem kalendāra par ilustratīvo saturu. */
   paidPlanEnabled?: boolean;
 }) {
-  const df = useMemo(
-    () =>
-      new Intl.DateTimeFormat(intlLocale, {
-        day: "numeric",
-        month: "long",
-      }),
-    [intlLocale],
-  );
+  const df = new Intl.DateTimeFormat(intlLocale, {
+    day: "numeric",
+    month: "long",
+  });
 
   const d10 = df.format(new Date(HM_Y, HM_M - 1, 10));
   const d15 = df.format(new Date(HM_Y, HM_M - 1, 15));
@@ -363,23 +359,34 @@ export function LandingHeroDashboardMock({
 }
 
 const FEATURE_ROWS = [
-  {
-    icon: "fa-solid fa-calendar-days",
-    id: "never_miss" as const,
-  },
+  { icon: "fa-solid fa-calendar-days", id: "never_miss" as const },
   { icon: "fa-solid fa-chart-pie", id: "spendviz" as const },
   { icon: "fa-solid fa-bell", id: "reminders" as const },
   { icon: "fa-solid fa-tags", id: "categories" as const },
   { icon: "fa-solid fa-chart-column", id: "analytics" as const },
   { icon: "fa-solid fa-pen-to-square", id: "management" as const },
-];
+] as const;
 
-export function LandingPageContent() {
-  const { t, locale, systemSiteName, paidPlan } = useSubtrackIntl();
-  const intlLocale = useMemo(() => uiLocaleCodeToBcp47ForIntl(locale), [locale]);
+function buildLandingPhraseLookup(
+  phrases: Record<string, string>,
+): (key: string) => string {
+  return (key: string) => {
+    const v = phrases[key];
+    return typeof v === "string" && v.length > 0 ? v : key;
+  };
+}
 
-  const paidPitch = useMemo(() => {
-    if (!paidPlan?.enabled) return null;
+export async function LandingPageContent() {
+  const [{ locale }, { paidPlan }, phrases] = await Promise.all([
+    resolveRequestUiLocales(),
+    getPublicSystemSettings(),
+    getLandingUiPhrases(),
+  ]);
+  const t = buildLandingPhraseLookup(phrases);
+  const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
+
+  let paidPitch: { blurb: string } | null = null;
+  if (paidPlan?.enabled) {
     const price = new Intl.NumberFormat(intlLocale, {
       style: "currency",
       currency: "EUR",
@@ -387,8 +394,8 @@ export function LandingPageContent() {
     const blurb = t("landing.pricing.blurb")
       .replace(/\{count\}/g, String(paidPlan.freeSubscriptionLimit))
       .replace(/\{price\}/g, price);
-    return { blurb };
-  }, [intlLocale, paidPlan, t]);
+    paidPitch = { blurb };
+  }
 
   return (
     <>
@@ -495,10 +502,7 @@ export function LandingPageContent() {
           <p className="section-sub section-sub-wide">{t("landing.features.intro")}</p>
           <div className="features-grid">
             {FEATURE_ROWS.map((f) => (
-              <div
-                key={f.id}
-                className="feature-card"
-              >
+              <div key={f.id} className="feature-card">
                 <div className="feature-icon-wrap">
                   <i className={f.icon} />
                 </div>

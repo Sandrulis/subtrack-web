@@ -1,12 +1,12 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.4.23` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`).
+**Versija:** `0.4.25` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`).
 
 **SubTrack** (repozitorijs `subtrack-web`) ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, **`public.subscription_payments`** maksājumu žurnālam, RLS); CRUD notiek caur **Route Handlers** (`app/api/subscriptions/*`) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
 ## Galvenās iespējas (UI)
 
-- **Sākumlapa** (`/`) - prezentācija, FAQ (navigācijā LV **`BUJ`**, ne angl. „FAQ”), saites uz **publiskajām demonstrācijām** **`/demo/dashboard`** un **`/demo/analytics`**, reģistrāciju un ieeju; **ar aktīvu sesiju** serveris novirza uz **`/dashboard`** (**`app/page.tsx`**, `redirect`). Galvenais saturs **`#main`** (`<main id="main">`); augšējā josla ārpus **`main`**. Ja **`/admin/system`** ir ieslēgts **maksas plāns**, viesiem rādās **cenu / brīvā līmeņa** bloks ar kafijas ilustrāciju (`#pricing`), **ievads** no kopīgā **`subscribe.hero.lead`** un **`landing.pricing.blurb`** ar **`{count}`** / **`{price}`**, dati no **`public.system_settings` + `SubtrackIntlProvider`**. Paneļa augšējās joslas **logo** (tikai ja augšupielādēts no **`/admin/system`**) vai teksta nosaukums (**`DashBrandLink`**, **`components/nav-dash.tsx`**) ved uz **`/dashboard`**, nevis **`/`**; lapas **`<title>`** = produkta nosaukums.
+- **Sākumlapa** (`/`) - prezentācija, FAQ (navigācijā LV **`BUJ`**, ne angl. „FAQ”), saites uz **publiskajām demonstrācijām** **`/demo/dashboard`** un **`/demo/analytics`**, reģistrāciju un ieeju; **ar aktīvu sesiju** serveris novirza uz **`/dashboard`** (**`app/page.tsx`**, `redirect`). Galvenais saturs **`#main`** (`<main id="main">`); augšējā josla ārpus **`main`** (**`NavLanding`** – klienta komponents; **`LandingPageContent`** – **servera** komponents **`components/landing-page.tsx`**, tulkošanas **`getLandingUiPhrases()`** / **`lib/landing/*`**). **`body.landing-page`** – inline skripts **`app/page.tsx`** (bez **`body-landing-class.tsx`**). Ja **`/admin/system`** ir ieslēgts **maksas plāns**, viesiem rādās **cenu / brīvā līmeņa** bloks ar kafijas ilustrāciju (`#pricing`), **ievads** no kopīgā **`subscribe.hero.lead`** un **`landing.pricing.blurb`** ar **`{count}`** / **`{price}`**, dati no **`getPublicSystemSettings()`** (SSR). Paneļa augšējās joslas **logo** (tikai ja augšupielādēts no **`/admin/system`**) vai teksta nosaukums (**`DashBrandLink`**, **`components/nav-dash.tsx`**) ved uz **`/dashboard`**, nevis **`/`**; lapas **`<title>`** = produkta nosaukums.
 - **Autentifikācija** - ieeja un reģistrācija caur **Supabase Auth** (Server Actions), OAuth (Google / Apple) **tikai tad**, ja **`public.integrations`** ir **`enabled`** uz **`login_google`** un/vai **`login_apple`** (admin: **`/admin/integrations`**; SSR lasīšana **`getLoginSocialIntegrationFlags`** – **`lib/integrations/login-social-flags.ts`**; pogas **`components/login-social-buttons.tsx`**; tulkošanas atslēgas **`auth.social.*`** – migrācija **`025_site_translations_auth_social_login.sql`**). **Aizmirstā parole** (`/forgot-password`), **mainīt paroli** (`/change-password` ar `changePasswordAction`, **`components/fs/change-password-fs-view.tsx`** + **`components/change-password-form.tsx`** – **`t()`** un **`auth.pass_strength.level_*`** kā signup, atkārtojums, paroles rādīšanas poga; vecā parole netiek vērtēta pirms „Saglabāt”). **Pieteikšanās / reģistrācijas** formu virknes un maršruta **`<title>`** seko izvēlētajai lokālei (**`components/auth/auth-login-flow.tsx`**, **`components/auth/auth-signup-flow.tsx`** + **`components/signup-form.tsx`**, **`getUiPhraseForRequest`** no **`lib/ui/server-ui-phrases.ts`**). **Reģistrācija** (`/signup`): e-pasta formāta validācija, paroles stipruma indikators, atkārtotās paroles pārbaude, e-pasta aizņemtība (**`signup_email_exists`**, `004_*` / **`023_*`**): Server Action **`signupEmailExistsAction`** izsauc RPC tikai ar **`SUPABASE_SERVICE_ROLE_KEY`** (serverī); bez atslēgas pārbaude **nedarbojas**. **Flash ziņojumi** (kļūdas un īsie info teksti no `?error=` / `?message=` un OAuth kļūdas) tiek rādīti kā **peldošie toast** (`components/flash-param-toast.tsx`, `components/auth-toasts-host.tsx`): apmerami auto-aizvēršanās, uzvedot kursoru virs ziņojuma taimeris apstājas, pēc kursora nost no jauna. Query parametri pēc rādīšanas tiek tīrīti ar `history.replaceState`, lai pārlādē neatkārtojas. Izmantošana: `/login`, `/signup`, `/forgot-password` (gatavs nākotnes redirectiem), `/change-password`.
 - **Panelis** (`/dashboard`) - maksājumu kalendārs (ja vienā datumā vairāki maksājumi, šūnā **`+N`** apakšējā labajā stūrī; **šodienas** šūnai indikatora krāsa kā **ring** apmalei; **„atzīmēts samaksāts”** dienas no **`public.subscription_payments`** (**`paidCalendarDays`**, **`061_*`**); slēdzis **`subtrack_cal_include_paid_marks`** – ja atslēgas vēl nav, **noklusējums ieslēgts**; marķējums un skaidrojums **`SubtrackTooltip`** (hover / fokuss; burbulis portalā paliek, kamēr kursors virs pogas vai burbuļa; **bez** pārlūka **`title`**), **`aria-label`** pieejamībai; kājenes **leģenda vienā rindā**); **peldošie toast** (`showToast` **`subscriptions-helpers.js`**) – auto-aizvēršanās aptur, kamēr kursors virs ziņojuma), **kopsavilkums** (kopējā / aktīvie maksājumi; **kategoriju josla** virs saraksta – segmentu tooltip uz desktop, leģenda mobilajā; **Nākamais maksājums** sadalīts kolonnās: **kavētie** / **šodien jāmaksā** / nākamais – krāsainas kartes ar kopējo € un rēķinu skaitu zem summas; trīs kolonnās nākamais kompakts: € + nosaukums, bez datuma labajā; saraksta darbību pogas – diskrētas krāsas: rediģēt, dzēst, samaksāts), abonementu CRUD pret **`public.subscriptions`** (**`GET`/`POST` `/api/subscriptions`**, **`PATCH`/`DELETE` `/api/subscriptions/[id]`** ); ja admin ieslēdz **maksas plāna** ierobežojumu, **`POST`** atgriež **403** brīvā līmeņa **ierakstu skaita** sasniegšanā (**`paid_plan_active`** `public.users` – pašpārvaldei nē, skat. **`027`**); lietotāja izvēlnē pie avatāra **`fa-crown`**, ja **`paid_plan_active`**. Sākuma dati SSR bootstraps (**`#subtrack-subs-bootstrap-json`**, **`#subtrack-family-sharing-bootstrap-json`**); **`GET /api/subscriptions`** ietver arī **ģimenes dalīšanas** kopīgos ierakstus, ja integrācija ieslēgta; **FS JS** (`public/fs/js/dashboard.js` …) dabū frāzes un **`Intl`** lokāli pirms **`loadScriptOnce`**, jo **`app/dashboard/page.tsx`** renderē **`FsI18nBootstrap`** (skatīt **UI tulkošana**); kalendārā **lv** nedēļas dienu galvenes **Pr … Sv**; **pievienošanas / labošanas modālis** (`#modal-main`) – elpīgākas vertikālās atstarpes galvenajai formai un **Papildu opcijām** (**`styles/subtrack.css`**); augšējā joslā **paziņojumi** (**`dash-alerts.js`**) – tikai **paši** abonementi (**bez** partnera kopīgotajiem: kavētie / šodien / gaidāmie un zvana skaitītājs); **šodienas** un **kavētie** ar **atzīmēšanu kā samaksātu** – API laikā **ielādes riņķis** un **neaktīva** poga; kopīga **`subtrackSetMarkPaidPending`** **`subscriptions-helpers.js`**); **gaidāmie** sākas no **nākamās dienas**; mobilajā skatā – pilnekrāna fons ar **backdrop blur**; abas izvēlnes nevar būt atvērtas vienlaikus). **Modālis – IKONA:** izvēlei **`fa-solid`** klases no **`FA_ICONS_ALL`** (`lib/fs-icons.ts`; ~**102** **`fa-solid`** klases – **nav** pilnās Font Awesome Free kopas, Free satur **daudz vairāk** ikonu nekā šīs ~102). Hintu josla un režģis „Parādīt visas“ **tā pati secība**; augšējā rinda – tikai tik pogas, cik **`dashboard.js`** aprēķina pēc **`#icon-picker-hints-shell`** (bez apgriešanas). Meklēšana ar sinonīmiem – **`lib/fs-icon-picker-search.ts`**, JSON **`#subtrack-icon-search-bootstrap`** (**`components/fs/dashboard-fs-view.tsx`**). Ja **maksas plāns** ieslēgts un lietotājam nav **`paid_plan_active`**, zem **„Pievienot”** ir saite **„Iegūt Pro”** uz **`/subscribe`**; šajā gadījumā **kalendāra kolonna** paneļī netiek rādīta (**`dashboard-overview-main--no-calendar`**). **Pievienošanas modālis – ikona:** nejaušā izvēle no **pirmās redzamās** hint rindas; **`Parādīt vairāk`** (LV; SQL **`062_*`**) atver pilnu katalogu.
 - **Pro iepazīšanās** (`/subscribe`) – **`SubscribeProView`**: **`subscribe.hero.*`**, **`subscribe.free_tier.note`** ar **`{price}`** / **`{n}`** (EUR formātēts, brīvā līmeņa limits); **`subscribe.coffee.line`** noņemts (**`032_remove_subscribe_coffee_line.sql`** DB). Tulkošanas **`029`**, **`028`** / **`031`**, **`030`**, **`032`**, **`033`** (hero lead teksta precizējums).
@@ -38,8 +38,9 @@
 | **Viewport / tālummaiņa** | **`generateViewport()`** (`app/layout.tsx`) – **`width: device-width`**, **`initialScale: 1`**; **nav** `userScalable: false` / `maximumScale: 1` (Lighthouse pieejamība). |
 | **Galvenais saturs** | **`<main id="main">`** – sākumlapa (`app/page.tsx`), auth (`login`/`signup`), juridiskās (`legal-document-page.tsx`), forgot-password; panelis jau **`main.main-content`** (`dashboard-fs-view.tsx`). |
 | **Kontrasts** | Tumšāks **`--text-muted`** (`#475569`); akcentiem landing **`--primary-dark`**; CTA apakšvirksts bez `opacity` (`styles/subtrack.css`). |
-| **Ikonas** | Font Awesome 6 no CDN **`app/layout.tsx`** – **sinhrona** `<link rel="stylesheet">` (atliktā ielāde ar `media="print"` tika noņemta **0.4.22**, jo salauza ikonas visā UI). |
-| **Veiktspēja** | Custom domēns vs **`*.vercel.app`** parasti **nemaina** lab Lighthouse skaitļus; svarīgāk deploy, JS/CSS apjoms un mobilais LCP. Pārbaude: [PageSpeed Insights](https://pagespeed.web.dev/) uz **tās pašas** production URL. |
+| **Ikonas** | Font Awesome 6 no CDN **`app/layout.tsx`** – **sinhrona** `<link rel="stylesheet">` + **`preconnect`** uz `cdnjs.cloudflare.com` (**0.4.24**); atliktā ielāde ar `media="print"` tika noņemta **0.4.22**, jo salauza ikonas visā UI. |
+| **Veiktspēja** | Custom domēns vs **`*.vercel.app`** parasti **nemaina** lab Lighthouse skaitļus; svarīgāk deploy, JS/CSS apjoms un mobilais **LCP**. Sākumlapa **0.4.24**: galvenais saturs **RSC** (mazāks klienta JS); joprojām globāls **`subtrack.css`** un pilns FA CSS – nākamie soļi: landing CSS apakškopa / FA apakškopa. Pārbaude: [PageSpeed Insights](https://pagespeed.web.dev/) uz **tās pašas** production URL. |
+| **Meklētāji (GSC)** | **`app/robots.ts`**, **`app/sitemap.ts`**, **`lib/seo/search-crawl.ts`**. Domēna verifikācija un sitemap – **[Google Search Console](#google-search-console-pēc-verifikācijas)** (TXT **Porkbun**; Supabase **nav** jāmaina GSC dēļ). |
 
 ## PWA (SubTrack)
 
@@ -131,7 +132,7 @@ lib/i18n/pwa-fallback-phrases.ts
 | Framework | [Next.js](https://nextjs.org) 16 (App Router), [React](https://react.dev) 19 |
 | Valoda | TypeScript |
 | Stili | `styles/subtrack.css` (no `FS` prototipa); `app/globals.css` – pēc **`@import ../styles/subtrack.css`** arī **login sociālais** tweaks un **`admin-integration-*` / `admin-switch*`** (admin integrācijas slēdzis), lai **Turbopack + `@tailwindcss/postcss`** neuzrādītu **`CssSyntaxError`** lielākā vienotā **`subtrack.css`** importā; skatīt komentārus failā |
-| Ikonas | Font Awesome 6 **Free** – globāls CSS no CDN **`app/layout.tsx`** (`fa-solid` / `fas` visā UI, admin, landing); daļa pogām arī **inline SVG** (piem. **`nav-dash`**, admin todos dzēst). Paneļa abonementa **ikona** – kurēts **`fa-solid`** saraksts **`lib/fs-icons.ts`** (**~102** `FA_ICONS_ALL`), ne visa FA bibliotēka; [licence](https://fontawesome.com/license/free). Meklēšana: **`lib/fs-icon-picker-search.ts`**. **Neatlikt** FA ielādi bez testa – Next.js head to salauž. |
+| Ikonas | Font Awesome 6 **Free** – globāls CSS no CDN **`app/layout.tsx`** (`preconnect` + `stylesheet`; `fa-solid` / `fas` visā UI, admin, landing); daļa pogām arī **inline SVG** (piem. **`nav-dash`**, admin todos dzēst). Paneļa abonementa **ikona** – kurēts **`fa-solid`** saraksts **`lib/fs-icons.ts`** (**~102** `FA_ICONS_ALL`), ne visa FA bibliotēka; [licence](https://fontawesome.com/license/free). Meklēšana: **`lib/fs-icon-picker-search.ts`**. **Neatlikt** FA ielādi bez testa – Next.js head to salauž. |
 | Demo paneļi | `public/fs/js/*.js` (kalendārs, modāļi, paziņojumi; **`/dashboard`** CRUD pret `/api/subscriptions`; **`/demo/dashboard`** – tas pats UI, bez API; analītika – **`/fs/js/analytics.js`** kategoriju donut kā demo) |
 
 | Backend (pamats) | [Supabase](https://supabase.com) - `lib/supabase/*`, `proxy.ts`, `database/supabase/*.sql` |
@@ -157,6 +158,7 @@ Pat salīdzinoši mazā lietotnē **`App Router`** maršruta maiņa parasti nav 
 | **`/admin/*`** (**`app/admin/layout.tsx`**) | **`requireAdminUser`** tad **`getSessionUserDisplay`** – vairs nav atkārtota **`getUser()`** un nav otra tā paša RPC vienā pieprasījumā (ja nepieciešams, **`users.is_admin`** joprojām kā rezerves datu avots). |
 | **Saknes layout** (**`app/layout.tsx`**) | **`cookies()`** / **`headers()`** padara shell **dinamisku**; **`getPublicSiteTranslationsMerged`** joprojām dod **lielu** `dbMap` (**`SubtrackIntlProvider`** ar **`paidPlan`**); **`unstable_cache`** mazina DB slogu. **`getLanguagesCatalog`** ir arī **`react/cache`** vienam pieprasījumam. |
 | **`generateMetadata` / `getUiPhraseForRequest`** | **`resolveRequestUiLocales`** un sapludinātais tulkošanu objekts (**`lib/ui/server-ui-phrases.ts`**) tiek **memoizēti** uz dokumenta pieprasījumu. **`getPublicSystemSettings`** / **`getSystemSiteName`** (**`generateMetadata`** + layout) – viens izsaukums uz pieprasījumu. |
+| **Sākumlapa `/` (0.4.24)** | **`LandingPageContent`** – servera komponents; **`getLandingUiPhrases()`** (`lib/landing/get-landing-ui-phrases.ts`, atslēgas **`landing-phrase-keys.ts`**) – viens bulk tulkošanu pieprasījums; mazāks klienta bundle nekā visa lapa kā **`use client`**. |
 
 **`<Link prefetch={false}`** (admin, iestatījumi, parole, izvēlnes „Panelis”) samazina fonā **`proxy`** / prefetch slogu; **`/dashboard`** ↔ **`/analytics`** galvenajā nav izslēgts prefetch.
 
@@ -311,12 +313,13 @@ Virknes UI: **`useSubtrackIntl().t('atslēga')`**, dati no **`site_translations`
 
 ```
 app/                      # App Router + `generateMetadata` ar tulkošanas atslēgām kur attiecas
-app/layout.tsx            # viewport (tālummaiņa atļauta), Font Awesome CDN, SubtrackIntlProvider, PWA host
+app/layout.tsx            # viewport (tālummaiņa atļauta), FA CDN (preconnect + stylesheet), SubtrackIntlProvider, PWA host
+app/page.tsx              # sākumlapa: inline `body.landing-page`, NavLanding, SSR LandingPageContent
 app/globals.css           # `@import` `subtrack.css`; papildu CSS (login sociālais tweak, admin integrāciju slēdzis – sk. Tehniskais steks)
 app/api/subscriptions/    # autentificēts CRUD (cookie sesija, Supabase server klients)
 app/api/family-sharing/   # ģimenes dalīšana: GET/POST; PATCH (accept, decline, revoke, leave, krāsa, combine)
 app/family-sharing/       # lapa (integrācijas karodziņš `family_sharing`)
-components/               # nav-landing, nav-dash, mobile-bottom-nav(+item), nav-ui-language-switcher, subtrack-intl-provider, auth/* …
+components/               # nav-landing, nav-dash, landing-page.tsx (SSR saturs), landing-nav-sync, mobile-bottom-nav(+item), …
 components/family-sharing/  # family-sharing-view.tsx
 components/legal/         # juridiskās lapas, SiteLandingFooter, cookie consent
 components/subtrack-tooltip.tsx  # admin (u.c.) hover tooltipi: portal + fine-pointer; hover uz burbuļa; stili `subtrack.css`
@@ -336,6 +339,7 @@ lib/system-settings-public.ts  # anon kešots: nosaukums, `brandLogo`, `pwa`, di
 lib/i18n/pwa-fallback-phrases.ts  # PWA + admin PWA fallback (papildus `fallback-phrases.ts`)
 lib/site-translations-public.ts  # anon kešots `site_translations` merge sabiedriskajam UI
 lib/ui/server-ui-phrases.ts     # `getUiPhraseForRequest`, `getUiPhrasesForRequest` (bulk), `resolveRequestUiLocales`
+lib/landing/                  # `landing-phrase-keys.ts`, `get-landing-ui-phrases.ts` – sākumlapas `t()` bulk SSR
 lib/ui/ui-locale-from-request.ts  # `resolveUiLocaleCodeForRequest` (profils vs sīkdatne)
 lib/auth/display-preferences-server.ts  # `getSessionDisplayPreferencesRow`, `getSessionInterfaceLanguageCode`
 lib/auth/display-preferences-client.ts  # `updateSessionDisplayPreferences` (settings + nav valodas slēdzis)
@@ -408,10 +412,13 @@ npm run security:check    # pēc DB / drošības izmaiņām
 
 ### Supabase (obligāti ar custom domēnu)
 
+**Nav saistīts ar Google Search Console** – GSC neprasa Supabase izmaiņu. Šeit tikai **Auth / OAuth / e-pasta saites**, kad lietotāji iet caur `repazy.com`.
+
 **Authentication → URL Configuration:**
 
 - **Site URL:** `https://repazy.com`
 - **Redirect URLs:** `https://repazy.com/auth/callback` (un `http://localhost:3000/auth/callback` izstrādei)
+- Ja lieto arī **`www`**: pievieno `https://www.repazy.com/auth/callback` vai Vercel redirect no `www` uz apex (skatīt Vercel Domains)
 
 ### DNS Porkbun (DNS paliek pie Porkbun)
 
@@ -426,10 +433,20 @@ Ja Vercel Domains rāda cilni **DNS Records** (ne **Vercel DNS**), ieraksti liek
 
 Propagācija: parasti **15–60 min**, retāk līdz **48 h**. Kamēr `*.vercel.app` strādā, bet `repazy.com` vēl rāda pixie – gaidi DNS vai pārbaudi `nslookup repazy.com`.
 
+**Google Search Console (domēna verifikācija):** TXT ierakstu liek **Porkbun → DNS** (Host `@` vai tukšs; Value `google-site-verification=…`), **ne** Vercel, kamēr DNS paliek pie Porkbun (skatīt tabulu augšā). Pēc verifikācijas TXT var atstāt. **Nav** jāmaina kods `app/` vai Supabase GSC dēļ.
+
+### Google Search Console (pēc verifikācijas)
+
+1. **Indexing → Sitemaps** – pievienot `sitemap.xml` (pilns URL: `https://repazy.com/sitemap.xml`). Ģenerē **`app/sitemap.ts`**; indeksējamas publiskās lapas – **`lib/seo/search-crawl.ts`** (`/`, `/privacy`, `/terms`, `/cookies`); panelis, auth, admin u.c. – **`app/robots.ts`** `Disallow`.
+2. **Pārbaude pārlūkā:** `https://repazy.com/robots.txt` rāda `Sitemap: https://repazy.com/sitemap.xml`; `NEXT_PUBLIC_SITE_URL` produkcijā = `https://repazy.com` (bez `/` beigās).
+3. **URL Inspection (ne obligāti):** augšējā GSC meklētājā ievadi **pilnu URL** (piem. `https://repazy.com/`) → Enter → pagaidi pārskatu → tad var parādīties **Request indexing**. Ja pogas nav – pietiek ar sitemap; **Performance** dati parādās tikai pēc rādījumiem meklēšanā (bieži **nedēļas** jaunam domēnam).
+4. **Gaidāšana:** sitemap statuss – stundas līdz 1–2 dienām; indeksēšana – dienas līdz nedēļām; tukšs Performance pēc verifikācijas ir normāli.
+
 ### Pārbaude pēc deploy
 
 - `https://repazy.com` un `https://subtrack-web-beige.vercel.app/` – vienāds saturs.
 - Vercel → Domains → **Valid Configuration**.
+- Login uz `https://repazy.com/login` – apstiprina Supabase **Site URL** / redirect (skatīt **[Supabase](#supabase-obligāti-ar-custom-domēnu)**).
 - Lighthouse / SEO – testēt uz **īstā** production URL ([Pieejamība un Lighthouse](#pieejamība-un-lighthouse)).
 
 ## Pēc Git atjauninājuma (`git pull`)
@@ -442,7 +459,7 @@ Propagācija: parasti **15–60 min**, retāk līdz **48 h**. Kamēr `*.vercel.a
 2. **Žurnāls** – salīdzināt ar **[Izmaiņu žurnālu](#izmaiņu-žurnāls)** un rindiņu **`Versija:`** README augšā: tur tiek apkopotas būtiskākās izmaiņas (Auth, proxy/sesija, SQL, ENV, paneļa FS slānis).
 3. **Supabase un ENV** – salīdzināt **`database/supabase/`** (līdz **`100_*`**, ģimenes dalīšana **`084`–`095`**, admin uzdevumi **`096`–`100`**) un **`supabase.env.template`** ar **`.env.local`**. **Drošība (2026-05):** **`078`**, **`079`**, **`080`**; **`SUPABASE_SERVICE_ROLE_KEY`** – signup, VIP, cron, **ģimenes uzaicinājums**, lasīšana un API **`PATCH`**. Logo: **`071`–`074`**, **`072`**, **`077`**. PWA SQL: **`067`–`070`**, **`074`**. Pēc SQL: **`npm run security:smoke`**. Migrācijas secība – **Supabase iestatīšana** un **`npm run security:migration-checklist`**. PWA: **`npm run build`** (ģenerē **`public/sw.js`**) vai **`npm run dev`** – skatīt **[PWA](#pwa-subtrack)**. Ģimenes dalīšana: admin **`/admin/integrations`** → **`family_sharing`**, pēc tam SQL **`084`–`095`**. Admin uzdevumi: **`096`**, **`097`**, **`098`**, **`099_site_translations_admin_todos_complete.sql`**, **`100_admin_todos_sort_order_backfill.sql`** (un **`099_product_name_subtrack.sql`**, ja vēl nav).
 4. **Pārbaude** – **`npm run lint`** un **`npm run build`** pēc lielākām izmaiņām; ikdienas **`npm run dev`**. Ja mainīta drošība/DB: **`npm run security:check`**. Mobilā: PWA banneris + **`/offline`** (**[PWA](#pwa-subtrack)**). **≥0.4.22:** pēc pull pārbaudīt **Font Awesome** ikonas (admin todos ✓/rediģēt, panelis, landing); ja tukšas – **`app/layout.tsx`** nedrīkst lietot atlikto FA ielādi (`media="print"`). Turbopack **`CssSyntaxError`** – dzēst **`.next`**, restartēt dev (žurnāls **0.3.8**).
-5. **Produkcija (Vercel)** – ja mainīts domēns vai ENV: Vercel **Redeploy**; pārbaudīt **`NEXT_PUBLIC_SITE_URL`**, Supabase **Redirect URLs** un Porkbun DNS (skatīt **[Vercel un produkcijas domēns](#vercel-un-produkcijas-domēns)**).
+5. **Produkcija (Vercel)** – ja mainīts domēns vai ENV: Vercel **Redeploy**; pārbaudīt **`NEXT_PUBLIC_SITE_URL`**, Supabase **Redirect URLs** un Porkbun DNS (skatīt **[Vercel un produkcijas domēns](#vercel-un-produkcijas-domēns)**). Ja pieslēdz **Google Search Console** – TXT **Porkbun**, pēc tam **sitemap.xml** GSC (skatīt **[Google Search Console](#google-search-console-pēc-verifikācijas)**).
 
 ### Ko „pateikt’’ / kā īsi atbildēt pēc jauna Git atjauninājuma
 
@@ -512,6 +529,14 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 ## Izmaiņu žurnāls
 
 Šeit īss pieraksts par izlaistām izmaiņām. **PWA** – **[PWA (SubTrack)](#pwa-subtrack)**. **0.4.x** no **0.4.0** (= agrāk **0.3.54**).
+
+### 0.4.25 (2026-05-22)
+
+- **README – Google Search Console** – sadaļa **[Google Search Console](#google-search-console-pēc-verifikācijas)**: domēna TXT **Porkbun** (ne Vercel); pēc verifikācijas **sitemap.xml**, URL Inspection / gaidīšanas laiki; skaidrojums, ka **Supabase nav** jāmaina GSC dēļ. **[Vercel un produkcijas domēns](#vercel-un-produkcijas-domēns)** un **[Pieejamība un Lighthouse](#pieejamība-un-lighthouse)** papildināti.
+
+### 0.4.24 (2026-05-22)
+
+- **Sākumlapa – Lighthouse / LCP** – **`components/landing-page.tsx`** vairs nav **`use client`**: **`LandingPageContent`** servera komponents; tulkošanas **`lib/landing/get-landing-ui-phrases.ts`** + **`landing-phrase-keys.ts`** (bulk **`getUiPhrasesForRequest`**). **`app/page.tsx`**: noņemts **`BodyLandingPageClass`**; **`body.landing-page`** tikai ar inline skriptu. **`app/layout.tsx`**: **`preconnect`** uz Font Awesome CDN. README: **[Pieejamība un Lighthouse](#pieejamība-un-lighthouse)**, **[Navigācija un veiktspēja](#navigācija-un-veiktspēja-kopīgas-sajūtas)**.
 
 ### 0.4.23 (2026-05-22)
 

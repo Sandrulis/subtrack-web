@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { BodyLandingPageClass } from "@/components/body-landing-class";
 import { LandingNavSync } from "@/components/landing-nav-sync";
 import { LandingPageContent } from "@/components/landing-page";
 import { NavLanding } from "@/components/nav-landing";
@@ -21,9 +20,9 @@ export default async function HomePage() {
   const brand = await getSystemSiteName();
 
   return (
-    <BodyLandingPageClass>
+    <>
       <LandingWebAppJsonLd brand={brand} />
-      {/* Pirms React hydration – body.landing-page fons (CSS ritms vairs no tā nav atkarīgs) */}
+      {/* Pirms React hydration – body.landing-page fons */}
       <script
         dangerouslySetInnerHTML={{
           __html: `document.body.classList.add("landing-page");`,
@@ -34,6 +33,6 @@ export default async function HomePage() {
         <LandingPageContent />
       </main>
       <LandingNavSync />
-    </BodyLandingPageClass>
+    </>
   );
 }
