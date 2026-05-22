@@ -8,7 +8,11 @@ import {
   scorePassword,
 } from "@/lib/auth/password-strength";
 
-export function ChangePasswordForm() {
+export function ChangePasswordForm({
+  recoveryMode = false,
+}: {
+  recoveryMode?: boolean;
+}) {
   const { t } = useSubtrackIntl();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -35,39 +39,45 @@ export function ChangePasswordForm() {
     confirmMismatch ||
     !newPassword ||
     newPassword.length < 8 ||
-    !confirmPassword;
+    !confirmPassword ||
+    (!recoveryMode && !currentPassword);
 
   return (
     <form action={changePasswordAction} noValidate>
-      <div className="form-group">
-        <label htmlFor="pwd-current">{t("auth.change_password.password_current")}</label>
-        <div className="form-password-wrap">
-          <input
-            type={showCurrent ? "text" : "password"}
-            id="pwd-current"
-            name="pwd_current"
-            autoComplete="current-password"
-            placeholder="●●●●●●●●"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            className="input-has-password-toggle"
-          />
-          <button
-            type="button"
-            className="password-toggle-btn"
-            onClick={() => setShowCurrent((v) => !v)}
-            aria-label={showCurrent ? t("auth.change_password.toggle_hide") : t("auth.change_password.toggle_show")}
-            aria-pressed={showCurrent}
-          >
-            <i
-              className={
-                showCurrent ? "fa-solid fa-eye-slash" : "fa-regular fa-eye"
-              }
-              aria-hidden="true"
+      {recoveryMode ? (
+        <input type="hidden" name="recovery" value="1" />
+      ) : null}
+      {!recoveryMode ? (
+        <div className="form-group">
+          <label htmlFor="pwd-current">{t("auth.change_password.password_current")}</label>
+          <div className="form-password-wrap">
+            <input
+              type={showCurrent ? "text" : "password"}
+              id="pwd-current"
+              name="pwd_current"
+              autoComplete="current-password"
+              placeholder="●●●●●●●●"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="input-has-password-toggle"
             />
-          </button>
+            <button
+              type="button"
+              className="password-toggle-btn"
+              onClick={() => setShowCurrent((v) => !v)}
+              aria-label={showCurrent ? t("auth.change_password.toggle_hide") : t("auth.change_password.toggle_show")}
+              aria-pressed={showCurrent}
+            >
+              <i
+                className={
+                  showCurrent ? "fa-solid fa-eye-slash" : "fa-regular fa-eye"
+                }
+                aria-hidden="true"
+              />
+            </button>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="form-group">
         <label htmlFor="pwd-new">{t("auth.change_password.password_new")}</label>
@@ -175,7 +185,9 @@ export function ChangePasswordForm() {
           className="btn btn-primary btn-block"
           disabled={submitDisabled}
         >
-          {t("auth.change_password.submit")}
+          {recoveryMode
+            ? t("auth.reset_password.submit")
+            : t("auth.change_password.submit")}
         </button>
       </div>
     </form>

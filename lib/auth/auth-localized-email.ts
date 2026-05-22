@@ -6,6 +6,7 @@ import {
 } from "@/lib/emails/send-transactional";
 import { normalizeEmailLocale } from "@/lib/emails/template-types";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
+import { buildAuthCallbackActionUrl } from "@/lib/auth/auth-callback-link";
 import {
   isSignupEmailBlocked,
   SIGNUP_EMAIL_TAKEN_MESSAGE,
@@ -103,14 +104,16 @@ export async function registerUserWithLocalizedConfirmEmail(input: {
     };
   }
 
-  const actionUrl = linkData?.properties?.action_link?.trim();
-  if (!actionUrl) {
-    return {
-      ok: false,
-      stage: "auth",
-      message: "Neizdevās izveidot apstiprinājuma saiti.",
-    };
-  }
+  const props = linkData?.properties;
+  const actionUrl = buildAuthCallbackActionUrl(
+    site,
+    {
+      hashed_token: props?.hashed_token ?? null,
+      action_link: props?.action_link ?? null,
+    },
+    "signup",
+    "/dashboard",
+  );
 
   const loaded = await loadEmailTemplatesStoreForSend();
   if (!loaded) {
@@ -163,7 +166,8 @@ export async function sendPasswordResetWithLocalizedEmail(input: {
   }
 
   const site = input.siteUrl.replace(/\/$/, "");
-  const redirectTo = `${site}/auth/callback?next=${encodeURIComponent("/change-password")}`;
+  const nextPath = "/change-password";
+  const redirectTo = `${site}/auth/callback?next=${encodeURIComponent(nextPath)}`;
   const email = input.email.trim();
   const emailLocale = normalizeEmailLocale(input.locale);
 
@@ -180,10 +184,16 @@ export async function sendPasswordResetWithLocalizedEmail(input: {
     return { ok: true };
   }
 
-  const actionUrl = linkData?.properties?.action_link?.trim();
-  if (!actionUrl) {
-    return { ok: true };
-  }
+  const props = linkData?.properties;
+  const actionUrl = buildAuthCallbackActionUrl(
+    site,
+    {
+      hashed_token: props?.hashed_token ?? null,
+      action_link: props?.action_link ?? null,
+    },
+    "recovery",
+    nextPath,
+  );
 
   const loaded = await loadEmailTemplatesStoreForSend();
   if (!loaded) {
@@ -200,7 +210,12 @@ export async function sendPasswordResetWithLocalizedEmail(input: {
   });
 
   if (!sendResult.ok) {
-    return { ok: true };
+    return {
+      ok: false,
+      error:
+        sendResult.message ||
+        "Neizdevās nosūtīt paroles atjaunošanas e-pastu. Pārbaudi RESEND_API_KEY un EMAIL_FROM.",
+    };
   }
 
   return { ok: true };

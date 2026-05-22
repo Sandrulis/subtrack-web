@@ -10,7 +10,10 @@ import {
   registerUserWithLocalizedConfirmEmail,
   sendPasswordResetWithLocalizedEmail,
 } from "@/lib/auth/auth-localized-email";
-import { canSendAuthEmailsViaResend } from "@/lib/emails/send-transactional";
+import {
+  canSendAuthEmailsViaResend,
+  isAuthEmailResendMisconfigured,
+} from "@/lib/emails/send-transactional";
 import { resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
 import {
   isSignupEmailBlocked,
@@ -93,13 +96,24 @@ export async function signInWithPasswordAction(formData: FormData) {
   redirect(next);
 }
 
-export async function signUpAction(formData: FormData) {
+export type SignupFormState = {
+  ok: boolean;
+  error?: string;
+  /** E-pasts, uz kuru nosūtīts apstiprinājums (veiksmīga reģistrācija). */
+  email?: string;
+};
+
+export async function signUpAction(
+  _prev: SignupFormState,
+  formData: FormData,
+): Promise<SignupFormState> {
   const cfg = getSupabasePublicConfig();
   if (!cfg) {
-    redirect(
-      "/signup?error=" +
-        errParam("Supabase nav konfigurēts. Pievieno .env.local ar URL un anon atslēgu."),
-    );
+    return {
+      ok: false,
+      error:
+        "Supabase nav konfigurēts. Pievieno .env.local ar URL un anon atslēgu.",
+    };
   }
 
   const firstName = String(formData.get("first_name") ?? "").trim();
@@ -109,21 +123,21 @@ export async function signUpAction(formData: FormData) {
   const password2 = String(formData.get("password_confirm") ?? "");
 
   if (!firstName || !lastName) {
-    redirect("/signup?error=" + errParam("Aizpildiet vārdu un uzvārdu."));
+    return { ok: false, error: "Aizpildiet vārdu un uzvārdu." };
   }
   if (!email || !password) {
-    redirect("/signup?error=" + errParam("Aizpildiet e-pastu un paroli."));
+    return { ok: false, error: "Aizpildiet e-pastu un paroli." };
   }
   if (password.length < 8) {
-    redirect("/signup?error=" + errParam("Parolei jābūt vismaz 8 rakstzīmēm."));
+    return { ok: false, error: "Parolei jābūt vismaz 8 rakstzīmēm." };
   }
   if (password !== password2) {
-    redirect("/signup?error=" + errParam("Paroles nesakrīt."));
+    return { ok: false, error: "Paroles nesakrīt." };
   }
 
   const emailBlocked = await isSignupEmailBlocked(email);
   if (emailBlocked === true) {
-    redirect("/signup?error=" + errParam(SIGNUP_EMAIL_TAKEN_MESSAGE));
+    return { ok: false, error: SIGNUP_EMAIL_TAKEN_MESSAGE };
   }
 
   const site =
@@ -143,23 +157,17 @@ export async function signUpAction(formData: FormData) {
 
     if (!custom.ok) {
       if (custom.stage === "email") {
-        redirect(
-          "/signup?error=" +
-            errParam(
-              "Konts var būt izveidots, bet apstiprinājuma e-pastu neizdevās nosūtīt. Mēģini vēlreiz vai sazinies ar atbalstu.",
-            ),
-        );
+        return {
+          ok: false,
+          error:
+            "Konts var būt izveidots, bet apstiprinājuma e-pastu neizdevās nosūtīt. Mēģini vēlreiz vai sazinies ar atbalstu.",
+        };
       }
-      redirect("/signup?error=" + errParam(custom.message));
+      return { ok: false, error: custom.message };
     }
 
     revalidatePath("/", "layout");
-    redirect(
-      "/login?message=" +
-        errParam(
-          "Konts izveidots. Pārbaudi pastkasti un apstiprini e-pastu, lai pieteiktos.",
-        ),
-    );
+    return { ok: true, email };
   }
 
   const supabase = await createServerSupabaseClient();
@@ -176,7 +184,7 @@ export async function signUpAction(formData: FormData) {
   });
 
   if (error) {
-    redirect("/signup?error=" + errParam(error.message));
+    return { ok: false, error: error.message };
   }
 
   revalidatePath("/", "layout");
@@ -185,12 +193,7 @@ export async function signUpAction(formData: FormData) {
     redirect("/dashboard");
   }
 
-  redirect(
-    "/login?message=" +
-      errParam(
-        "Konts izveidots. Ja ir ieslēgta e-pasta apstiprināšana, pārbaudi pastkasti.",
-      ),
-  );
+  return { ok: true, email };
 }
 
 export type ForgotPasswordFormState = {
@@ -219,6 +222,14 @@ export async function requestPasswordResetAction(
   const site =
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
     "http://localhost:3000";
+
+  if (isAuthEmailResendMisconfigured()) {
+    return {
+      ok: false,
+      error:
+        "Pielāgotajiem e-pastiem serverī vajag SUPABASE_SERVICE_ROLE_KEY (.env / Vercel).",
+    };
+  }
 
   if (canSendAuthEmailsViaResend()) {
     const { locale } = await resolveRequestUiLocales();
@@ -262,29 +273,34 @@ export async function changePasswordAction(formData: FormData) {
     );
   }
 
+  const isRecovery = String(formData.get("recovery") ?? "") === "1";
+  const recoveryQs = isRecovery ? "recovery=1&" : "";
+
   const current = String(formData.get("pwd_current") ?? "");
   const newPw = String(formData.get("pwd_new") ?? "");
   const newPw2 = String(formData.get("pwd_new2") ?? "");
 
-  if (!current) {
+  if (!isRecovery && !current) {
     redirect(
       "/change-password?error=" + errParam("Ievadiet pašreizējo paroli."),
     );
   }
   if (!newPw || !newPw2) {
     redirect(
-      "/change-password?error=" +
+      `/change-password?${recoveryQs}error=` +
         errParam("Aizpildiet jauno paroli un atkārtojumu."),
     );
   }
   if (newPw.length < 8) {
     redirect(
-      "/change-password?error=" +
+      `/change-password?${recoveryQs}error=` +
         errParam("Jaunajai parolei jābūt vismaz 8 rakstzīmēm."),
     );
   }
   if (newPw !== newPw2) {
-    redirect("/change-password?error=" + errParam("Jaunās paroles nesakrīt."));
+    redirect(
+      `/change-password?${recoveryQs}error=` + errParam("Jaunās paroles nesakrīt."),
+    );
   }
 
   const supabase = await createServerSupabaseClient();
@@ -293,18 +309,22 @@ export async function changePasswordAction(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user?.email) {
-    redirect("/change-password?error=" + errParam("Nav aktīvas sesijas."));
+    redirect(
+      `/change-password?${recoveryQs}error=` + errParam("Nav aktīvas sesijas."),
+    );
   }
 
-  const { error: verifyErr } = await supabase.auth.signInWithPassword({
-    email: user.email,
-    password: current,
-  });
+  if (!isRecovery) {
+    const { error: verifyErr } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: current,
+    });
 
-  if (verifyErr) {
-    redirect(
-      "/change-password?error=" + errParam("Pašreizējā parole nav pareiza."),
-    );
+    if (verifyErr) {
+      redirect(
+        "/change-password?error=" + errParam("Pašreizējā parole nav pareiza."),
+      );
+    }
   }
 
   const { error: updErr } = await supabase.auth.updateUser({
@@ -312,9 +332,20 @@ export async function changePasswordAction(formData: FormData) {
   });
 
   if (updErr) {
-    redirect("/change-password?error=" + errParam(updErr.message));
+    redirect(
+      `/change-password?${recoveryQs}error=` + errParam(updErr.message),
+    );
   }
 
   revalidatePath("/", "layout");
+
+  if (isRecovery) {
+    await supabase.auth.signOut();
+    redirect(
+      "/login?message=" +
+        errParam("Parole atjaunota. Tagad vari pieteikties ar jauno paroli."),
+    );
+  }
+
   redirect("/change-password?message=" + errParam("Parole veiksmīgi nomainīta."));
 }

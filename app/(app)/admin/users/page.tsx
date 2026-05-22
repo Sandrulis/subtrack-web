@@ -75,6 +75,9 @@ function serializeCounts(
 
 export default async function AdminUsersPage() {
   const supabase = await createServerSupabaseClient();
+  const {
+    data: { user: sessionUser },
+  } = await supabase.auth.getUser();
 
   const [
     { data: rows, error },
@@ -125,6 +128,7 @@ export default async function AdminUsersPage() {
       users={list}
       countsByUserId={serializeCounts(countsByUser)}
       paidPlanEnabled={paidPlanEnabled}
+      currentUserId={sessionUser?.id ?? null}
       fetchError={error?.message ?? null}
       subscriptionsFetchError={subsError?.message ?? null}
     />

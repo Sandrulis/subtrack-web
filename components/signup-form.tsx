@@ -5,7 +5,7 @@ import { AuthFormPendingFieldset } from "@/components/auth/auth-form-pending-fie
 import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import Link from "next/link";
-import { signUpAction, signupEmailExistsAction } from "@/lib/auth/actions";
+import { signupEmailExistsAction } from "@/lib/auth/actions";
 import {
   PASSWORD_STRENGTH_META,
   scorePassword,
@@ -27,7 +27,15 @@ function useDebounced<T>(value: T, ms: number): T {
   return debounced;
 }
 
-export function SignupForm() {
+export function SignupForm({
+  formAction,
+  pending = false,
+  formError,
+}: {
+  formAction: (payload: FormData) => void;
+  pending?: boolean;
+  formError?: string;
+}) {
   const { t } = useSubtrackIntl();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -43,6 +51,8 @@ export function SignupForm() {
     unavailable?: boolean;
   } | null>(null);
   const [checkInflight, setCheckInflight] = useState<string | null>(null);
+  /** Palielina, lai pēc blur atkārtoti vaicātu DB (piem. kad noņemts retired_signup_emails). */
+  const [emailRecheckSeq, setEmailRecheckSeq] = useState(0);
 
   const strengthScore = useMemo(() => scorePassword(password), [password]);
   const strength = PASSWORD_STRENGTH_META[strengthScore];
@@ -93,7 +103,7 @@ export function SignupForm() {
     return () => {
       active = false;
     };
-  }, [debouncedEmail, emailLooksValid, normalizedDebounced]);
+  }, [debouncedEmail, emailLooksValid, normalizedDebounced, emailRecheckSeq]);
 
   const checkingEmail =
     emailLooksValid &&
@@ -134,7 +144,7 @@ export function SignupForm() {
         : undefined;
 
   return (
-    <form action={signUpAction} noValidate>
+    <form action={formAction} noValidate>
       <AuthFormPendingFieldset>
       <div className="form-row">
         <div className="form-group">
@@ -175,7 +185,15 @@ export function SignupForm() {
           autoComplete="email"
           required
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            setEmailCheck(null);
+          }}
+          onBlur={() => {
+            if (!isValidEmail(emailTrimmed)) return;
+            setEmailCheck(null);
+            setEmailRecheckSeq((n) => n + 1);
+          }}
           aria-invalid={emailFieldInvalid}
           aria-describedby={
             emailFormatInvalid
@@ -306,12 +324,19 @@ export function SignupForm() {
       </div>
       </AuthFormPendingFieldset>
 
+      {formError ? (
+        <p className="form-hint form-hint--error" role="alert">
+          {formError}
+        </p>
+      ) : null}
+
       <div className="auth-submit-wrap">
         <AuthSubmitButton
           labelKey="auth.signup.submit"
           pendingLabelKey="auth.status.signup_pending"
           statusDetailKey="auth.status.signup_detail"
           disabled={submitDisabled}
+          pending={pending}
         />
       </div>
 

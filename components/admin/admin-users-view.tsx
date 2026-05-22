@@ -6,7 +6,7 @@ import { pushDomToast } from "@/lib/push-dom-toast";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import { navUserHasProEntitlement } from "@/lib/auth/pro-plan-access";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 export type AdminUsersViewUser = {
   id: string;
@@ -46,6 +46,8 @@ type AdminUsersViewProps = {
   countsByUserId: Record<string, AdminUsersCountsSerializable> | null;
   /** Ja true, rāda VIP slēdzi (`system_settings.paid_plan_enabled`); Pro – kronītis pie avatāra. */
   paidPlanEnabled?: boolean;
+  /** Pašreizējā admin sesijas lietotāja ID (nevar dzēst sevi). */
+  currentUserId?: string | null;
   fetchError?: string | null;
   subscriptionsFetchError?: string | null;
 };
@@ -54,17 +56,57 @@ export function AdminUsersView({
   users,
   countsByUserId,
   paidPlanEnabled = false,
+  currentUserId = null,
   fetchError,
   subscriptionsFetchError,
 }: AdminUsersViewProps) {
   const { t, locale } = useSubtrackIntl();
+  const router = useRouter();
   const intlLocale = useMemo(
     () => uiLocaleCodeToBcp47ForIntl(locale),
     [locale],
   );
+  const [deletePendingUser, setDeletePendingUser] =
+    useState<AdminUsersViewUser | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+
+  const deleteConfirmBody = useMemo(() => {
+    if (!deletePendingUser) return "";
+    const email = deletePendingUser.email?.trim() || "–";
+    return t("admin.users.delete_confirm")
+      .replace(/\{email\}/g, email)
+      .replace(/\{name\}/g, fullDisplayName(deletePendingUser));
+  }, [deletePendingUser, t]);
+
+  async function confirmDeleteUser() {
+    if (!deletePendingUser || deleteBusy) return;
+    setDeleteBusy(true);
+    try {
+      const res = await fetch("/api/admin/users/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: deletePendingUser.id }),
+      });
+      let data: { success?: boolean; message?: string } = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+      if (!res.ok || data.success !== true) {
+        pushDomToast(data.message ?? t("admin.users.err_delete"), "error");
+        return;
+      }
+      setDeletePendingUser(null);
+      pushDomToast(t("admin.users.delete_success"), "success");
+      router.refresh();
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
 
   return (
-    <div className="admin-page admin-users-page">
+    <div className="admin-page admin-users-page admin-lang-stack">
       <div className="admin-page-head">
         <h1 className="admin-page-title">{t("admin.users.heading")}</h1>
         <p className="admin-page-lead">{t("admin.users.lead_intro")}</p>
@@ -119,6 +161,9 @@ export function AdminUsersView({
                   ) : null}
                   <th className="admin-table-col-registered">
                     {t("admin.users.col_registered")}
+                  </th>
+                  <th className="admin-table-col-actions">
+                    {t("admin.users.col_actions")}
                   </th>
                 </tr>
               </thead>
@@ -210,6 +255,14 @@ export function AdminUsersView({
                     <td className="admin-table-col-registered">
                       {formatDateTimeIntl(u.created_at, intlLocale)}
                     </td>
+                    <td className="admin-table-col-actions admin-actions-cell">
+                      <AdminUserDeleteControl
+                        user={u}
+                        currentUserId={currentUserId}
+                        deleteBusy={deleteBusy}
+                        onRequestDelete={() => setDeletePendingUser(u)}
+                      />
+                    </td>
                   </tr>
                   );
                 })}
@@ -218,7 +271,152 @@ export function AdminUsersView({
           </div>
         </>
       )}
+      <AdminUserDeleteConfirmModal
+        open={deletePendingUser !== null}
+        busy={deleteBusy}
+        confirmBody={deleteConfirmBody}
+        t={t}
+        onCancel={() => {
+          if (!deleteBusy) setDeletePendingUser(null);
+        }}
+        onConfirm={() => {
+          void confirmDeleteUser();
+        }}
+      />
     </div>
+  );
+}
+
+function AdminUserDeleteConfirmModal({
+  open,
+  busy,
+  confirmBody,
+  t,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  busy: boolean;
+  confirmBody: string;
+  t: (k: string) => string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const titleId = useId();
+  const confirmBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !busy) onCancel();
+    };
+    window.addEventListener("keydown", onKey);
+    const tmr = window.setTimeout(() => confirmBtnRef.current?.focus(), 0);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.clearTimeout(tmr);
+    };
+  }, [open, busy, onCancel]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="modal-overlay modal-backdrop-close-confirm-overlay open"
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && !busy) onCancel();
+      }}
+    >
+      <div
+        className="modal modal-backdrop-close-confirm admin-todos-delete-confirm"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="modal-body">
+          <div
+            className="modal-backdrop-close-confirm-icon admin-todos-delete-confirm-icon"
+            aria-hidden="true"
+          >
+            <i className="fa-solid fa-triangle-exclamation" />
+          </div>
+          <h3 id={titleId}>{t("admin.users.delete_link")}</h3>
+          <p>{confirmBody}</p>
+        </div>
+        <div className="modal-footer">
+          <button type="button" className="btn btn-ghost" disabled={busy} onClick={onCancel}>
+            {t("admin.todos.cancel")}
+          </button>
+          <button
+            ref={confirmBtnRef}
+            type="button"
+            className="btn btn-danger"
+            disabled={busy}
+            aria-busy={busy}
+            onClick={onConfirm}
+          >
+            {t("admin.users.delete_link")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg
+      className="admin-btn-icon"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        fill="currentColor"
+        d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+      />
+    </svg>
+  );
+}
+
+function AdminUserDeleteControl({
+  user,
+  currentUserId,
+  deleteBusy,
+  onRequestDelete,
+}: {
+  user: AdminUsersViewUser;
+  currentUserId: string | null;
+  deleteBusy: boolean;
+  onRequestDelete: () => void;
+}) {
+  const { t } = useSubtrackIntl();
+
+  const isSelf = currentUserId != null && user.id === currentUserId;
+  const isAdminUser = user.is_admin > 0;
+  const disabled = deleteBusy || isSelf || isAdminUser;
+
+  if (isSelf || isAdminUser) {
+    return <span className="admin-actions-empty">–</span>;
+  }
+
+  return (
+    <SubtrackTooltip label={t("admin.users.delete_link")}>
+      <button
+        type="button"
+        className="admin-icon-btn admin-icon-btn--delete"
+        disabled={disabled}
+        aria-label={t("admin.users.delete_link")}
+        aria-busy={deleteBusy}
+        onClick={onRequestDelete}
+      >
+        <IconTrash />
+      </button>
+    </SubtrackTooltip>
   );
 }
 

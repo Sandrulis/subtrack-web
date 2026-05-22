@@ -12,33 +12,54 @@ export function ChangePasswordFsView({
   userDisplay,
   flashError,
   flashMessage,
+  recoveryMode = false,
 }: {
   userDisplay?: NavUserDisplay | null;
   flashError?: string;
   flashMessage?: string;
+  /** Aizmirstā parole: bez pašreizējās paroles, bez paneļa navigācijas. */
+  recoveryMode?: boolean;
 }) {
   const { t } = useSubtrackIntl();
+  const inner = (
+    <div className="auth-page-inner">
+      <div className="auth-card auth-card--form">
+        <div className="auth-card-icon">
+          <i className="fa-solid fa-key fa-xl" aria-hidden="true" />
+        </div>
+        <h1>
+          {recoveryMode
+            ? t("auth.reset_password.heading")
+            : t("auth.change_password.heading")}
+        </h1>
+        <p className="auth-subtitle">
+          {recoveryMode
+            ? t("auth.reset_password.intro")
+            : t("auth.change_password.intro")}
+        </p>
+
+        <ChangePasswordForm recoveryMode={recoveryMode} />
+
+        <p className="auth-footer">
+          {recoveryMode ? (
+            <Link href="/login">{t("auth.reset_password.back_login")}</Link>
+          ) : (
+            <Link href="/dashboard">{t("auth.change_password.back_dashboard")}</Link>
+          )}
+        </p>
+      </div>
+    </div>
+  );
+
+  if (recoveryMode) {
+    return inner;
+  }
+
   return (
     <>
       <NavDash active="" userDisplay={userDisplay} />
-      <div className="auth-page-inner">
-        <div className="auth-card auth-card--form">
-          <div className="auth-card-icon">
-            <i className="fa-solid fa-key fa-xl" aria-hidden="true" />
-          </div>
-          <h1>{t("auth.change_password.heading")}</h1>
-          <p className="auth-subtitle">{t("auth.change_password.intro")}</p>
-
-          <ChangePasswordForm />
-
-          <p className="auth-footer">
-            <Link href="/dashboard">{t("auth.change_password.back_dashboard")}</Link>
-          </p>
-        </div>
-      </div>
-
+      {inner}
       <SiteLandingFooter />
-
       <div className="toast-container toast-container--auth-pages">
         <FlashParamToast error={flashError} message={flashMessage} />
       </div>

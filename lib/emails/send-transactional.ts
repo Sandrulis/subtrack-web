@@ -104,6 +104,15 @@ export function canSendAuthEmailsViaResend(): boolean {
   );
 }
 
+/** Resend ir, bet trūkst service_role – nekrīt atpakaļ uz Supabase plakanu šablonu. */
+export function isAuthEmailResendMisconfigured(): boolean {
+  return (
+    isTransactionalEmailConfigured() &&
+    !!getSupabasePublicConfig() &&
+    !process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+  );
+}
+
 /** @deprecated use canSendAuthEmailsViaResend */
 export const canSendSignupConfirmViaResend = canSendAuthEmailsViaResend;
 
