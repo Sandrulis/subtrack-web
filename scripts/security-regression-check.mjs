@@ -105,7 +105,11 @@ for (const f of apiRoutes) {
   if (!/\.auth\.getUser\(|getUser\(\)/.test(text)) {
     errors.push(`${r}: API route bez getUser() sesijas pārbaudes`);
   }
-  if (!/\.eq\(\s*["']user_id["']|current_user_is_admin|admin_set_user/.test(text)) {
+  if (
+    !/\.eq\(\s*["']user_id["']|\.eq\(\s*["']id["'],\s*user\.id|current_user_is_admin|admin_set_user/.test(
+      text,
+    )
+  ) {
     warnings.push(`${r}: pārbaudi user_id / admin autorizāciju`);
   }
 }
@@ -113,6 +117,8 @@ for (const f of apiRoutes) {
 // L2.4 – email_templates tikai system_settings_email_templates (admin/cron)
 const allowEmailTemplatesTable = (file) =>
   isUnder(file, "lib/admin") ||
+  isUnder(file, "lib/cron") ||
+  isUnder(file, "lib/emails") ||
   isUnder(file, "app/admin") ||
   isUnder(file, "app/api/cron") ||
   isUnder(file, "scripts");

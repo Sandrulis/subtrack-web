@@ -18,17 +18,18 @@ const sharedFooterPath = path.join(modulesDir, "shared-footer.css");
 const landingShellPath = path.join(modulesDir, "landing-shell.css");
 const subtrackAppPath = path.join(modulesDir, "subtrack-app.css");
 
-fs.writeFileSync(corePath, slice(1, 1101));
-fs.writeFileSync(landingPagePath, slice(1103, 2888));
-fs.writeFileSync(sharedFooterPath, slice(2864, 2888));
+fs.writeFileSync(corePath, slice(1, 1129));
+
+fs.writeFileSync(landingPagePath, slice(1131, 2891));
+
+fs.writeFileSync(sharedFooterPath, slice(2892, 2915));
 
 let shell =
   "/* Landing shell: topbar, lang switcher, mobile nav, footer, cookies */\n";
 for (const [a, b] of [
-  [2889, 4065],
-  [7531, 7634],
-  [7821, 7831],
-  [7833, 8337],
+  [2916, 4104],
+  [7569, 7672],
+  [7906, 8363],
 ]) {
   shell += slice(a, b);
 }
@@ -37,9 +38,10 @@ fs.writeFileSync(landingShellPath, shell);
 let mockPanel =
   "/* Landing hero mock: pay-calendar, stat cards, sub-list (bāze no paneļa) */\n";
 for (const [a, b] of [
-  [4181, 4534],
-  [4564, 4734],
-  [4859, 5040],
+  [4105, 4182],
+  [4184, 4555],
+  [4564, 4931],
+  [4932, 5120],
 ]) {
   mockPanel += slice(a, b);
 }
@@ -49,12 +51,12 @@ const demoAppPath = path.join(modulesDir, "demo-app.css");
 fs.writeFileSync(
   demoAppPath,
   "/* /demo/* routes: banner, topbar badge, analytics donut (ārpus landing-page griezuma) */\n" +
-    slice(2585, 2739),
+    slice(2614, 2768),
 );
 
 let app =
   "/* App UI: dashboard, admin, auth, panel (without landing-page block) */\n";
-app += slice(2889, lines.length);
+app += slice(2916, lines.length);
 fs.writeFileSync(subtrackAppPath, app);
 
 /** Viens fails bez @import – Turbopack/Tailwind postcss kļūdās uz @import ķēdes. */

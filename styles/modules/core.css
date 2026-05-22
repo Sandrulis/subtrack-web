@@ -381,6 +381,34 @@ a:hover { text-decoration: underline; }
     gap: 16px;
 }
 
+.auth-social-hint {
+    margin: 14px 0 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.settings-google-connect {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-light);
+}
+
+.settings-google-connect .settings-section-title {
+    margin: 0 0 10px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.settings-google-connect-btn {
+    margin-top: 12px;
+}
+
+.settings-google-connect-linked {
+    margin: 0;
+}
+
 .btn-social {
     display: flex;
     align-items: center;

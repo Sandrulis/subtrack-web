@@ -1,5 +1,4 @@
 /* /demo/* routes: banner, topbar badge, analytics donut (ārpus landing-page griezuma) */
-/* Publiskās /demo/* lapas */
 .subtrack-demo-banner {
     /* Horizontālais ritms kā .dash-topbar-shell: ārējais pilnā platumā, iekšējā rinda ar padding iekš max-width */
     margin-top: 10px;
@@ -154,3 +153,4 @@
     font-weight: 700;
     color: var(--text);
 }
+
