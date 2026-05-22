@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
 import { getPublicSiteUrl } from "@/lib/site-url";
 import {
-  buildSiteShareOpenGraphTwitterForRequest,
-  getBrandBylinePageTitle,
+  buildSiteShareOpenGraphTwitterEn,
+  buildSiteSharePageTitle,
   getSiteShareDescription,
+  getSiteShareDescriptionEn,
 } from "@/lib/seo/site-share-metadata";
 
-export async function getLandingPageTitle(brand: string): Promise<string> {
-  return getBrandBylinePageTitle(brand);
+export function getLandingPageTitle(brand: string): string {
+  return buildSiteSharePageTitle(brand);
 }
 
 export async function buildLandingPageMetadata(brand: string): Promise<Metadata> {
-  const title = await getLandingPageTitle(brand);
-  const description = await getSiteShareDescription(brand);
-  const share = await buildSiteShareOpenGraphTwitterForRequest({
+  const title = getLandingPageTitle(brand);
+  const description = getSiteShareDescriptionEn(brand);
+  const share = buildSiteShareOpenGraphTwitterEn({
     brand,
     title,
     description,
@@ -21,7 +22,7 @@ export async function buildLandingPageMetadata(brand: string): Promise<Metadata>
   });
 
   return {
-    title,
+    title: { absolute: title },
     description,
     alternates: {
       canonical: "/",

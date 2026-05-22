@@ -145,7 +145,7 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
  * Pēc `/admin/system` saglabāšanas: `revalidateTag("system-settings")`.
  */
 export async function getPublicSystemSettings(): Promise<PublicSystemSettings> {
-  return unstable_cache(fetchPublicSystemSettings, ["subtrack-system-settings-v6"], {
+  return unstable_cache(fetchPublicSystemSettings, ["subtrack-system-settings-v7"], {
     revalidate: 3600,
     tags: ["system-settings"],
   })();

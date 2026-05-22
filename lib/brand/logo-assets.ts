@@ -1,3 +1,4 @@
+import { getPublicSiteUrl } from "@/lib/site-url";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
 
 /** Fiksēti failu nosaukumi mapē `brand` (public bucket). */
@@ -34,15 +35,25 @@ export function buildBrandStoragePublicUrl(
   return `${base}?v=${revision}`;
 }
 
+/** Publisks logo URL uz pašu domēnu (`/brand/...`), nevis Supabase hostu. */
+export function buildBrandSitePublicUrl(
+  filename: BrandStorageFile,
+  revision: number,
+): string | null {
+  if (revision <= 0) return null;
+  const origin = getPublicSiteUrl().replace(/\/$/, "");
+  return `${origin}/brand/${filename}?v=${revision}`;
+}
+
 export function resolvePublicBrandLogoAssets(revision: number): PublicBrandLogoAssets | null {
   if (revision <= 0) return null;
-  const topbar = buildBrandStoragePublicUrl("icon-64.png", revision);
-  const icon32 = buildBrandStoragePublicUrl("icon-32.png", revision);
-  const icon64 = buildBrandStoragePublicUrl("icon-64.png", revision);
-  const apple180 = buildBrandStoragePublicUrl("icon-180.png", revision);
-  const icon192 = buildBrandStoragePublicUrl("icon-192.png", revision);
-  const icon512 = buildBrandStoragePublicUrl("icon-512.png", revision);
-  const maskable512 = buildBrandStoragePublicUrl("icon-512-maskable.png", revision);
+  const topbar = buildBrandSitePublicUrl("icon-64.png", revision);
+  const icon32 = buildBrandSitePublicUrl("icon-32.png", revision);
+  const icon64 = buildBrandSitePublicUrl("icon-64.png", revision);
+  const apple180 = buildBrandSitePublicUrl("icon-180.png", revision);
+  const icon192 = buildBrandSitePublicUrl("icon-192.png", revision);
+  const icon512 = buildBrandSitePublicUrl("icon-512.png", revision);
+  const maskable512 = buildBrandSitePublicUrl("icon-512-maskable.png", revision);
   if (!topbar || !icon32 || !icon64 || !apple180 || !icon192 || !icon512 || !maskable512) {
     return null;
   }

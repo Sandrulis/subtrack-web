@@ -22,8 +22,9 @@ import { getPublicSiteOrigin } from "@/lib/site-url";
 import { isIntegrationEnabled } from "@/lib/integrations/integration-enabled";
 import { resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
 import {
-  buildSiteShareOpenGraphTwitterForRequest,
-  getSiteShareDescription,
+  buildSiteShareOpenGraphTwitterEn,
+  buildSiteSharePageTitle,
+  getSiteShareDescriptionEn,
 } from "@/lib/seo/site-share-metadata";
 
 const inter = Inter({
@@ -43,10 +44,11 @@ export async function generateViewport(): Promise<Viewport> {
 
 export async function generateMetadata(): Promise<Metadata> {
   const { systemName, brandLogo, pwa } = await getPublicSystemSettings();
-  const description = await getSiteShareDescription(systemName);
-  const share = await buildSiteShareOpenGraphTwitterForRequest({
+  const title = buildSiteSharePageTitle(systemName);
+  const description = getSiteShareDescriptionEn(systemName);
+  const share = buildSiteShareOpenGraphTwitterEn({
     brand: systemName,
-    title: systemName,
+    title,
     description,
   });
   const icons = brandLogo

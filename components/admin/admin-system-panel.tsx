@@ -21,7 +21,6 @@ export type AdminSystemPanelProps = {
   loadError: string | null;
   initialSystemName: string;
   initialLogoRevision: number;
-  brandStoragePublicBase: string | null;
   initialDefaults: DisplayPreferences;
   initialPaidPlan: {
     enabled: boolean;
@@ -125,7 +124,6 @@ export function AdminSystemPanel({
   loadError,
   initialSystemName,
   initialLogoRevision,
-  brandStoragePublicBase,
   initialDefaults,
   initialPaidPlan,
   initialProTrial,
@@ -357,7 +355,6 @@ export function AdminSystemPanel({
 
           <AdminSystemLogoUpload
             initialLogoRevision={initialLogoRevision}
-            brandStoragePublicBase={brandStoragePublicBase}
             disabled={loadError !== null}
           />
 

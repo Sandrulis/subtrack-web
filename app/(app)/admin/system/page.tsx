@@ -8,7 +8,6 @@ import {
 } from "@/lib/user-display-preferences";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
-import { getSupabasePublicConfig } from "@/lib/supabase/env";
 import { DEFAULT_SYSTEM_NAME } from "@/lib/pwa/defaults";
 import { normalizePaidPlanRow } from "@/lib/system-settings-public";
 import { normalizeProTrialConfig } from "@/lib/auth/pro-trial-access";
@@ -46,11 +45,6 @@ export default async function AdminSystemPage() {
       ? Math.max(0, Math.trunc(logoRevisionRaw))
       : Number.parseInt(String(logoRevisionRaw ?? "0"), 10) || 0;
 
-  const supabaseCfg = getSupabasePublicConfig();
-  const brandStoragePublicBase = supabaseCfg
-    ? `${supabaseCfg.url.replace(/\/$/, "")}/storage/v1/object/public/brand`
-    : null;
-
   return (
     <div className="admin-page">
       <AdminSystemIntro />
@@ -58,7 +52,6 @@ export default async function AdminSystemPage() {
         loadError={error?.message ?? null}
         initialSystemName={initialSystemName}
         initialLogoRevision={initialLogoRevision}
-        brandStoragePublicBase={brandStoragePublicBase}
         initialDefaults={initialDefaults}
         initialPaidPlan={initialPaidPlan}
         initialProTrial={initialProTrial}

@@ -11,6 +11,23 @@ export const OPENGRAPH_IMAGE_SIZE = { width: 1200, height: 630 } as const;
 const SHARE_DESCRIPTION_FALLBACK =
   "Pārvaldi abonementus, rēķinus un citus periodiskos maksājumus vienuviet.";
 
+/** OG / Twitter / dokumenta virsraksts dalīšanai (vienmēr angļu, neatkarīgi no UI lokāles). */
+export const SITE_SHARE_TITLE_SUFFIX_EN =
+  "subscription and recurring payment tracker";
+
+export const SITE_SHARE_DESCRIPTION_EN =
+  "Manage subscriptions, bills, and other recurring payments in one place.";
+
+export function buildSiteSharePageTitle(brand: string): string {
+  const trimmedBrand = brand.trim();
+  return `${trimmedBrand} – ${SITE_SHARE_TITLE_SUFFIX_EN}`;
+}
+
+export function getSiteShareDescriptionEn(brand: string): string {
+  const trimmedBrand = brand.trim();
+  return SITE_SHARE_DESCRIPTION_EN.replace(/\{SYSTEM_NAME\}/g, trimmedBrand);
+}
+
 /** Open Graph `locale` (piem. `lv_LV`) no `languages.code`. */
 export function localeCodeToOpenGraphLocale(code: string): string {
   const primary = code.trim().toLowerCase().split(/[-_]/)[0] ?? "en";
@@ -96,9 +113,16 @@ export function buildSiteShareOpenGraphTwitter(
   };
 }
 
+/** OG/Twitter vienmēr angļu (`en_US`), lai atbilstu fiksētajam virsrakstam (crawleri bez LV sīkdatnes). */
+export function buildSiteShareOpenGraphTwitterEn(
+  input: Omit<SiteShareGraphInput, "locale">,
+): Pick<Metadata, "openGraph" | "twitter"> {
+  return buildSiteShareOpenGraphTwitter({ ...input, locale: "en" });
+}
+
+/** @deprecated Prefer `buildSiteShareOpenGraphTwitterEn` for share cards. */
 export async function buildSiteShareOpenGraphTwitterForRequest(
   input: Omit<SiteShareGraphInput, "locale">,
 ): Promise<Pick<Metadata, "openGraph" | "twitter">> {
-  const { locale } = await resolveRequestUiLocales();
-  return buildSiteShareOpenGraphTwitter({ ...input, locale });
+  return buildSiteShareOpenGraphTwitterEn(input);
 }

@@ -10,19 +10,16 @@ import { useCallback, useRef, useState, useTransition } from "react";
 
 type AdminSystemLogoUploadProps = {
   initialLogoRevision: number;
-  /** Piem. `https://….supabase.co/storage/v1/object/public/brand` */
-  brandStoragePublicBase: string | null;
   disabled?: boolean;
 };
 
-function buildPreviewUrl(base: string | null, revision: number): string | null {
-  if (!base || revision <= 0) return null;
-  return `${base.replace(/\/$/, "")}/icon-64.png?v=${revision}`;
+function buildPreviewUrl(revision: number): string | null {
+  if (revision <= 0) return null;
+  return `/brand/icon-64.png?v=${revision}`;
 }
 
 export function AdminSystemLogoUpload({
   initialLogoRevision,
-  brandStoragePublicBase,
   disabled = false,
 }: AdminSystemLogoUploadProps) {
   const { t } = useSubtrackIntl();
@@ -74,7 +71,7 @@ export function AdminSystemLogoUpload({
     });
   };
 
-  const previewSrc = buildPreviewUrl(brandStoragePublicBase, revision);
+  const previewSrc = buildPreviewUrl(revision);
 
   return (
     <div className="form-group admin-logo-upload-wrap">
