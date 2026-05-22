@@ -38,16 +38,25 @@ function copyCookies(from: NextResponse, to: NextResponse) {
   }
 }
 
+/** Root layout: `body.landing-page` bez klienta inline skripta (hydration). */
+function nextWithPathname(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+}
+
 /**
  * Atjauno Supabase Auth sesiju un (ja konfigurēts) aizsargā paneļa maršrutus.
  */
 export async function updateSession(request: NextRequest) {
   const cfg = getSupabasePublicConfig();
   if (!cfg) {
-    return NextResponse.next({ request });
+    return nextWithPathname(request);
   }
 
-  let supabaseResponse = NextResponse.next({ request });
+  let supabaseResponse = nextWithPathname(request);
 
   const supabase = createServerClient(cfg.url, cfg.anonKey, {
     cookies: {
@@ -58,7 +67,7 @@ export async function updateSession(request: NextRequest) {
         cookiesToSet.forEach(({ name, value }) =>
           request.cookies.set(name, value),
         );
-        supabaseResponse = NextResponse.next({ request });
+        supabaseResponse = nextWithPathname(request);
         cookiesToSet.forEach(({ name, value, options }) =>
           supabaseResponse.cookies.set(name, value, options),
         );

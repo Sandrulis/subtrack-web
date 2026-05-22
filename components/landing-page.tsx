@@ -2,6 +2,7 @@
 import { calendarWeekdayHeadersForIntl } from "@/lib/calendar-weekday-headers";
 import { getLandingUiPhrases } from "@/lib/landing/get-landing-ui-phrases";
 import { getPublicSystemSettings } from "@/lib/system-settings-public";
+import { applySystemNamePlaceholders } from "@/lib/system-name-placeholder";
 import { resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import Link from "next/link";
@@ -369,20 +370,23 @@ const FEATURE_ROWS = [
 
 function buildLandingPhraseLookup(
   phrases: Record<string, string>,
+  systemSiteName: string,
 ): (key: string) => string {
   return (key: string) => {
-    const v = phrases[key];
-    return typeof v === "string" && v.length > 0 ? v : key;
+    const raw = phrases[key];
+    const v = typeof raw === "string" && raw.length > 0 ? raw : key;
+    return applySystemNamePlaceholders(v, systemSiteName);
   };
 }
 
 export async function LandingPageContent() {
-  const [{ locale }, { paidPlan }, phrases] = await Promise.all([
+  const [{ locale }, publicSettings, phrases] = await Promise.all([
     resolveRequestUiLocales(),
     getPublicSystemSettings(),
     getLandingUiPhrases(),
   ]);
-  const t = buildLandingPhraseLookup(phrases);
+  const { paidPlan, systemName: systemSiteName } = publicSettings;
+  const t = buildLandingPhraseLookup(phrases, systemSiteName);
   const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
 
   let paidPitch: { blurb: string } | null = null;

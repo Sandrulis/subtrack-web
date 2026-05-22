@@ -20,18 +20,29 @@ const subtrackAppPath = path.join(modulesDir, "subtrack-app.css");
 
 fs.writeFileSync(corePath, slice(1, 1101));
 fs.writeFileSync(landingPagePath, slice(1103, 2594));
-fs.writeFileSync(sharedFooterPath, slice(2595, 2618));
+fs.writeFileSync(sharedFooterPath, slice(2595, 2619));
 
 let shell =
   "/* Landing shell: topbar, lang switcher, mobile nav, footer, cookies */\n";
 for (const [a, b] of [
-  [2637, 3097],
+  [2637, 3098],
   [7196, 7300],
-  [7584, 7830],
+  [7584, 7831],
 ]) {
   shell += slice(a, b);
 }
 fs.writeFileSync(landingShellPath, shell);
+
+let mockPanel =
+  "/* Landing hero mock: pay-calendar, stat cards, sub-list (bāze no paneļa) */\n";
+for (const [a, b] of [
+  [3847, 4218],
+  [4274, 4435],
+  [4554, 4796],
+]) {
+  mockPanel += slice(a, b);
+}
+fs.writeFileSync(path.join(modulesDir, "landing-mock-panel.css"), mockPanel);
 
 let app =
   "/* App UI: dashboard, admin, auth, panel (without landing-page block) */\n";
@@ -49,6 +60,7 @@ function writeFlatBundle(outPath, partPaths) {
 writeFlatBundle(path.join(root, "styles", "landing.css"), [
   corePath,
   landingPagePath,
+  path.join(modulesDir, "landing-mock-panel.css"),
   sharedFooterPath,
   landingShellPath,
 ]);

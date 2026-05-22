@@ -1,0 +1,778 @@
+/* Landing hero mock: pay-calendar, stat cards, sub-list (bāze no paneļa) */
+.dashboard-overview-calendar-col {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-overview-right-col {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.dashboard-overview-head-col .page-header {
+    margin-bottom: 0;
+}
+
+.dashboard-overview-stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    min-width: 0;
+    align-items: stretch;
+}
+
+.dashboard-overview-stats-row > .stat-card {
+    height: 100%;
+}
+
+.dashboard-overview-next-slot {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-top-calendar {
+    min-width: 0;
+}
+
+.pay-calendar-card {
+    position: relative;
+    background: var(--bg-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 18px 14px;
+    box-shadow: var(--shadow-sm);
+}
+
+.pay-calendar-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.pay-calendar-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: var(--text);
+    text-align: center;
+    flex: 1;
+}
+
+.pay-cal-nav {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color .15s, background .15s, color .15s;
+    flex-shrink: 0;
+}
+
+.pay-cal-nav:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.pay-calendar {
+    font-size: 13px;
+    user-select: none;
+}
+
+.pay-cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 6px;
+}
+
+.pay-cal-wd {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: var(--text-light);
+    padding: 4px 0;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.pay-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+
+.pay-cal-cell {
+    position: relative;
+    aspect-ratio: 1;
+    max-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    border: 1px solid transparent;
+    background: transparent;
+    transition: background .15s, color .15s, border-color .15s, box-shadow .15s;
+}
+
+.pay-cal-cell--empty {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.pay-cal-cell--muted {
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+.pay-cal-cell--today:not(.pay-cal-cell--due):not(.pay-cal-cell--overdue) {
+    box-shadow: 0 0 0 2px rgba(0, 163, 141, 0.45);
+}
+
+/* Šodiena + „atzīmēts samaksāts” bez aktīva termiņa: zilais riņķis (citādi uzvar tīrkīza „šodiena”). */
+.pay-cal-cell--paid-past.pay-cal-cell--today:not(.pay-cal-cell--due):not(.pay-cal-cell--overdue) {
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.52);
+}
+
+.pay-cal-cell--due {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    border-color: rgba(0, 163, 141, 0.35);
+    cursor: default;
+}
+
+.pay-cal-cell--due:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.pay-cal-cell--due.pay-cal-cell--today {
+    box-shadow: 0 0 0 2px var(--primary);
+}
+
+.pay-cal-cell--overdue {
+    background: var(--danger-light);
+    color: #b91c1c;
+    border-color: rgba(239, 68, 68, 0.35);
+    cursor: default;
+}
+
+.pay-cal-cell--overdue:focus-visible {
+    outline: 2px solid var(--danger);
+    outline-offset: 2px;
+}
+
+.pay-cal-cell--overdue.pay-cal-cell--today {
+    box-shadow: 0 0 0 2px var(--danger);
+}
+
+.pay-cal-cell-num {
+    position: relative;
+    z-index: 0;
+}
+
+.pay-cal-cell-more {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    z-index: 1;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    pointer-events: none;
+}
+
+.pay-cal-cell--due:not(.pay-cal-cell--overdue) .pay-cal-cell-more {
+    color: rgba(0, 163, 141, 0.35);
+}
+
+.pay-cal-cell--overdue .pay-cal-cell-more {
+    color: rgba(239, 68, 68, 0.35);
+}
+
+/* Šodienas šūna: +N tā pati krāsa kā „ring” (box-shadow), nevis vājš border rgba */
+.pay-cal-cell--due.pay-cal-cell--today:not(.pay-cal-cell--overdue) .pay-cal-cell-more {
+    color: var(--primary);
+}
+
+.pay-cal-cell--overdue.pay-cal-cell--today .pay-cal-cell-more {
+    color: var(--danger);
+}
+
+.pay-cal-cell--paid-past {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(37, 99, 235, 0.32);
+    color: #1e40af;
+    cursor: default;
+}
+
+.pay-cal-cell--paid-past:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+.pay-cal-cell--due-with-paid.pay-cal-cell--due:not(.pay-cal-cell--overdue) {
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.35);
+}
+
+.pay-cal-cell--due-with-paid.pay-cal-cell--due.pay-cal-cell--today:not(.pay-cal-cell--overdue) {
+    box-shadow:
+        0 0 0 2px var(--primary),
+        inset 0 0 0 1px rgba(37, 99, 235, 0.4);
+}
+
+.pay-cal-cell--due-with-paid.pay-cal-cell--overdue.pay-cal-cell--today {
+    box-shadow:
+        0 0 0 2px var(--danger),
+        inset 0 0 0 1px rgba(37, 99, 235, 0.4);
+}
+
+.pay-cal-cell--due-with-paid.pay-cal-cell--overdue:not(.pay-cal-cell--today) {
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.35);
+}
+
+.pay-cal-cell--paid-past .pay-cal-cell-more {
+    color: rgba(37, 99, 235, 0.45);
+}
+
+.pay-cal-cell-paid-flag {
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    z-index: 1;
+    font-size: 10px;
+    color: #2563eb;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.pay-cal-cell-paid-done {
+    position: absolute;
+    left: 3px;
+    bottom: 3px;
+    z-index: 1;
+    font-size: 10px;
+    color: #2563eb;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.pay-cal-cell-paid-done-count {
+    position: absolute;
+    left: 2px;
+    bottom: 2px;
+    z-index: 1;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: rgba(37, 99, 235, 0.88);
+    pointer-events: none;
+}
+
+.pay-calendar-footer {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.pay-calendar-hint {
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px 8px;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.pay-calendar-hint-sep {
+    color: var(--text-light);
+}
+
+.pay-calendar-toggle-row {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+/* Kalendāra „Visi maksājumi”: ~40% mazāks slēdzis nekā admin noklusējums (46×28). */
+#pay-cal-include-paid-switch {
+    width: 28px;
+    height: 17px;
+}
+
+#pay-cal-include-paid-switch .admin-switch-thumb {
+    top: 2px;
+    left: 2px;
+    width: 13px;
+    height: 13px;
+}
+
+#pay-cal-include-paid-switch.is-on .admin-switch-thumb {
+    transform: translateX(11px);
+}
+
+#pay-cal-include-paid-switch.is-on .admin-switch-track {
+    background: #2563eb;
+}
+
+#pay-cal-include-paid-switch:focus-visible .admin-switch-track {
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+}
+
+.pay-cal-legend-i {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.pay-cal-legend-i--due {
+    background: var(--primary-light);
+    border: 1px solid rgba(0, 163, 141, 0.35);
+}
+
+.pay-cal-legend-i--overdue {
+    background: var(--danger-light);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.pay-cal-legend-i--paid-past {
+    background: rgba(59, 130, 246, 0.18);
+    border: 1px solid rgba(37, 99, 235, 0.42);
+}
+
+.stat-card {
+    background: var(--bg-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: box-shadow .2s;
+}
+
+.stat-card:hover { box-shadow: var(--shadow-sm); }
+
+.stat-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--text);
+}
+
+.stat-note {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.stat-next-body {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px 14px;
+    width: 100%;
+    min-width: 0;
+    padding-top: 6px;
+    flex: 1;
+}
+
+.stat-next-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stat-next-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    line-height: 1.35;
+}
+
+.stat-card--next-pay {
+    min-height: 118px;
+}
+
+/* Nākamais maksājums: vairākas kolonnas (kavētie / šodien / nākamais) */
+.stat-next-pay-grid {
+    display: grid;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+}
+
+.stat-next-pay-grid--cols-1 {
+    grid-template-columns: 1fr;
+}
+
+.stat-next-pay-grid--cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stat-next-pay-grid--cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stat-next-pay-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    min-height: 118px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+.stat-next-pay-col--overdue {
+    background: var(--danger-light);
+    border-color: var(--danger);
+}
+
+.stat-next-pay-col--today {
+    background: #fffbeb;
+    border-color: var(--warning);
+}
+
+/* Kā „Aktīvie maksājumi” / pārējās stat kartes */
+.stat-next-pay-col--next {
+    background: var(--bg-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    gap: 6px;
+    transition: box-shadow 0.2s;
+}
+
+.stat-next-pay-col--next:hover {
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-next-pay-col--overdue .stat-label,
+.stat-next-pay-col--today .stat-label {
+    color: var(--text);
+}
+
+.stat-next-pay-col--overdue .stat-next-body,
+.stat-next-pay-col--today .stat-next-body,
+.stat-next-pay-col--next-compact .stat-next-body {
+    justify-content: flex-start;
+}
+
+.stat-value--next {
+    /*
+     * Datuma rinda „Nākamais maksājums”: tā paša izmēra kā kopējās summas .stat-value.
+     */
+    font-size: 32px;
+}
+
+.stat-next-body .stat-value--next {
+    flex: initial;
+}
+
+.stat-next-body .stat-next-amount {
+    flex-shrink: 0;
+    margin-top: 0;
+    font-size: 20px;
+    line-height: 1.2;
+    align-self: center;
+}
+
+.stat-next-amount {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--text);
+    margin-top: 2px;
+    min-height: 0;
+}
+
+.stat-next-amount:empty {
+    display: none;
+}
+.section-heading {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+
+.sub-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sub-item {
+    background: var(--bg-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    transition: box-shadow .18s, border-color .18s;
+}
+
+.sub-item-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.sub-item:hover {
+    box-shadow: var(--shadow-sm);
+    border-color: #d4d7e8;
+}
+
+.sub-item--scroll-highlight {
+    animation: sub-item-scroll-flash 1.25s ease;
+}
+
+@keyframes sub-item-scroll-flash {
+    0% {
+        box-shadow: 0 0 0 1px rgba(0, 163, 141, 0.45), 0 8px 28px rgba(0, 163, 141, 0.12);
+        border-color: rgba(0, 163, 141, 0.55);
+    }
+    55% {
+        box-shadow: 0 0 0 1px rgba(0, 163, 141, 0.2), 0 6px 20px rgba(0, 163, 141, 0.08);
+        border-color: #d4d7e8;
+    }
+    100% {
+        box-shadow: var(--shadow-sm);
+        border-color: #d4d7e8;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sub-item--scroll-highlight {
+        animation: none;
+        outline: 2px solid rgba(0, 163, 141, 0.45);
+        outline-offset: 1px;
+    }
+}
+
+/* Col 1: icon width only */
+.sub-item-top .sub-icon-col {
+    flex: 0 0 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-start;
+    padding-top: 2px;
+}
+
+.sub-icon-bg {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    border: 1px solid var(--border);
+}
+
+.sub-icon-bg i {
+    font-size: 18px;
+}
+
+/* Col 2: text + amount row */
+.sub-item-top .sub-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.sub-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.sub-name-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    min-width: 0;
+}
+
+.sub-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.sub-dynamic-amount-badge {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    font-size: 12px;
+    line-height: 1;
+    color: #6b5b95;
+}
+
+.sub-dynamic-amount-badge .fa-chart-line {
+    opacity: 0.92;
+}
+
+.sub-note-inline {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-light);
+    line-height: 1.35;
+}
+
+.sub-category-pill {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    line-height: 1.25;
+    flex-shrink: 0;
+    transform: translateY(-5px);
+}
+
+.sub-date {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.sub-date i.fa-solid {
+    font-size: 12px;
+    opacity: .85;
+}
+
+.sub-date.soon { color: var(--warning); }
+.sub-date.overdue { color: var(--danger); }
+
+.sub-date-overdue-meta {
+    font-weight: 600;
+}
+
+.sub-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    min-width: 0;
+}
+
+.sub-amount-wrap {
+    text-align: right;
+    margin-left: auto;
+}
+
+.sub-amount {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    text-align: right;
+}
+
+.sub-amount.sub-amount--editing {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.sub-amount-currency {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text);
+}
+
+.sub-amount-inline-input {
+    width: 5.5rem;
+    max-width: 100%;
+    font-size: 18px;
+    font-weight: 800;
+    text-align: right;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 8px;
+    color: var(--text);
+    background: var(--surface);
+}
+
+.sub-amount-inline-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.15);
+}
+
+.sub-actions .icon-btn.change-amount {
+    color: #6b5b95;
+}
+
+.sub-actions .icon-btn.change-amount:hover:not(:disabled) {
+    background: #f5f3f9;
+    color: #5a4d82;
+}
+
+.sub-period {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-align: right;
+}

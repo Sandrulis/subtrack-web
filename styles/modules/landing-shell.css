@@ -1,4 +1,5 @@
 /* Landing shell: topbar, lang switcher, mobile nav, footer, cookies */
+
 .dash-topbar {
     position: sticky;
     top: 0;
@@ -460,6 +461,7 @@ a.dash-nav-link--cta.is-active .dash-icon {
         overflow-y: auto;
     }
 }
+
 /* =============================================
    Mobila apakšējā navigācija („glass“ poga)
    ============================================= */

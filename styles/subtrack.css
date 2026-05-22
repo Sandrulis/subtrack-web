@@ -1281,6 +1281,7 @@ body.landing-page .landing-cta {
 
 
 .landing-hero-dashboard-mock .dashboard-overview-main {
+    display: grid;
     gap: clamp(10px, 2vw, 14px) clamp(10px, 2vw, 16px);
     margin-bottom: 12px;
     align-items: stretch;

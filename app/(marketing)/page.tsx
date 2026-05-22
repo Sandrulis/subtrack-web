@@ -22,12 +22,6 @@ export default async function HomePage() {
   return (
     <>
       <LandingWebAppJsonLd brand={brand} />
-      {/* Pirms React hydration – body.landing-page fons */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `document.body.classList.add("landing-page");`,
-        }}
-      />
       <NavLanding />
       <main id="main">
         <LandingPageContent />

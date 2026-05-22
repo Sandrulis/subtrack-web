@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { HtmlLangBridge } from "@/components/html-lang-bridge";
@@ -90,6 +91,9 @@ export default async function RootLayout({
   ]);
   const systemSiteName = publicSettings.systemName;
   const brandLogo = publicSettings.brandLogo;
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const bodyClassName =
+    pathname === "/" ? `${inter.className} landing-page` : inter.className;
 
   return (
     <html
@@ -100,7 +104,7 @@ export default async function RootLayout({
       <head>
         <FontAwesomeDeferredHead />
       </head>
-      <body className={inter.className}>
+      <body className={bodyClassName}>
         <HtmlLangBridge
           serverUiLocaleCode={uiLocaleCode}
           preferLocalStorageLocale={!isAuthenticated}
