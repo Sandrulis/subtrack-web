@@ -19,7 +19,7 @@ export function ForgotPasswordFsView() {
 
   return (
     <>
-      <div className="auth-page-inner">
+      <main id="main" className="auth-page-inner">
         {!state.ok ? (
           <div className="auth-card auth-card--form" id="card-request">
             <div style={{ marginBottom: 16, color: "var(--primary)" }}>
@@ -108,7 +108,7 @@ export function ForgotPasswordFsView() {
             </p>
           </div>
         )}
-      </div>
+      </main>
 
       <SiteLandingFooter />
     </>

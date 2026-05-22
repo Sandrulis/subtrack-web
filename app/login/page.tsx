@@ -33,13 +33,13 @@ export default async function LoginPage({
     <div className="auth-page">
       <NavLanding active="login" />
       <AuthToastsHost urlError={sp.error} urlMessage={sp.message}>
-        <div className="auth-page-inner">
+        <main id="main" className="auth-page-inner">
           <AuthLoginFlow
             nextPath={next}
             oauthGoogleEnabled={oauthGoogleEnabled}
             oauthAppleEnabled={oauthAppleEnabled}
           />
-        </div>
+        </main>
 
         <SiteLandingFooter />
 

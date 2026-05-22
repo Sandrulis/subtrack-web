@@ -63,6 +63,7 @@ export function NavDash({
                 className={
                   "dash-nav-link" + (active === "dashboard" ? " is-active" : "")
                 }
+                aria-label={t("nav.dashboard")}
                 aria-current={active === "dashboard" ? "page" : undefined}
               >
                 <svg
@@ -86,6 +87,7 @@ export function NavDash({
                   className={
                     "dash-nav-link" + (active === "analytics" ? " is-active" : "")
                   }
+                  aria-label={t("nav.analytics")}
                   aria-current={active === "analytics" ? "page" : undefined}
                 >
                   <svg
@@ -111,6 +113,7 @@ export function NavDash({
                   className={
                     "dash-nav-link" + (active === "admin" ? " is-active" : "")
                   }
+                  aria-label={t("nav.admin")}
                   aria-current={active === "admin" ? "page" : undefined}
                 >
                   <svg

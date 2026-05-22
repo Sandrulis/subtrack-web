@@ -11,7 +11,7 @@ import { getSystemSiteName } from "@/lib/system-settings-public";
 
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getSystemSiteName();
-  return buildLandingPageMetadata(brand);
+  return await buildLandingPageMetadata(brand);
 }
 
 export default async function HomePage() {
@@ -30,7 +30,9 @@ export default async function HomePage() {
         }}
       />
       <NavLanding />
-      <LandingPageContent />
+      <main id="main">
+        <LandingPageContent />
+      </main>
       <LandingNavSync />
     </BodyLandingPageClass>
   );

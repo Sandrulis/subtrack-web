@@ -59,6 +59,14 @@ export function canSetFunctionalCookies(): boolean {
   return c.functional;
 }
 
+/** Analītikas skripti (piem. Umami) tikai pēc skaidras lietotāja izvēles. */
+export function canUseAnalyticsCookies(): boolean {
+  const c = readCookieConsentFromDocument();
+  return c?.analytics === true;
+}
+
+export const COOKIE_CONSENT_CHANGED_EVENT = "subtrack:cookie-consent-changed";
+
 export function writeCookieConsent(choice: CookieConsentChoice): CookieConsentPreferences {
   const payload: CookieConsentPreferences = {
     v: COOKIE_CONSENT_VERSION,
@@ -69,6 +77,7 @@ export function writeCookieConsent(choice: CookieConsentChoice): CookieConsentPr
   };
   if (typeof document !== "undefined") {
     document.cookie = `${COOKIE_CONSENT_COOKIE}=${encodeURIComponent(JSON.stringify(payload))};path=/;max-age=${MAX_AGE_SEC};samesite=lax`;
+    window.dispatchEvent(new CustomEvent(COOKIE_CONSENT_CHANGED_EVENT));
   }
   return payload;
 }

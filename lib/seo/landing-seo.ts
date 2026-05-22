@@ -1,36 +1,31 @@
 import type { Metadata } from "next";
-import { getPublicSiteOrigin, getPublicSiteUrl } from "@/lib/site-url";
-
-export const LANDING_PAGE_DESCRIPTION =
-  "Pārvaldi abonementus, rēķinus un citus periodiskos maksājumus vienuviet. Kalendārs, analītika un atgādinājumi vienkāršā un modernā panelī.";
+import { getPublicSiteUrl } from "@/lib/site-url";
+import {
+  buildSiteShareOpenGraphTwitterForRequest,
+  getSiteShareDescription,
+} from "@/lib/seo/site-share-metadata";
 
 export function landingPageTitle(brand: string): string {
   return `${brand} – abonementu un periodisko maksājumu pārvaldība`;
 }
 
-export function buildLandingPageMetadata(brand: string): Metadata {
+export async function buildLandingPageMetadata(brand: string): Promise<Metadata> {
   const title = landingPageTitle(brand);
-  const siteOrigin = getPublicSiteOrigin();
+  const description = await getSiteShareDescription(brand);
+  const share = await buildSiteShareOpenGraphTwitterForRequest({
+    brand,
+    title,
+    description,
+    url: getPublicSiteUrl(),
+  });
 
   return {
     title,
-    description: LANDING_PAGE_DESCRIPTION,
+    description,
     alternates: {
       canonical: "/",
     },
-    openGraph: {
-      type: "website",
-      locale: "lv_LV",
-      url: siteOrigin.href,
-      siteName: brand,
-      title,
-      description: LANDING_PAGE_DESCRIPTION,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description: LANDING_PAGE_DESCRIPTION,
-    },
+    ...share,
   };
 }
 
@@ -45,12 +40,15 @@ export type WebApplicationJsonLd = {
   browserRequirements: string;
 };
 
-export function buildLandingWebApplicationJsonLd(brand: string): WebApplicationJsonLd {
+export async function buildLandingWebApplicationJsonLd(
+  brand: string,
+): Promise<WebApplicationJsonLd> {
+  const description = await getSiteShareDescription(brand);
   return {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     name: brand,
-    description: LANDING_PAGE_DESCRIPTION,
+    description,
     url: getPublicSiteUrl(),
     applicationCategory: "FinanceApplication",
     operatingSystem: "Web",

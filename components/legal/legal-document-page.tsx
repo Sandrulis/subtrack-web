@@ -31,7 +31,7 @@ export function LegalDocumentPage({
       ) : (
         <NavLanding active="" />
       )}
-      <div className="auth-page-inner legal-page-inner">
+      <main id="main" className="auth-page-inner legal-page-inner">
         <article className="auth-card auth-card--legal legal-document">
           <p className="legal-document-back">
             <Link href={authed ? "/dashboard" : "/"}>
@@ -51,7 +51,7 @@ export function LegalDocumentPage({
             ))}
           </div>
         </article>
-      </div>
+      </main>
       <SiteLandingFooter />
     </div>
   );

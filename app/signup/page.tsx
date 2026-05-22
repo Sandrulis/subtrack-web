@@ -29,12 +29,12 @@ export default async function SignupPage({
     <div className="auth-page">
       <NavLanding active="signup" />
       <AuthToastsHost urlError={sp.error}>
-        <div className="auth-page-inner">
+        <main id="main" className="auth-page-inner">
           <AuthSignupCard
             oauthGoogleEnabled={oauthGoogleEnabled}
             oauthAppleEnabled={oauthAppleEnabled}
           />
-        </div>
+        </main>
 
         <SiteLandingFooter />
 

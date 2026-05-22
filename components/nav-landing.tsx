@@ -42,7 +42,11 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
             >
               {userDisplay ? (
                 <>
-                  <Link href="/dashboard" className="dash-nav-link">
+                  <Link
+                    href="/dashboard"
+                    className="dash-nav-link"
+                    aria-label={t("nav.dashboard")}
+                  >
                     <svg
                       className="dash-icon"
                       width="16"
@@ -65,6 +69,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                         "dash-nav-link" +
                         (authedAnalyticsPathActive ? " is-active" : "")
                       }
+                      aria-label={t("nav.analytics")}
                       aria-current={
                         authedAnalyticsPathActive ? "page" : undefined
                       }
@@ -88,7 +93,12 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                     </Link>
                   ) : null}
                   {userDisplay.isAdmin ? (
-                    <Link href="/admin" prefetch={false} className="dash-nav-link">
+                    <Link
+                      href="/admin"
+                      prefetch={false}
+                      className="dash-nav-link"
+                      aria-label={t("nav.admin")}
+                    >
                       <svg
                         className="dash-icon"
                         width="16"
@@ -114,6 +124,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                     href="/#features"
                     className="dash-nav-link"
                     data-landing-anchor="features"
+                    aria-label={t("nav.features")}
                   >
                     <svg
                       className="dash-icon"
@@ -134,6 +145,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                     href="/#demo"
                     className="dash-nav-link"
                     data-landing-anchor="demo"
+                    aria-label={t("nav.demo")}
                   >
                     <svg
                       className="dash-icon"
@@ -154,6 +166,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                     href="/#faq"
                     className="dash-nav-link"
                     data-landing-anchor="faq"
+                    aria-label={t("nav.faq_nav")}
                   >
                     <svg
                       className="dash-icon"
@@ -188,6 +201,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                   className={
                     "dash-nav-link" + (active === "login" ? " is-active" : "")
                   }
+                  aria-label={t("nav.login")}
                   aria-current={active === "login" ? "page" : undefined}
                 >
                   <svg
@@ -211,6 +225,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                     "dash-nav-link dash-nav-link--cta" +
                     (active === "signup" ? " is-active" : "")
                   }
+                  aria-label={t("nav.signup")}
                   aria-current={active === "signup" ? "page" : undefined}
                 >
                   <svg

@@ -7,8 +7,8 @@ type LandingWebAppJsonLdProps = {
   brand: string;
 };
 
-export function LandingWebAppJsonLd({ brand }: LandingWebAppJsonLdProps) {
-  const data: WebApplicationJsonLd = buildLandingWebApplicationJsonLd(brand);
+export async function LandingWebAppJsonLd({ brand }: LandingWebAppJsonLdProps) {
+  const data: WebApplicationJsonLd = await buildLandingWebApplicationJsonLd(brand);
   return (
     <script
       type="application/ld+json"

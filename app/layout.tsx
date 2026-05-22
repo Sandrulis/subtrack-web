@@ -5,6 +5,7 @@ import { HtmlLangBridge } from "@/components/html-lang-bridge";
 import { CookieConsentRoot } from "@/components/legal/cookie-consent-root";
 import { PwaInstallHost } from "@/components/pwa/pwa-install-host";
 import { PwaSwRegister } from "@/components/pwa/pwa-sw-register";
+import { UmamiAnalytics } from "@/components/analytics/umami-analytics";
 import { ModalBackdropCloseConfirmHost } from "@/components/ui/modal-backdrop-close-confirm-host";
 import { SubtrackIntlProvider } from "@/components/subtrack-intl-provider";
 import { PWA_DEFAULT_THEME_COLOR } from "@/lib/pwa/defaults";
@@ -15,6 +16,10 @@ import { getPublicSystemSettings } from "@/lib/system-settings-public";
 import { getPublicSiteOrigin } from "@/lib/site-url";
 import { isIntegrationEnabled } from "@/lib/integrations/integration-enabled";
 import { resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
+import {
+  buildSiteShareOpenGraphTwitterForRequest,
+  getSiteShareDescription,
+} from "@/lib/seo/site-share-metadata";
 
 const inter = Inter({
   subsets: ["latin", "latin-ext"],
@@ -27,14 +32,18 @@ export async function generateViewport(): Promise<Viewport> {
   return {
     width: "device-width",
     initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
     themeColor: pwa.enabled ? pwa.themeColor : PWA_DEFAULT_THEME_COLOR,
   };
 }
 
 export async function generateMetadata(): Promise<Metadata> {
   const { systemName, brandLogo, pwa } = await getPublicSystemSettings();
+  const description = await getSiteShareDescription(systemName);
+  const share = await buildSiteShareOpenGraphTwitterForRequest({
+    brand: systemName,
+    title: systemName,
+    description,
+  });
   const icons = brandLogo
     ? {
         icon: [
@@ -51,8 +60,8 @@ export async function generateMetadata(): Promise<Metadata> {
       default: systemName,
       template: `%s | ${systemName}`,
     },
-    description:
-      "Pārvaldi abonementus, rēķinus un citus periodiskos maksājumus vienuviet.",
+    description,
+    ...share,
     icons,
     appleWebApp: pwa.enabled
       ? {
@@ -111,6 +120,7 @@ export default async function RootLayout({
           dbMap={dbMap}
         >
           <PwaSwRegister pwa={publicSettings.pwa} />
+          <UmamiAnalytics />
           {children}
           <PwaInstallHost />
           <ModalBackdropCloseConfirmHost />
