@@ -12,6 +12,10 @@ import {
 } from "@/lib/auth/auth-localized-email";
 import { canSendAuthEmailsViaResend } from "@/lib/emails/send-transactional";
 import { resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
+import {
+  isSignupEmailBlocked,
+  SIGNUP_EMAIL_TAKEN_MESSAGE,
+} from "@/lib/auth/signup-email-blocked";
 
 /** Signup e-pasta pārbaude: max pieprasījumi uz IP minūtē (M2 enumerācijas mazināšana). */
 const SIGNUP_EMAIL_EXISTS_MAX_PER_MIN = 24;
@@ -48,21 +52,11 @@ export async function signupEmailExistsAction(
     return { exists: false, unavailable: true };
   }
 
-  const svc = createServiceRoleSupabaseClient();
-  if (!svc) {
+  const blocked = await isSignupEmailBlocked(trimmed);
+  if (blocked === null) {
     return { exists: false, unavailable: true };
   }
-  const supabase = svc;
-
-  const { data, error } = await supabase.rpc("signup_email_exists", {
-    p_email: trimmed,
-  });
-
-  if (error) {
-    return { exists: false, unavailable: true };
-  }
-
-  return { exists: Boolean(data) };
+  return { exists: blocked };
 }
 
 function errParam(msg: string) {
@@ -125,6 +119,11 @@ export async function signUpAction(formData: FormData) {
   }
   if (password !== password2) {
     redirect("/signup?error=" + errParam("Paroles nesakrīt."));
+  }
+
+  const emailBlocked = await isSignupEmailBlocked(email);
+  if (emailBlocked === true) {
+    redirect("/signup?error=" + errParam(SIGNUP_EMAIL_TAKEN_MESSAGE));
   }
 
   const site =

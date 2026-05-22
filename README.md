@@ -1,6 +1,6 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.4.46` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`). Lietotājam redzamais nosaukums – **`system_settings.system_name`** (admin **`/admin/system`**).
+**Versija:** `0.4.47` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`). Lietotājam redzamais nosaukums – **`system_settings.system_name`** (admin **`/admin/system`**).
 
 **SubTrack** (repozitorijs `subtrack-web`; zīmols **repazy**) ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, **`public.subscription_payments`** maksājumu žurnālam, RLS); CRUD notiek caur **Route Handlers** (`app/api/subscriptions/*`) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
@@ -293,6 +293,8 @@ Pat salīdzinoši mazā lietotnē **`App Router`** maršruta maiņa parasti nav 
    - **`database/supabase/116_security_advisor_pro_trial_rpc.sql`** – Pro trial RPC: **`EXECUTE` tikai `service_role`**, `p_user_id` (Security Advisor). Pēc **`113`**.
    - **`database/supabase/117_site_translations_signup_email_via_resend.sql`** – admin e-pasta dizaina hinti (reģistrācija caur Resend). Pēc **`116`**.
    - **`database/supabase/118_site_translations_reset_password_via_resend.sql`** – hinti (+ aizmirstā parole). Pēc **`117`**.
+   - **`database/supabase/119_retired_signup_emails.sql`** – pēc `auth.users` dzēšanas e-pasts **`retired_signup_emails`** (atkārtota reģistrācija liegta); atjaunina **`signup_email_exists`**. Trigeris – kā **`016_*`**, postgres. Backfill: `select public.retire_signup_email('epasts@…');`. Pēc **`118`**.
+   - **`database/supabase/120_retired_signup_emails_security_advisor.sql`** – RLS deny politikas + REVOKE uz trigger funkciju (Advisor). Pēc **`119`**.
    - **`database/supabase/078_system_settings_email_templates_split.sql`** – **`system_settings_email_templates`** (admin RLS); noņem **`system_settings_public`**. Pēc **`051`** (un **`076`**, ja bija). **Obligāti** pēc drošības audita.
    - **`database/supabase/079_email_reminder_log_rls_policies.sql`** – RLS politikas **`email_reminder_log`** (Advisor). Pēc **`052`**.
    - **`database/supabase/080_security_advisor_warnings.sql`** – **`storage.brand`** bez bucket listing; **`admin_set_user_pro_vip`** tikai **`service_role`**. Pēc **`043`**, **`072`**.
@@ -564,6 +566,10 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 ## Izmaiņu žurnāls
 
 Šeit īss pieraksts par izlaistām izmaiņām. **PWA** – **[PWA (SubTrack)](#pwa-subtrack)**. **0.4.x** no **0.4.0** (= agrāk **0.3.54**).
+
+### 0.4.47 (2026-05-22)
+
+- **Reģistrācija – dzēsti e-pasti** – **`119_*`**: `retired_signup_emails` + trigeris uz `auth.users` DELETE; **`signup_email_exists`** + servera signup pārbaude. **`lib/auth/signup-email-blocked.ts`**.
 
 ### 0.4.46 (2026-05-22)
 

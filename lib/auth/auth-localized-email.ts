@@ -6,6 +6,10 @@ import {
 } from "@/lib/emails/send-transactional";
 import { normalizeEmailLocale } from "@/lib/emails/template-types";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
+import {
+  isSignupEmailBlocked,
+  SIGNUP_EMAIL_TAKEN_MESSAGE,
+} from "@/lib/auth/signup-email-blocked";
 
 export type AuthLocalizedEmailResult =
   | { ok: true }
@@ -14,7 +18,7 @@ export type AuthLocalizedEmailResult =
 function mapSignupAuthError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("already registered") || m.includes("already been registered")) {
-    return "Šis e-pasts jau ir reģistrēts.";
+    return SIGNUP_EMAIL_TAKEN_MESSAGE;
   }
   if (m.includes("password")) {
     return message;
@@ -65,6 +69,18 @@ export async function registerUserWithLocalizedConfirmEmail(input: {
   const redirectTo = `${site}/auth/callback?next=/dashboard`;
   const email = input.email.trim();
   const emailLocale = normalizeEmailLocale(input.locale);
+
+  const blocked = await isSignupEmailBlocked(email);
+  if (blocked === true) {
+    return { ok: false, stage: "auth", message: SIGNUP_EMAIL_TAKEN_MESSAGE };
+  }
+  if (blocked === null) {
+    return {
+      ok: false,
+      stage: "setup",
+      message: "E-pasta pārbaude nav pieejama. Mēģini vēlreiz.",
+    };
+  }
 
   const { data: linkData, error: linkErr } = await svc.auth.admin.generateLink({
     type: "signup",
