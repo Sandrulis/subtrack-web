@@ -426,6 +426,180 @@ const defaults: Record<EmailTemplateId, LocaleMap> = {
       "Вы получили это, потому что ведёте учёт в {SYSTEM_NAME}. Не более одного письма в день на один платёж.",
     ),
   },
+  payment_due_today: {
+    en: c(
+      "Due today: {PAYMENT_NAME} – {SYSTEM_NAME}",
+      "A payment is due today – open your dashboard.",
+      "Payment due today",
+      'Your payment "{PAYMENT_NAME}" ({AMOUNT}) is due today ({DUE_DATE}). Open your dashboard to mark it paid or reschedule.',
+      "Open dashboard",
+      "You received this because you enabled due-today reminders in {SYSTEM_NAME}. At most one email per payment per day.",
+    ),
+    fr: c(
+      "Échéance aujourd'hui : {PAYMENT_NAME} – {SYSTEM_NAME}",
+      "Un paiement est dû aujourd'hui – ouvrez votre tableau de bord.",
+      "Paiement dû aujourd'hui",
+      "Votre paiement « {PAYMENT_NAME} » ({AMOUNT}) est dû aujourd'hui ({DUE_DATE}). Ouvrez le tableau de bord pour le marquer payé ou le replanifier.",
+      "Ouvrir le tableau de bord",
+      "Vous recevez ce rappel car vous avez activé les rappels du jour dans {SYSTEM_NAME}. Au plus un e-mail par jour et par paiement.",
+    ),
+    de: c(
+      "Heute fällig: {PAYMENT_NAME} – {SYSTEM_NAME}",
+      "Eine Zahlung ist heute fällig – Dashboard öffnen.",
+      "Zahlung heute fällig",
+      "Ihre Zahlung „{PAYMENT_NAME}“ ({AMOUNT}) ist heute ({DUE_DATE}) fällig. Öffnen Sie das Dashboard, um sie als bezahlt zu markieren oder zu verschieben.",
+      "Dashboard öffnen",
+      "Sie erhalten diese Erinnerung, weil Sie Tages-Erinnerungen in {SYSTEM_NAME} aktiviert haben. Höchstens eine E-Mail pro Zahlung und Tag.",
+    ),
+    es: c(
+      "Vence hoy: {PAYMENT_NAME} – {SYSTEM_NAME}",
+      "Un pago vence hoy – abre tu panel.",
+      "Pago vence hoy",
+      "Tu pago «{PAYMENT_NAME}» ({AMOUNT}) vence hoy ({DUE_DATE}). Abre el panel para marcarlo como pagado o reprogramarlo.",
+      "Abrir panel",
+      "Recibes este aviso porque activaste recordatorios del día en {SYSTEM_NAME}. Como máximo un correo al día por pago.",
+    ),
+    pt: c(
+      "Vence hoje: {PAYMENT_NAME} – {SYSTEM_NAME}",
+      "Um pagamento vence hoje – abra o painel.",
+      "Pagamento vence hoje",
+      "O seu pagamento «{PAYMENT_NAME}» ({AMOUNT}) vence hoje ({DUE_DATE}). Abra o painel para marcar como pago ou reagendar.",
+      "Abrir painel",
+      "Recebeu este aviso porque ativou lembretes do dia em {SYSTEM_NAME}. No máximo um email por dia por pagamento.",
+    ),
+    lv: c(
+      "Šodien jāmaksā: {PAYMENT_NAME} – {SYSTEM_NAME}",
+      "Maksājums jāveic šodien – atver paneli.",
+      "Maksājums jāveic šodien",
+      "Tavs maksājums „{PAYMENT_NAME}” ({AMOUNT}) jāveic šodien ({DUE_DATE}). Atver paneli, lai atzīmētu samaksātu vai pārplānotu.",
+      "Atvērt paneli",
+      "Tu saņēmi šo atgādinājumu, jo esi ieslēdzis šodienas maksājumu paziņojumus {SYSTEM_NAME}. Vairāk nekā vienu reizi dienā par vienu maksājumu netiek sūtīts.",
+    ),
+    ru: c(
+      "Срок сегодня: {PAYMENT_NAME} – {SYSTEM_NAME}",
+      "Платёж должен быть оплачен сегодня – откройте панель.",
+      "Платёж сегодня",
+      "Платёж «{PAYMENT_NAME}» ({AMOUNT}) должен быть оплачен сегодня ({DUE_DATE}). Откройте панель, чтобы отметить оплату или перенести.",
+      "Открыть панель",
+      "Вы получили это, потому что включили напоминания о платежах на сегодня в {SYSTEM_NAME}. Не более одного письма в день на один платёж.",
+    ),
+  },
+  weekly_summary: {
+    en: c(
+      "{SYSTEM_NAME} – Weekly Summary · {WEEK_RANGE}",
+      "Your week in payments – overdue, due soon, and upcoming.",
+      "Weekly Summary",
+      "Here is your payment overview for this week. Open {SYSTEM_NAME} to take action.",
+      "Open {SYSTEM_NAME}",
+      "You are receiving this because you have an active {SYSTEM_NAME} account and weekly summaries enabled.",
+    ),
+    fr: c(
+      "{SYSTEM_NAME} – Résumé hebdomadaire · {WEEK_RANGE}",
+      "Votre semaine en paiements – en retard, à payer et à venir.",
+      "Résumé hebdomadaire",
+      "Voici votre aperçu des paiements pour cette semaine. Ouvrez {SYSTEM_NAME} pour agir.",
+      "Ouvrir {SYSTEM_NAME}",
+      "Vous recevez ce message car vous avez un compte {SYSTEM_NAME} actif et les résumés hebdomadaires activés.",
+    ),
+    de: c(
+      "{SYSTEM_NAME} – Wochenübersicht · {WEEK_RANGE}",
+      "Ihre Woche in Zahlungen – überfällig, fällig und bevorstehend.",
+      "Wochenübersicht",
+      "Hier ist Ihre Zahlungsübersicht für diese Woche. Öffnen Sie {SYSTEM_NAME}, um zu handeln.",
+      "{SYSTEM_NAME} öffnen",
+      "Sie erhalten dies, weil Sie ein aktives {SYSTEM_NAME}-Konto und wöchentliche Zusammenfassungen aktiviert haben.",
+    ),
+    es: c(
+      "{SYSTEM_NAME} – Resumen semanal · {WEEK_RANGE}",
+      "Tu semana en pagos – vencidos, por vencer y próximos.",
+      "Resumen semanal",
+      "Aquí tienes tu resumen de pagos de esta semana. Abre {SYSTEM_NAME} para actuar.",
+      "Abrir {SYSTEM_NAME}",
+      "Recibes esto porque tienes una cuenta activa en {SYSTEM_NAME} y resúmenes semanales activados.",
+    ),
+    pt: c(
+      "{SYSTEM_NAME} – Resumo semanal · {WEEK_RANGE}",
+      "A sua semana em pagamentos – em atraso, a vencer e a seguir.",
+      "Resumo semanal",
+      "Aqui está a visão geral dos pagamentos desta semana. Abra o {SYSTEM_NAME} para agir.",
+      "Abrir {SYSTEM_NAME}",
+      "Recebe isto porque tem uma conta {SYSTEM_NAME} ativa e resumos semanais ativados.",
+    ),
+    lv: c(
+      "{SYSTEM_NAME} – Nedēļas kopsavilkums · {WEEK_RANGE}",
+      "Tava nedēļa maksājumos – kavētie, šonedēļ un gaidāmie.",
+      "Nedēļas kopsavilkums",
+      "Šeit ir tavs maksājumu pārskats šai nedēļai. Atver {SYSTEM_NAME}, lai rīkotos.",
+      "Atvērt {SYSTEM_NAME}",
+      "Tu saņēmi šo vēstuli, jo tev ir aktīvs {SYSTEM_NAME} konts un ieslēgti nedēļas kopsavilkumi.",
+    ),
+    ru: c(
+      "{SYSTEM_NAME} – Недельная сводка · {WEEK_RANGE}",
+      "Ваша неделя в платежах – просрочка, на этой неделе и впереди.",
+      "Недельная сводка",
+      "Вот обзор платежей на эту неделю. Откройте {SYSTEM_NAME}, чтобы действовать.",
+      "Открыть {SYSTEM_NAME}",
+      "Вы получили это, потому что у вас активный аккаунт {SYSTEM_NAME} и включены недельные сводки.",
+    ),
+  },
+  trial_ending: {
+    en: c(
+      "Pro trial ending in {TRIAL_DAYS} day(s) – {SYSTEM_NAME}",
+      "Your free trial is ending soon.",
+      "Trial ending soon",
+      "Your {SYSTEM_NAME} Pro trial ends on {TRIAL_END_DATE} ({TRIAL_DAYS} day(s) left). Subscribe to keep Pro features.",
+      "View plans",
+      "You received this because your trial is active and you enabled trial reminders in {SYSTEM_NAME}.",
+    ),
+    fr: c(
+      "Essai Pro se termine dans {TRIAL_DAYS} jour(s) – {SYSTEM_NAME}",
+      "Votre essai gratuit se termine bientôt.",
+      "Fin de l'essai proche",
+      "Votre essai Pro {SYSTEM_NAME} se termine le {TRIAL_END_DATE} ({TRIAL_DAYS} jour(s) restant(s)). Abonnez-vous pour garder les fonctions Pro.",
+      "Voir les offres",
+      "Vous recevez ce message car votre essai est actif et vous avez activé les rappels d'essai dans {SYSTEM_NAME}.",
+    ),
+    de: c(
+      "Pro-Test endet in {TRIAL_DAYS} Tag(en) – {SYSTEM_NAME}",
+      "Ihre Testphase endet bald.",
+      "Testphase endet bald",
+      "Ihre {SYSTEM_NAME} Pro-Testphase endet am {TRIAL_END_DATE} (noch {TRIAL_DAYS} Tag(e)). Abonnieren Sie, um Pro-Funktionen zu behalten.",
+      "Pläne ansehen",
+      "Sie erhalten dies, weil Ihre Testphase aktiv ist und Sie Test-Erinnerungen in {SYSTEM_NAME} aktiviert haben.",
+    ),
+    es: c(
+      "Prueba Pro termina en {TRIAL_DAYS} día(s) – {SYSTEM_NAME}",
+      "Tu prueba gratuita termina pronto.",
+      "La prueba termina pronto",
+      "Tu prueba Pro de {SYSTEM_NAME} termina el {TRIAL_END_DATE} ({TRIAL_DAYS} día(s) restante(s)). Suscríbete para conservar las funciones Pro.",
+      "Ver planes",
+      "Recibes esto porque tu prueba está activa y activaste recordatorios de prueba en {SYSTEM_NAME}.",
+    ),
+    pt: c(
+      "Teste Pro termina em {TRIAL_DAYS} dia(s) – {SYSTEM_NAME}",
+      "O seu teste gratuito termina em breve.",
+      "Teste a terminar",
+      "O seu teste Pro {SYSTEM_NAME} termina em {TRIAL_END_DATE} ({TRIAL_DAYS} dia(s) restante(s)). Subscreva para manter as funções Pro.",
+      "Ver planos",
+      "Recebe isto porque o teste está ativo e ativou lembretes de teste no {SYSTEM_NAME}.",
+    ),
+    lv: c(
+      "Pro izmēģinājums beidzas pēc {TRIAL_DAYS} dienām – {SYSTEM_NAME}",
+      "Tavs bezmaksas izmēģinājums drīz beigsies.",
+      "Izmēģinājuma periods beidzas",
+      "Tavs {SYSTEM_NAME} Pro izmēģinājums beidzas {TRIAL_END_DATE} (atlicis {TRIAL_DAYS} diena(s)). Abonē, lai saglabātu Pro iespējas.",
+      "Skatīt plānus",
+      "Tu saņēmi šo vēstuli, jo izmēģinājums ir aktīvs un esi ieslēdzis paziņojumus par izmēģinājuma beigām {SYSTEM_NAME}.",
+    ),
+    ru: c(
+      "Пробный Pro заканчивается через {TRIAL_DAYS} дн. – {SYSTEM_NAME}",
+      "Бесплатный пробный период скоро закончится.",
+      "Пробный период заканчивается",
+      "Пробный Pro {SYSTEM_NAME} заканчивается {TRIAL_END_DATE} (осталось {TRIAL_DAYS} дн.). Оформите подписку, чтобы сохранить Pro.",
+      "Смотреть планы",
+      "Вы получили это, потому что пробный период активен и вы включили напоминания в {SYSTEM_NAME}.",
+    ),
+  },
 };
 
 export function getDefaultEmailCopy(
@@ -463,13 +637,67 @@ export function applyOverduePlaceholders(
     overdueDays: number;
   },
 ): EmailTemplateCopy {
+  return applyPaymentPlaceholders(copy, ctx);
+}
+
+export function applyPaymentPlaceholders(
+  copy: EmailTemplateCopy,
+  ctx: {
+    systemName: string;
+    paymentName: string;
+    amountFormatted: string;
+    dueDateFormatted: string;
+    overdueDays?: number;
+  },
+): EmailTemplateCopy {
   const rep = (s: string) =>
     s
       .replaceAll("{SYSTEM_NAME}", ctx.systemName)
       .replaceAll("{PAYMENT_NAME}", ctx.paymentName)
       .replaceAll("{AMOUNT}", ctx.amountFormatted)
       .replaceAll("{DUE_DATE}", ctx.dueDateFormatted)
-      .replaceAll("{OVERDUE_DAYS}", String(ctx.overdueDays));
+      .replaceAll("{OVERDUE_DAYS}", String(ctx.overdueDays ?? 0));
+  return {
+    subject: rep(copy.subject),
+    preheader: rep(copy.preheader),
+    headline: rep(copy.headline),
+    body: rep(copy.body),
+    ctaLabel: rep(copy.ctaLabel),
+    footerNote: rep(copy.footerNote),
+  };
+}
+
+export function applyTrialPlaceholders(
+  copy: EmailTemplateCopy,
+  ctx: {
+    systemName: string;
+    trialDaysRemaining: number;
+    trialEndDateFormatted: string;
+  },
+): EmailTemplateCopy {
+  const rep = (s: string) =>
+    s
+      .replaceAll("{SYSTEM_NAME}", ctx.systemName)
+      .replaceAll("{TRIAL_DAYS}", String(ctx.trialDaysRemaining))
+      .replaceAll("{TRIAL_END_DATE}", ctx.trialEndDateFormatted);
+  return {
+    subject: rep(copy.subject),
+    preheader: rep(copy.preheader),
+    headline: rep(copy.headline),
+    body: rep(copy.body),
+    ctaLabel: rep(copy.ctaLabel),
+    footerNote: rep(copy.footerNote),
+  };
+}
+
+export function applyWeeklySubjectPlaceholders(
+  copy: EmailTemplateCopy,
+  ctx: { systemName: string; weekRangeLabel: string },
+): EmailTemplateCopy {
+  const rep = (s: string) =>
+    s
+      .replaceAll("{SYSTEM_NAME}", ctx.systemName)
+      .replaceAll("{WEEK_RANGE}", ctx.weekRangeLabel);
   return {
     subject: rep(copy.subject),
     preheader: rep(copy.preheader),

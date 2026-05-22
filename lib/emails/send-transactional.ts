@@ -1,8 +1,13 @@
 import { resolveEmailCopy } from "./merge-template-copy";
 import { renderEmailHtml } from "./render-email-html";
-import type { EmailTemplateId, EmailTemplatesStore } from "./template-types";
+import type { EmailPreviewLocale, EmailTemplateId, EmailTemplatesStore } from "./template-types";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
 import { buildPreviewRenderContext } from "./preview-context";
+import {
+  buildWeeklySummarySectionsHtml,
+  buildWeeklyUnsubscribeFooterHtml,
+  type WeeklySummaryPayload,
+} from "./weekly-summary-email";
 import {
   formatAmountForEmail,
   formatDueDateForEmail,
@@ -161,6 +166,104 @@ export async function sendOverduePaymentEmail(input: {
 
   const html = renderEmailHtml(copy, ctx);
   return sendViaResend({ to: row.email, subject: copy.subject, html });
+}
+
+export async function sendPaymentDueTodayEmail(input: {
+  row: OverdueSubscriptionRow;
+  systemName: string;
+  siteUrl: string;
+  templatesStore: EmailTemplatesStore;
+}): Promise<SendEmailResult> {
+  const { row, systemName, siteUrl, templatesStore } = input;
+  const amountFormatted = formatAmountForEmail(row.amount, row.currency, row.locale);
+  const dueDateFormatted = formatDueDateForEmail(row.nextPaymentDate, row.locale);
+
+  const copy = resolveEmailCopy(
+    "payment_due_today",
+    row.locale,
+    templatesStore,
+    systemName,
+    {
+      paymentName: row.paymentName,
+      amountFormatted,
+      dueDateFormatted,
+      overdueDays: 0,
+    },
+  );
+
+  const ctx = buildPreviewRenderContext("payment_due_today", systemName, siteUrl);
+  ctx.paymentName = row.paymentName;
+  ctx.amountFormatted = amountFormatted;
+  ctx.dueDateFormatted = dueDateFormatted;
+  ctx.overdueDays = 0;
+
+  const html = renderEmailHtml(copy, ctx);
+  return sendViaResend({ to: row.email, subject: copy.subject, html });
+}
+
+export async function sendWeeklySummaryEmail(input: {
+  to: string;
+  locale: EmailPreviewLocale;
+  systemName: string;
+  siteUrl: string;
+  templatesStore: EmailTemplatesStore;
+  weekRangeLabel: string;
+  payload: WeeklySummaryPayload;
+}): Promise<SendEmailResult> {
+  const { to, locale, systemName, siteUrl, templatesStore, weekRangeLabel, payload } = input;
+
+  const copy = resolveEmailCopy(
+    "weekly_summary",
+    locale,
+    templatesStore,
+    systemName,
+    undefined,
+    { weekRangeLabel },
+  );
+
+  const ctx = buildPreviewRenderContext("weekly_summary", systemName, siteUrl);
+  ctx.extraSectionsHtml = buildWeeklySummarySectionsHtml(payload, locale);
+  ctx.secondaryFooterHtml = buildWeeklyUnsubscribeFooterHtml(locale, siteUrl);
+
+  const html = renderEmailHtml(copy, ctx);
+  return sendViaResend({ to, subject: copy.subject, html });
+}
+
+export async function sendTrialEndingEmail(input: {
+  to: string;
+  locale: EmailPreviewLocale;
+  systemName: string;
+  siteUrl: string;
+  templatesStore: EmailTemplatesStore;
+  trialDaysRemaining: number;
+  trialEndDateFormatted: string;
+}): Promise<SendEmailResult> {
+  const {
+    to,
+    locale,
+    systemName,
+    siteUrl,
+    templatesStore,
+    trialDaysRemaining,
+    trialEndDateFormatted,
+  } = input;
+
+  const copy = resolveEmailCopy(
+    "trial_ending",
+    locale,
+    templatesStore,
+    systemName,
+    undefined,
+    undefined,
+    { trialDaysRemaining, trialEndDateFormatted },
+  );
+
+  const ctx = buildPreviewRenderContext("trial_ending", systemName, siteUrl);
+  ctx.trialDaysRemaining = trialDaysRemaining;
+  ctx.trialEndDateFormatted = trialEndDateFormatted;
+
+  const html = renderEmailHtml(copy, ctx);
+  return sendViaResend({ to, subject: copy.subject, html });
 }
 
 export function isTransactionalEmailConfigured(): boolean {

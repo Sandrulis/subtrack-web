@@ -1,6 +1,9 @@
 import {
   applyOverduePlaceholders,
+  applyPaymentPlaceholders,
   applySystemNameToCopy,
+  applyTrialPlaceholders,
+  applyWeeklySubjectPlaceholders,
   getDefaultEmailCopy,
 } from "./default-templates";
 import { ensureSystemNamePlaceholder } from "./system-name-in-copy";
@@ -43,12 +46,26 @@ export function resolveEmailCopy(
     dueDateFormatted: string;
     overdueDays: number;
   },
+  weeklyCtx?: { weekRangeLabel: string },
+  trialCtx?: { trialDaysRemaining: number; trialEndDateFormatted: string },
 ): EmailTemplateCopy {
   const merged = mergeEmailTemplateCopy(templateId, locale, store);
   const name = systemName.trim();
 
-  if (templateId === "overdue_payment" && overdueCtx) {
-    return applyOverduePlaceholders(merged, { systemName: name, ...overdueCtx });
+  if (
+    (templateId === "overdue_payment" || templateId === "payment_due_today") &&
+    overdueCtx
+  ) {
+    return applyPaymentPlaceholders(merged, { systemName: name, ...overdueCtx });
+  }
+  if (templateId === "weekly_summary" && weeklyCtx) {
+    return applyWeeklySubjectPlaceholders(merged, {
+      systemName: name,
+      weekRangeLabel: weeklyCtx.weekRangeLabel,
+    });
+  }
+  if (templateId === "trial_ending" && trialCtx) {
+    return applyTrialPlaceholders(merged, { systemName: name, ...trialCtx });
   }
   return applySystemNameToCopy(merged, name);
 }

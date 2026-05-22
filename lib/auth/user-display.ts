@@ -20,11 +20,18 @@ import {
   sanitizeDisplayPreferencesPartial,
 } from "@/lib/user-display-preferences";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
+import {
+  extractOAuthAvatarUrl,
+  isHttpsAvatarUrl,
+} from "@/lib/auth/oauth-avatar-url";
+import { syncOAuthAvatarToPublicUser } from "@/lib/auth/sync-oauth-avatar";
 
 /** Paneļa augšējās joslas lietotāja attēlošana (serveris → props). */
 export type NavUserDisplay = {
   displayName: string;
   initials: string;
+  /** HTTPS profila bilde (OAuth); ja nav – rāda inicialēs. */
+  avatarUrl?: string | null;
   /** public.users.is_admin > 0; ja nav kolonnas / rindiņas — false */
   isAdmin?: boolean;
   /** public.users.paid_plan_active (apmaksa / checkout) */
@@ -181,7 +188,7 @@ async function getSessionUserDisplayImpl(): Promise<NavUserDisplay | null> {
   let { data: row, error: rowErr } = await supabase
     .from("users")
       .select(
-        "name, surname, is_admin, paid_plan_active, pro_vip, pro_trial_used, pro_trial_started_at, display_preferences",
+        "name, surname, is_admin, paid_plan_active, pro_vip, pro_trial_used, pro_trial_started_at, display_preferences, avatar_url",
       )
     .eq("id", user.id)
     .maybeSingle();
@@ -211,7 +218,7 @@ async function getSessionUserDisplayImpl(): Promise<NavUserDisplay | null> {
       const refetch = await supabase
         .from("users")
       .select(
-        "name, surname, is_admin, paid_plan_active, pro_vip, pro_trial_used, pro_trial_started_at, display_preferences",
+        "name, surname, is_admin, paid_plan_active, pro_vip, pro_trial_used, pro_trial_started_at, display_preferences, avatar_url",
       )
         .eq("id", user.id)
         .maybeSingle();
@@ -270,6 +277,20 @@ async function getSessionUserDisplayImpl(): Promise<NavUserDisplay | null> {
   const trimmedName = name.trim();
   const trimmedSurname = surname.trim();
 
+  const rowAvatar =
+    typeof (row as { avatar_url?: unknown } | null)?.avatar_url === "string"
+      ? (row as { avatar_url: string }).avatar_url.trim()
+      : "";
+  let avatarUrl: string | null = isHttpsAvatarUrl(rowAvatar) ? rowAvatar : null;
+  if (!avatarUrl) {
+    avatarUrl = extractOAuthAvatarUrl(
+      user.user_metadata as Record<string, unknown> | undefined,
+    );
+    if (avatarUrl && !rowErr && row) {
+      await syncOAuthAvatarToPublicUser(supabase, user);
+    }
+  }
+
   const trialExtras = {
     proTrialUsed,
     proTrialStartedAt,
@@ -279,11 +300,12 @@ async function getSessionUserDisplayImpl(): Promise<NavUserDisplay | null> {
 
   if (!trimmedName && !trimmedSurname) {
     const fromMeta = profileFromAuthMetadata(user);
-    return { ...fromMeta, isAdmin, paidPlanActive, proVip, ...trialExtras };
+    return { ...fromMeta, avatarUrl, isAdmin, paidPlanActive, proVip, ...trialExtras };
   }
 
   return {
     ...navUserDisplayFromParts(trimmedName, trimmedSurname, user.email ?? ""),
+    avatarUrl,
     isAdmin,
     paidPlanActive,
     proVip,

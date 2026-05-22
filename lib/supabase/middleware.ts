@@ -8,6 +8,7 @@ const PROTECTED_PREFIXES = [
   "/family-sharing",
   "/subscribe",
   "/settings",
+  "/email-notifications",
   "/change-password",
   "/admin",
 ] as const;

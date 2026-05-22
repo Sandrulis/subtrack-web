@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { PwaPushSettings } from "@/components/pwa/pwa-push-settings";
 import { PwaSettingsInstall } from "@/components/pwa/pwa-settings-install";
+import { SettingsConnectGoogle } from "@/components/settings-connect-google";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavDash } from "@/components/nav-dash";
@@ -42,12 +43,14 @@ export function SettingsFsViewClient({
   dbPreferencesRaw,
   languageOptions,
   preferenceBase,
+  oauthGoogleEnabled = false,
 }: {
   userDisplay?: NavUserDisplay | null;
   /** No servera: `users.display_preferences` vai null */
   dbPreferencesRaw: unknown | null;
   languageOptions: SettingsLanguageOption[];
   preferenceBase: DisplayPreferences;
+  oauthGoogleEnabled?: boolean;
 }) {
   const [prefs, setPrefs] = useState<DisplayPreferences>(() =>
     mergeDisplayPreferences({}, preferenceBase),
@@ -390,6 +393,7 @@ export function SettingsFsViewClient({
             </div>
           </form>
 
+          <SettingsConnectGoogle googleEnabled={oauthGoogleEnabled} />
           <PwaSettingsInstall />
           <PwaPushSettings />
 

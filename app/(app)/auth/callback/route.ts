@@ -2,6 +2,7 @@ import { type EmailOtpType } from "@supabase/supabase-js";
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { syncOAuthAvatarToPublicUser } from "@/lib/auth/sync-oauth-avatar";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
 
 function safeNextPath(nextParam: string | null): string {
@@ -95,6 +96,13 @@ export async function GET(request: NextRequest) {
     url.searchParams.delete("token_hash");
     url.searchParams.delete("type");
     return NextResponse.redirect(url);
+  }
+
+  const {
+    data: { user: sessionUser },
+  } = await supabase.auth.getUser();
+  if (sessionUser) {
+    await syncOAuthAvatarToPublicUser(supabase, sessionUser);
   }
 
   const redirectUrl = request.nextUrl.clone();

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useAuthToastDispatch } from "@/components/auth-toasts-host";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import { buildAuthOAuthRedirectTo } from "@/lib/auth/oauth-redirect";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
 
 export type LoginSocialButtonsProps = {
@@ -39,9 +40,7 @@ export function LoginSocialButtons({
 
     setBusy(provider);
     const supabase = createBrowserClient(cfg.url, cfg.anonKey);
-    const safeNext =
-      nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/dashboard";
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}`;
+    const redirectTo = buildAuthOAuthRedirectTo(window.location.origin, nextPath);
 
     const { data, error: oauthErr } = await supabase.auth.signInWithOAuth({
       provider,
@@ -116,6 +115,9 @@ export function LoginSocialButtons({
           </button>
         ) : null}
       </div>
+      {googleEnabled ? (
+        <p className="auth-social-hint">{t("auth.social.same_account_hint")}</p>
+      ) : null}
     </div>
   );
 }

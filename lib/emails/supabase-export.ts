@@ -10,6 +10,9 @@ const SUPABASE_CTA_URL: Record<EmailTemplateId, string> = {
   invite_user: "{{ .ConfirmationURL }}",
   reauthentication: "{{ .ConfirmationURL }}",
   overdue_payment: "{{ .SiteURL }}/dashboard",
+  payment_due_today: "{{ .SiteURL }}/dashboard",
+  weekly_summary: "{{ .SiteURL }}/dashboard",
+  trial_ending: "{{ .SiteURL }}/subscribe",
 };
 
 /** Supabase Auth šabloniem: teksts ar Go mainīgajiem (bez pilna HTML wrapper, ja vēlies vienkāršāku) */

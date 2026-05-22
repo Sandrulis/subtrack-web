@@ -53,6 +53,7 @@ export function renderEmailHtml(
           <tr>
             <td style="padding:12px 32px 24px;">
               <p style="margin:0;font-size:15px;line-height:1.65;color:${EMAIL_BRAND.text};">${body}</p>
+              ${ctx.extraSectionsHtml ? `<div style="margin-top:20px;">${ctx.extraSectionsHtml}</div>` : ""}
             </td>
           </tr>
           <tr>
@@ -66,6 +67,7 @@ export function renderEmailHtml(
             </td>
           </tr>
         </table>
+        ${ctx.secondaryFooterHtml ? `<p style="margin:12px 0 0;font-size:12px;color:${EMAIL_BRAND.textMuted};text-align:center;">${ctx.secondaryFooterHtml}</p>` : ""}
         <p style="margin:20px 0 0;font-size:12px;color:${EMAIL_BRAND.textMuted};text-align:center;">
           &copy; ${new Date().getFullYear()} ${systemName}
         </p>

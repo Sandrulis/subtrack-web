@@ -33,9 +33,13 @@ export function buildPreviewRenderContext(
   const accent =
     templateId === "overdue_payment"
       ? "danger"
-      : templateId === "reset_password"
+      : templateId === "payment_due_today"
         ? "warning"
-        : "primary";
+        : templateId === "trial_ending"
+          ? "warning"
+          : templateId === "reset_password"
+            ? "warning"
+            : "primary";
 
   const actionUrls: Record<EmailTemplateId, string> = {
     confirm_signup: `${baseUrl}/auth/callback?type=signup&example=1`,
@@ -45,6 +49,9 @@ export function buildPreviewRenderContext(
     invite_user: `${baseUrl}/signup?invite=example`,
     reauthentication: `${baseUrl}/settings?reauth=example`,
     overdue_payment: `${baseUrl}/dashboard`,
+    payment_due_today: `${baseUrl}/dashboard`,
+    weekly_summary: `${baseUrl}/dashboard`,
+    trial_ending: `${baseUrl}/subscribe`,
   };
 
   return {

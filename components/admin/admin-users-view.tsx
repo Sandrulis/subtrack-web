@@ -5,6 +5,8 @@ import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { pushDomToast } from "@/lib/push-dom-toast";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import { navUserHasProEntitlement } from "@/lib/auth/pro-plan-access";
+import { UserAvatar } from "@/components/user-avatar";
+import { isHttpsAvatarUrl } from "@/lib/auth/oauth-avatar-url";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
@@ -18,6 +20,7 @@ export type AdminUsersViewUser = {
   /** Kad `paid_plan_enabled` un kolonna pieejama no DB */
   paidPlanActive?: boolean;
   proVip?: boolean;
+  avatarUrl?: string | null;
 };
 
 type SubscriptionCategory =
@@ -187,9 +190,17 @@ export function AdminUsersView({
                             </span>
                           ) : null}
                           <SubtrackTooltip label={fullDisplayName(u)}>
-                            <span className="admin-user-avatar" aria-hidden>
-                              {userAvatarInitials(u.name, u.surname, u.email)}
-                            </span>
+                            <UserAvatar
+                              initials={userAvatarInitials(
+                                u.name,
+                                u.surname,
+                                u.email,
+                              )}
+                              avatarUrl={
+                                isHttpsAvatarUrl(u.avatarUrl) ? u.avatarUrl : null
+                              }
+                              className="admin-user-avatar"
+                            />
                           </SubtrackTooltip>
                         </div>
                         <div className="admin-user-meta">

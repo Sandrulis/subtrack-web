@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { navUserHasPaidProMembership } from "@/lib/auth/pro-plan-access";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
+import { UserAvatar } from "@/components/user-avatar";
 
 type NavUserMenuProps = {
   userDisplay: NavUserDisplay | null | undefined;
@@ -121,9 +122,11 @@ export function NavUserMenu({
                 <i className="fa-solid fa-crown" />
               </span>
             ) : null}
-            <span className="user-avatar" aria-hidden="true">
-              {initials}
-            </span>
+            <UserAvatar
+              initials={initials}
+              avatarUrl={userDisplay?.avatarUrl}
+              className="user-avatar"
+            />
           </span>
           <span className="dash-user-name">{displayName}</span>
         </span>
@@ -190,6 +193,28 @@ export function NavUserMenu({
             <span>{t("session.family_sharing")}</span>
           </Link>
         ) : null}
+        <Link
+          href="/email-notifications"
+          prefetch={false}
+          className="dash-user-dropdown-item"
+          role="menuitem"
+          onClick={() => setOpen(false)}
+        >
+          <svg
+            className="dash-user-dropdown-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              fill="currentColor"
+              d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"
+            />
+          </svg>
+          <span>{t("session.email_notifications")}</span>
+        </Link>
         <Link
           href="/settings"
           prefetch={false}

@@ -87,7 +87,7 @@ export default async function AdminUsersPage() {
     supabase
       .from("users")
       .select(
-        "id, name, surname, email, is_admin, created_at, paid_plan_active, pro_vip",
+        "id, name, surname, email, is_admin, created_at, paid_plan_active, pro_vip, avatar_url",
       )
       .order("created_at", { ascending: false }),
     supabase.from("subscriptions").select("user_id, category"),
@@ -118,6 +118,10 @@ export default async function AdminUsersPage() {
     created_at: r.created_at ?? "",
     paidPlanActive: r.paid_plan_active === true,
     proVip: r.pro_vip === true,
+    avatarUrl:
+      typeof (r as { avatar_url?: unknown }).avatar_url === "string"
+        ? (r as { avatar_url: string }).avatar_url.trim() || null
+        : null,
   }));
   const countsByUser = subsError
     ? null

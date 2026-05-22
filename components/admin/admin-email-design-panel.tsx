@@ -14,9 +14,16 @@ import {
 import { renderEmailHtml } from "@/lib/emails/render-email-html";
 import { buildSupabasePasteBundle } from "@/lib/emails/supabase-export";
 import {
+  buildWeeklySummaryPayload,
+  buildWeeklySummarySectionsHtml,
+  formatWeekRangeLabel,
+  getWeekBoundsIso,
+} from "@/lib/emails/weekly-summary-email";
+import {
   EMAIL_SUPPORTED_LOCALES,
   EMAIL_TEMPLATE_IDS,
   normalizeEmailLocale,
+  SUPABASE_AUTH_TEMPLATE_MAP,
   type EmailPreviewLocale,
   type EmailTemplateCopy,
   type EmailTemplateId,
@@ -35,6 +42,9 @@ const TEMPLATE_LABEL_KEYS: Record<
   | "admin.email_design.template.invite_user"
   | "admin.email_design.template.reauthentication"
   | "admin.email_design.template.overdue_payment"
+  | "admin.email_design.template.payment_due_today"
+  | "admin.email_design.template.weekly_summary"
+  | "admin.email_design.template.trial_ending"
 > = {
   confirm_signup: "admin.email_design.template.confirm_signup",
   reset_password: "admin.email_design.template.reset_password",
@@ -43,6 +53,9 @@ const TEMPLATE_LABEL_KEYS: Record<
   invite_user: "admin.email_design.template.invite_user",
   reauthentication: "admin.email_design.template.reauthentication",
   overdue_payment: "admin.email_design.template.overdue_payment",
+  payment_due_today: "admin.email_design.template.payment_due_today",
+  weekly_summary: "admin.email_design.template.weekly_summary",
+  trial_ending: "admin.email_design.template.trial_ending",
 };
 
 export type EmailDesignLocaleOption = {
@@ -96,7 +109,9 @@ export function AdminEmailDesignPanel({
   );
   const [saving, setSaving] = useState(false);
 
-  const isAuthTemplate = templateId !== "overdue_payment";
+  const isAuthTemplate = SUPABASE_AUTH_TEMPLATE_MAP[templateId] !== null;
+  const isPaymentTemplate =
+    templateId === "overdue_payment" || templateId === "payment_due_today";
 
   const reloadDraft = useCallback(
     (tid: EmailTemplateId, loc: EmailPreviewLocale, nextStore: EmailTemplatesStore) => {
@@ -121,20 +136,28 @@ export function AdminEmailDesignPanel({
   );
 
   const previewCopy = useMemo(() => {
-    const overdue =
-      templateId === "overdue_payment" ? overduePreviewContext(locale) : undefined;
+    const overdue = isPaymentTemplate ? overduePreviewContext(locale) : undefined;
+    const weekRange =
+      templateId === "weekly_summary"
+        ? formatWeekRangeLabel("2026-05-19", "2026-05-25", locale)
+        : undefined;
+    const trialCtx =
+      templateId === "trial_ending"
+        ? { trialDaysRemaining: 3, trialEndDateFormatted: "2026-05-26" }
+        : undefined;
     return resolveEmailCopy(
       templateId,
       locale,
       storeForPreview,
       initialSystemName,
       overdue,
+      weekRange ? { weekRangeLabel: weekRange } : undefined,
+      trialCtx,
     );
-  }, [storeForPreview, templateId, locale, initialSystemName]);
+  }, [storeForPreview, templateId, locale, initialSystemName, isPaymentTemplate]);
 
   const previewHtml = useMemo(() => {
-    const overdue =
-      templateId === "overdue_payment" ? overduePreviewContext(locale) : undefined;
+    const overdue = isPaymentTemplate ? overduePreviewContext(locale) : undefined;
     const ctx = buildPreviewRenderContext(templateId, initialSystemName, siteUrl);
     if (overdue) {
       ctx.paymentName = overdue.paymentName;
@@ -142,8 +165,51 @@ export function AdminEmailDesignPanel({
       ctx.dueDateFormatted = overdue.dueDateFormatted;
       ctx.overdueDays = overdue.overdueDays;
     }
+    if (templateId === "weekly_summary") {
+      const today = "2026-05-19";
+      const { startIso, endIso } = getWeekBoundsIso(today, "monday");
+      const payload = buildWeeklySummaryPayload(
+        [
+          {
+            id: "1",
+            name: "Spotify",
+            amount: 9.99,
+            next_payment_date: "2026-05-16",
+          },
+          {
+            id: "2",
+            name: "Netflix",
+            amount: 10.99,
+            next_payment_date: "2026-05-18",
+          },
+          {
+            id: "3",
+            name: "Phone bill",
+            amount: 30.5,
+            next_payment_date: "2026-05-22",
+          },
+          {
+            id: "4",
+            name: "Adobe CC",
+            amount: 14.99,
+            next_payment_date: "2026-05-24",
+          },
+        ],
+        today,
+        "EUR",
+        locale,
+        "monday",
+      );
+      ctx.extraSectionsHtml = buildWeeklySummarySectionsHtml(payload, locale);
+      void startIso;
+      void endIso;
+    }
+    if (templateId === "trial_ending") {
+      ctx.trialDaysRemaining = 3;
+      ctx.trialEndDateFormatted = "2026-05-26";
+    }
     return renderEmailHtml(previewCopy, ctx);
-  }, [previewCopy, templateId, initialSystemName, siteUrl, locale]);
+  }, [previewCopy, templateId, initialSystemName, siteUrl, locale, isPaymentTemplate]);
 
   const resolvedForExport = previewCopy;
 
@@ -290,7 +356,7 @@ export function AdminEmailDesignPanel({
           <p className="admin-email-design-hint">
             {isAuthTemplate
               ? t("admin.email_design.editor_hint_auth")
-              : t("admin.email_design.editor_hint_overdue")}
+              : t("admin.email_design.editor_hint_cron")}
           </p>
 
           <div className="form-group">
@@ -332,9 +398,17 @@ export function AdminEmailDesignPanel({
               onChange={(e) => patchDraft({ body: e.target.value })}
               onBlur={handleFieldBlur}
             />
-            {templateId === "overdue_payment" ? (
+            {isPaymentTemplate ? (
               <p className="form-hint">
                 {t("admin.email_design.placeholders_overdue")}
+              </p>
+            ) : templateId === "weekly_summary" ? (
+              <p className="form-hint">
+                {t("admin.email_design.placeholders_weekly")}
+              </p>
+            ) : templateId === "trial_ending" ? (
+              <p className="form-hint">
+                {t("admin.email_design.placeholders_trial")}
               </p>
             ) : (
               <p className="form-hint">

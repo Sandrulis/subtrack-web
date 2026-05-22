@@ -4,6 +4,7 @@ import { FsNotifyI18nBootstrap } from "@/components/fs/fs-notify-i18n-bootstrap"
 import { SettingsFsView } from "@/components/fs/settings-fs-view";
 import { getSessionDisplayPreferencesRow } from "@/lib/auth/display-preferences-server";
 import { getSessionUserDisplay } from "@/lib/auth/user-display";
+import { getLoginSocialIntegrationFlags } from "@/lib/integrations/login-social-flags";
 import { getLanguagesCatalog } from "@/lib/languages-catalog";
 import { getPublicSystemSettings } from "@/lib/system-settings-public";
 import { mergeDisplayPreferences } from "@/lib/user-display-preferences";
@@ -30,12 +31,14 @@ export default async function SettingsPage() {
   const { locale } = await resolveRequestUiLocales();
   const collLocale = uiLocaleCodeToBcp47ForIntl(locale);
 
-  const [userDisplay, dbPreferencesRaw, languagesRes, catalog, publicSys] = await Promise.all([
+  const [userDisplay, dbPreferencesRaw, languagesRes, catalog, publicSys, socialFlags] =
+    await Promise.all([
     getSessionUserDisplay(),
     getSessionDisplayPreferencesRow(),
     supabase.from("languages").select("code, label").order("label", { ascending: true }),
     getLanguagesCatalog(),
     getPublicSystemSettings(),
+    getLoginSocialIntegrationFlags(),
   ]);
 
   let languageOptions: SettingsLanguageOption[] = [];
@@ -66,6 +69,7 @@ export default async function SettingsPage() {
         dbPreferencesRaw={dbPreferencesRaw}
         languageOptions={languageOptions}
         preferenceBase={preferenceBase}
+        oauthGoogleEnabled={socialFlags.googleEnabled}
       />
     </div>
   );
