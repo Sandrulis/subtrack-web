@@ -41,7 +41,6 @@ const TEMPLATE_LABEL_KEYS: Record<
   | "admin.email_design.template.email_change"
   | "admin.email_design.template.invite_user"
   | "admin.email_design.template.reauthentication"
-  | "admin.email_design.template.overdue_payment"
   | "admin.email_design.template.payment_due_today"
   | "admin.email_design.template.weekly_summary"
   | "admin.email_design.template.trial_ending"
@@ -52,7 +51,6 @@ const TEMPLATE_LABEL_KEYS: Record<
   email_change: "admin.email_design.template.email_change",
   invite_user: "admin.email_design.template.invite_user",
   reauthentication: "admin.email_design.template.reauthentication",
-  overdue_payment: "admin.email_design.template.overdue_payment",
   payment_due_today: "admin.email_design.template.payment_due_today",
   weekly_summary: "admin.email_design.template.weekly_summary",
   trial_ending: "admin.email_design.template.trial_ending",
@@ -110,8 +108,7 @@ export function AdminEmailDesignPanel({
   const [saving, setSaving] = useState(false);
 
   const isAuthTemplate = SUPABASE_AUTH_TEMPLATE_MAP[templateId] !== null;
-  const isPaymentTemplate =
-    templateId === "overdue_payment" || templateId === "payment_due_today";
+  const isPaymentTemplate = templateId === "payment_due_today";
 
   const reloadDraft = useCallback(
     (tid: EmailTemplateId, loc: EmailPreviewLocale, nextStore: EmailTemplatesStore) => {

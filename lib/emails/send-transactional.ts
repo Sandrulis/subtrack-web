@@ -135,39 +135,6 @@ export async function sendResetPasswordEmail(input: {
   });
 }
 
-export async function sendOverduePaymentEmail(input: {
-  row: OverdueSubscriptionRow;
-  systemName: string;
-  siteUrl: string;
-  templatesStore: EmailTemplatesStore;
-}): Promise<SendEmailResult> {
-  const { row, systemName, siteUrl, templatesStore } = input;
-  const amountFormatted = formatAmountForEmail(row.amount, row.currency, row.locale);
-  const dueDateFormatted = formatDueDateForEmail(row.nextPaymentDate, row.locale);
-
-  const copy = resolveEmailCopy(
-    "overdue_payment",
-    row.locale,
-    templatesStore,
-    systemName,
-    {
-      paymentName: row.paymentName,
-      amountFormatted,
-      dueDateFormatted,
-      overdueDays: row.overdueDays,
-    },
-  );
-
-  const ctx = buildPreviewRenderContext("overdue_payment", systemName, siteUrl);
-  ctx.paymentName = row.paymentName;
-  ctx.amountFormatted = amountFormatted;
-  ctx.dueDateFormatted = dueDateFormatted;
-  ctx.overdueDays = row.overdueDays;
-
-  const html = renderEmailHtml(copy, ctx);
-  return sendViaResend({ to: row.email, subject: copy.subject, html });
-}
-
 export async function sendPaymentDueTodayEmail(input: {
   row: OverdueSubscriptionRow;
   systemName: string;

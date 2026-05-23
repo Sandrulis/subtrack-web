@@ -5,7 +5,6 @@ export const EMAIL_TEMPLATE_IDS = [
   "email_change",
   "invite_user",
   "reauthentication",
-  "overdue_payment",
   "payment_due_today",
   "weekly_summary",
   "trial_ending",
@@ -13,7 +12,6 @@ export const EMAIL_TEMPLATE_IDS = [
 
 /** Cron / Resend šabloni (nav Supabase Auth). */
 export const EMAIL_CRON_TEMPLATE_IDS = [
-  "overdue_payment",
   "payment_due_today",
   "weekly_summary",
   "trial_ending",
@@ -97,7 +95,6 @@ export const SUPABASE_AUTH_TEMPLATE_MAP: Record<
   email_change: "email_change",
   invite_user: "invite",
   reauthentication: "reauthentication",
-  overdue_payment: null,
   payment_due_today: null,
   weekly_summary: null,
   trial_ending: null,

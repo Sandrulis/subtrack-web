@@ -31,11 +31,9 @@ export function buildPreviewRenderContext(
 ): EmailRenderContext {
   const baseUrl = siteUrl.replace(/\/$/, "");
   const accent =
-    templateId === "overdue_payment"
-      ? "danger"
-      : templateId === "payment_due_today"
-        ? "warning"
-        : templateId === "trial_ending"
+    templateId === "payment_due_today"
+      ? "warning"
+      : templateId === "trial_ending"
           ? "warning"
           : templateId === "reset_password"
             ? "warning"
@@ -48,7 +46,6 @@ export function buildPreviewRenderContext(
     email_change: `${baseUrl}/auth/callback?type=email&example=1`,
     invite_user: `${baseUrl}/signup?invite=example`,
     reauthentication: `${baseUrl}/settings?reauth=example`,
-    overdue_payment: `${baseUrl}/dashboard`,
     payment_due_today: `${baseUrl}/dashboard`,
     weekly_summary: `${baseUrl}/dashboard`,
     trial_ending: `${baseUrl}/subscribe`,

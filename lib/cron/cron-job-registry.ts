@@ -1,5 +1,4 @@
 export const CRON_JOB_IDS = [
-  "overdue-payment-emails",
   "due-today-payment-emails",
   "weekly-summary-emails",
   "trial-ending-emails",

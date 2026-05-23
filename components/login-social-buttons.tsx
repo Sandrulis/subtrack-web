@@ -115,9 +115,6 @@ export function LoginSocialButtons({
           </button>
         ) : null}
       </div>
-      {googleEnabled ? (
-        <p className="auth-social-hint">{t("auth.social.same_account_hint")}</p>
-      ) : null}
     </div>
   );
 }

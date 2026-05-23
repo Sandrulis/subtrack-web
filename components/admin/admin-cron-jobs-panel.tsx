@@ -13,10 +13,6 @@ const JOB_LABEL_KEYS: Record<
   CronJobId,
   { title: string; desc: string }
 > = {
-  "overdue-payment-emails": {
-    title: "admin.cron_jobs.job_overdue",
-    desc: "admin.cron_jobs.job_overdue_desc",
-  },
   "due-today-payment-emails": {
     title: "admin.cron_jobs.job_due_today",
     desc: "admin.cron_jobs.job_due_today_desc",

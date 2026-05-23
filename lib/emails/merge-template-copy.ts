@@ -52,10 +52,7 @@ export function resolveEmailCopy(
   const merged = mergeEmailTemplateCopy(templateId, locale, store);
   const name = systemName.trim();
 
-  if (
-    (templateId === "overdue_payment" || templateId === "payment_due_today") &&
-    overdueCtx
-  ) {
+  if (templateId === "payment_due_today" && overdueCtx) {
     return applyPaymentPlaceholders(merged, { systemName: name, ...overdueCtx });
   }
   if (templateId === "weekly_summary" && weeklyCtx) {

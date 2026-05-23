@@ -9,7 +9,6 @@ const SUPABASE_CTA_URL: Record<EmailTemplateId, string> = {
   email_change: "{{ .ConfirmationURL }}",
   invite_user: "{{ .ConfirmationURL }}",
   reauthentication: "{{ .ConfirmationURL }}",
-  overdue_payment: "{{ .SiteURL }}/dashboard",
   payment_due_today: "{{ .SiteURL }}/dashboard",
   weekly_summary: "{{ .SiteURL }}/dashboard",
   trial_ending: "{{ .SiteURL }}/subscribe",
