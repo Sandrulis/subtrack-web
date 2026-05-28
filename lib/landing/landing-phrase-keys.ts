@@ -13,7 +13,6 @@ export const LANDING_UI_PHRASE_KEYS = [
   "landing.mock.legend_due",
   "landing.mock.legend_overdue",
   "fs.dashboard.legend_paid_marked",
-  "landing.hero.calendar_mock_paid_note",
   "landing.mock.stat_total_label",
   "landing.mock.stat_total_note",
   "landing.mock.stat_active_label",

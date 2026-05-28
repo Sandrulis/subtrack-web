@@ -147,15 +147,12 @@ export function LandingHeroDashboardMock({
   intlLocale,
   t,
   demoMode = false,
-  paidPlanEnabled = false,
   billingCurrency = "EUR",
 }: {
   intlLocale: string;
   t: (key: string) => string;
   /** Publiskajai /demo/dashboard: redzams ekrāna lasītājiem un paraugu „Labot” pogas. */
   demoMode?: boolean;
-  /** Ja maksas plāns ieslēgts: piezīme zem kalendāra par ilustratīvo saturu. */
-  paidPlanEnabled?: boolean;
   /** Norēķinu valūta viesa reģionam (hero paraugu summas). */
   billingCurrency?: BillingCurrency;
 }) {
@@ -182,12 +179,6 @@ export function LandingHeroDashboardMock({
             legendOverdue={t("landing.mock.legend_overdue")}
             legendPaid={t("fs.dashboard.legend_paid_marked")}
           />
-          {paidPlanEnabled ? (
-            <p className="landing-hero-calendar-paid-note" role="note">
-              <i className="fa-solid fa-circle-info" aria-hidden="true" />
-              {t("landing.hero.calendar_mock_paid_note")}
-            </p>
-          ) : null}
         </div>
 
         <div className="dashboard-overview-right-col">
@@ -490,7 +481,6 @@ export async function LandingPageContent() {
             <LandingHeroDashboardMock
               intlLocale={intlLocale}
               t={t}
-              paidPlanEnabled={Boolean(paidPlan?.enabled)}
               billingCurrency={guestBillingCurrency}
             />
           </div>
