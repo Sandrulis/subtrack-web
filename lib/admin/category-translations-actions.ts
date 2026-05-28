@@ -1,6 +1,6 @@
 "use server";
 
-import { SITE_TRANSLATIONS_PUBLIC_CACHE_TAG } from "@/lib/site-translations-public";
+import { requireAdminUser } from "@/lib/auth/require-admin";
 import { categoryTranslationKey } from "@/lib/admin/category-translation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -10,6 +10,7 @@ export async function fetchCategoryLanguageMeta(): Promise<
   | { ok: true; codes: string[]; defaultCode: string }
   | { ok: false; message: string }
 > {
+  await requireAdminUser();
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("languages")
@@ -50,6 +51,7 @@ export async function upsertCategoryTranslationValues(
   categoryKey: string,
   valuesByLocale: Record<string, unknown>,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
+  await requireAdminUser();
   const translationKey = categoryTranslationKey(categoryKey);
   const allowedRes = await fetchCategoryLanguageMeta();
   if (!allowedRes.ok) {
@@ -114,6 +116,7 @@ export async function upsertCategoryTranslationValues(
 export async function deleteCategoryTranslationKey(
   categoryKey: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
+  await requireAdminUser();
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase
     .from("site_translations")
