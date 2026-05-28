@@ -21,6 +21,87 @@ var SUB_CATEGORY_LABELS_LV = {
     other: 'Citi maksājumi'
 };
 
+var CATEGORY_CATALOG_BY_KEY = null;
+var CATEGORY_OPTIONS_BOOTSTRAP = null;
+
+function loadCategoryOptionsBootstrap() {
+    if (CATEGORY_OPTIONS_BOOTSTRAP) return CATEGORY_OPTIONS_BOOTSTRAP;
+    var tpl = document.getElementById('subtrack-category-options-bootstrap-json');
+    if (!tpl || !tpl.innerHTML) return null;
+    try {
+        var rows = JSON.parse(tpl.innerHTML.trim());
+        if (!Array.isArray(rows) || !rows.length) return null;
+        CATEGORY_OPTIONS_BOOTSTRAP = rows;
+        return rows;
+    } catch (e) {
+        return null;
+    }
+}
+
+function loadCategoryCatalogByKey() {
+    if (CATEGORY_CATALOG_BY_KEY) return CATEGORY_CATALOG_BY_KEY;
+    var rows = loadCategoryOptionsBootstrap();
+    if (!rows) return null;
+    var map = {};
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        if (!row || !row.key) continue;
+        map[String(row.key)] = String(row.label || row.key);
+    }
+    if (!Object.keys(map).length) return null;
+    CATEGORY_CATALOG_BY_KEY = map;
+    return map;
+}
+
+/**
+ * Kārto #sub-category pēc lietotāja lietojuma, globālās popularitātes un admin secības.
+ * @param {Array<{category?: string}>|null|undefined} userSubscriptions
+ */
+function reorderSubCategorySelect(userSubscriptions) {
+    var select = document.getElementById('sub-category');
+    if (!select) return;
+    var options = loadCategoryOptionsBootstrap();
+    if (!options || !options.length) return;
+
+    var userCounts = {};
+    var subs = userSubscriptions || [];
+    for (var i = 0; i < subs.length; i++) {
+        var rawKey = subs[i] && subs[i].category != null ? String(subs[i].category) : '';
+        var k = rawKey.trim().toLowerCase();
+        if (!k) continue;
+        userCounts[k] = (userCounts[k] || 0) + 1;
+    }
+
+    var ranked = options.slice().sort(function (a, b) {
+        var ak = String(a.key || '').trim().toLowerCase();
+        var bk = String(b.key || '').trim().toLowerCase();
+        var ua = userCounts[ak] || 0;
+        var ub = userCounts[bk] || 0;
+        if (ub !== ua) return ub - ua;
+        var ga = Number(a.usage_count) || 0;
+        var gb = Number(b.usage_count) || 0;
+        if (gb !== ga) return gb - ga;
+        var sa = Number(a.sort_order) || 0;
+        var sb = Number(b.sort_order) || 0;
+        if (sa !== sb) return sa - sb;
+        return ak.localeCompare(bk, fsIntlLocale(), { sensitivity: 'base' });
+    });
+
+    var currentVal = select.value;
+    var frag = document.createDocumentFragment();
+    for (var j = 0; j < ranked.length; j++) {
+        var opt = ranked[j];
+        if (!opt || !opt.key) continue;
+        var el = document.createElement('option');
+        el.value = String(opt.key);
+        el.textContent = String(opt.label || opt.key);
+        frag.appendChild(el);
+    }
+    select.innerHTML = '';
+    select.appendChild(frag);
+    select.value = normalizeCategoryKey(currentVal);
+}
+
 function fsIntlLocale() {
     var meta = typeof window !== 'undefined' && window.__SUBTRACK_FS_META ? window.__SUBTRACK_FS_META : null;
     if (meta && meta.intlLocale) return String(meta.intlLocale);
@@ -36,12 +117,20 @@ function FsT(key) {
 }
 
 function normalizeCategoryKey(key) {
+    var catalog = loadCategoryCatalogByKey();
+    if (catalog) {
+        if (key && catalog[key]) return key;
+        var keys = Object.keys(catalog);
+        return keys.length ? keys[0] : 'subscription';
+    }
     if (key && CATEGORY_PHRASE_KEY[key]) return key;
     return 'subscription';
 }
 
 function categoryLabel(key) {
     var nk = normalizeCategoryKey(key);
+    var catalog = loadCategoryCatalogByKey();
+    if (catalog && catalog[nk]) return catalog[nk];
     var phraseKey = CATEGORY_PHRASE_KEY[nk];
     var txt = FsT(phraseKey);
     if (txt) return txt;
@@ -203,16 +292,149 @@ function formatDate(dateStr) {
     }
 }
 
-function addOneBillingPeriod(d, period) {
-    var x = new Date(d.getTime());
-    if (period === 'yearly') {
-        x.setFullYear(x.getFullYear() + 1);
-    } else if (period === 'weekly') {
-        x.setDate(x.getDate() + 7);
-    } else {
-        x.setMonth(x.getMonth() + 1);
-    }
+/** Diena no YYYY-MM-DD (1–31) – perioda „vēlamā” maksājuma diena mēnesī. */
+function subscriptionBillingDayFromIso(iso) {
+    var n = normalizeSubscriptionDateIso(iso);
+    if (!n) return 1;
+    var parts = n.split('-');
+    var day = parseInt(parts[2], 10);
+    return Number.isFinite(day) && day >= 1 && day <= 31 ? day : 1;
+}
+
+function daysInCalendarMonth(year, monthIndex) {
+    return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+/** Mēneša datums: min(vēlamā diena, dienas mēnesī) – 31. → feb. 28/29, apr. 30 u.tml. */
+function calendarDateOnBillingDay(year, monthIndex, billingDay) {
+    var preferred = Number.isFinite(billingDay) && billingDay >= 1 ? billingDay : 1;
+    var dim = daysInCalendarMonth(year, monthIndex);
+    var day = Math.min(preferred, dim);
+    var x = new Date(year, monthIndex, day);
+    x.setHours(0, 0, 0, 0);
     return x;
+}
+
+/**
+ * Stabila vēlamā diena (no term_start vai next_payment_date), lai pēc „samaksāts”
+ * februāris 28/29 nezaudētu 31. dienas mēnešus.
+ */
+function subscriptionPreferredBillingDay(s) {
+    if (!s) return 1;
+    if (s._preferredBillingDay >= 1 && s._preferredBillingDay <= 31) {
+        return s._preferredBillingDay;
+    }
+    var day = subscriptionBillingDayFromIso(s.date);
+    s._preferredBillingDay = day;
+    return day;
+}
+
+function addOneBillingPeriod(d, period, billingDay) {
+    var preferred =
+        billingDay != null && billingDay >= 1 && billingDay <= 31
+            ? billingDay
+            : d.getDate();
+    if (period === 'yearly') {
+        return calendarDateOnBillingDay(
+            d.getFullYear() + 1,
+            d.getMonth(),
+            preferred,
+        );
+    }
+    if (period === 'weekly') {
+        var x = new Date(d.getTime());
+        x.setDate(x.getDate() + 7);
+        x.setHours(0, 0, 0, 0);
+        return x;
+    }
+    var y = d.getFullYear();
+    var m = d.getMonth() + 1;
+    if (m > 11) {
+        y++;
+        m = 0;
+    }
+    return calendarDateOnBillingDay(y, m, preferred);
+}
+
+function subtractOneBillingPeriod(d, period, billingDay) {
+    var preferred =
+        billingDay != null && billingDay >= 1 && billingDay <= 31
+            ? billingDay
+            : d.getDate();
+    if (period === 'yearly') {
+        return calendarDateOnBillingDay(
+            d.getFullYear() - 1,
+            d.getMonth(),
+            preferred,
+        );
+    }
+    if (period === 'weekly') {
+        var x = new Date(d.getTime());
+        x.setDate(x.getDate() - 7);
+        x.setHours(0, 0, 0, 0);
+        return x;
+    }
+    var y = d.getFullYear();
+    var m = d.getMonth() - 1;
+    if (m < 0) {
+        y--;
+        m = 11;
+    }
+    return calendarDateOnBillingDay(y, m, preferred);
+}
+
+/**
+ * Visi periodiskie termiņi abonementam konkrētajā kalendāra mēnesī (ne tikai next_payment_date).
+ * @returns {string[]} ISO YYYY-MM-DD
+ */
+function subscriptionDueDatesInMonth(s, y, m) {
+    if (!s) return [];
+    var anchorIso = normalizeSubscriptionDateIso(s.date);
+    if (!anchorIso) return [];
+
+    var period = s.period || 'monthly';
+    var monthStart = new Date(y, m, 1);
+    monthStart.setHours(0, 0, 0, 0);
+    var monthEnd = new Date(y, m + 1, 0);
+    monthEnd.setHours(0, 0, 0, 0);
+
+    var termEndIso = normalizeSubscriptionDateIso(s.termEnd);
+    var termEndDate = termEndIso ? new Date(termEndIso + 'T00:00:00') : null;
+    if (termEndDate) termEndDate.setHours(0, 0, 0, 0);
+
+    if (!isSubscriptionDueActive(s, monthEnd)) {
+        return [];
+    }
+
+    var billingDay = subscriptionPreferredBillingDay(s);
+
+    var cur = new Date(anchorIso + 'T00:00:00');
+    cur.setHours(0, 0, 0, 0);
+
+    var guard = 0;
+    while (cur.getTime() >= monthStart.getTime() && guard < 600) {
+        cur = subtractOneBillingPeriod(cur, period, billingDay);
+        guard++;
+    }
+
+    cur = addOneBillingPeriod(cur, period, billingDay);
+    guard = 0;
+    var out = [];
+    while (cur.getTime() <= monthEnd.getTime() && guard < 600) {
+        if (termEndDate && cur.getTime() > termEndDate.getTime()) {
+            break;
+        }
+        var iso = toISODateLocal(cur);
+        if (
+            cur.getTime() >= monthStart.getTime() &&
+            isDueDateWithinTerm(iso, s.termEnd)
+        ) {
+            out.push(iso);
+        }
+        cur = addOneBillingPeriod(cur, period, billingDay);
+        guard++;
+    }
+    return out;
 }
 
 function toISODateLocal(d) {
@@ -270,6 +492,7 @@ function subtrackReloadSubscriptionsFromBootstrap() {
                 if (!item || typeof item !== 'object') return item;
                 var o = Object.assign({}, item);
                 if (o.date) o.date = normalizeSubscriptionDateIso(o.date);
+                o._preferredBillingDay = subscriptionBillingDayFromIso(o.date);
                 return o;
             });
             if (typeof window.subtrackRefreshFamilySharedCache === 'function') {
@@ -391,17 +614,25 @@ function subtrackSetCalendarIncludePaidMarks(show) {
 }
 
 /** Nākamais termiņš pēc „samaksāts“ (neejam uz pagātni salīdzinājumā ar šodienu). */
-function advanceNextDueAfterPayment(dateStr, period, termEndStr) {
+function advanceNextDueAfterPayment(dateStr, period, termEndStr, billingDay) {
     var iso = normalizeSubscriptionDateIso(dateStr);
     if (!iso) {
         return toISODateLocal(new Date());
     }
-    var next = addOneBillingPeriod(new Date(iso + 'T00:00:00'), period);
+    var preferred =
+        billingDay != null && billingDay >= 1 && billingDay <= 31
+            ? billingDay
+            : subscriptionBillingDayFromIso(iso);
+    var next = addOneBillingPeriod(
+        new Date(iso + 'T00:00:00'),
+        period,
+        preferred,
+    );
     var today = new Date();
     today.setHours(0, 0, 0, 0);
     var guard = 0;
     while (next < today && guard < 240) {
-        next = addOneBillingPeriod(next, period);
+        next = addOneBillingPeriod(next, period, preferred);
         guard++;
     }
     var nextIso = toISODateLocal(next);
@@ -534,6 +765,7 @@ function subtrackSyncSubscriptionsFromApi() {
                     if (!item || typeof item !== 'object') return item;
                     var o = Object.assign({}, item);
                     if (o.date) o.date = normalizeSubscriptionDateIso(o.date);
+                    o._preferredBillingDay = subscriptionBillingDayFromIso(o.date);
                     return o;
                 });
                 if (typeof window.subtrackEnrichAllSubscriptionsFamilyShare === 'function') {
@@ -571,6 +803,7 @@ function mergeSubscriptionFromApi(sub) {
         category: sub.category,
         amount: typeof sub.amount === 'number' ? sub.amount : parseFloat(sub.amount),
         dynamicAmount: sub.dynamicAmount === true,
+        dynamicCarryPrevious: sub.dynamicCarryPrevious === true,
         dueAmountOverride:
             sub.dueAmountOverride != null && !isNaN(parseFloat(sub.dueAmountOverride))
                 ? parseFloat(sub.dueAmountOverride)
@@ -586,8 +819,18 @@ function mergeSubscriptionFromApi(sub) {
         devices: Array.isArray(sub.devices) ? sub.devices : [],
     };
     if (idx === -1) {
+        row._preferredBillingDay = subscriptionBillingDayFromIso(row.date);
         subscriptions.push(row);
     } else {
+        var prev = subscriptions[idx];
+        var prevDate = normalizeSubscriptionDateIso(prev.date);
+        if (row.date !== prevDate) {
+            row._preferredBillingDay = subscriptionBillingDayFromIso(row.date);
+        } else if (prev._preferredBillingDay >= 1 && prev._preferredBillingDay <= 31) {
+            row._preferredBillingDay = prev._preferredBillingDay;
+        } else {
+            row._preferredBillingDay = subscriptionBillingDayFromIso(row.date);
+        }
         subscriptions[idx] = row;
     }
 }
@@ -754,6 +997,14 @@ function showToast(msg, type) {
     attachToastHoverDismiss(toast, type === 'info' ? 1600 : 2800);
 }
 
+function subtrackNotifyPageContentReady() {
+    if (typeof window === 'undefined') return;
+    try {
+        window.dispatchEvent(new CustomEvent('subtrack-page-content-ready'));
+    } catch (e) {}
+}
+
 if (typeof window !== 'undefined') {
     window.subtrackReloadSubscriptionsFromBootstrap = subtrackReloadSubscriptionsFromBootstrap;
+    window.subtrackNotifyPageContentReady = subtrackNotifyPageContentReady;
 }

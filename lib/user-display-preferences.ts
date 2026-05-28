@@ -11,6 +11,8 @@ export type DisplayPreferences = {
   /** `public.languages.code` - saskarnes valoda (kopā ar `<html lang>` un sīkdatni `subtrack_ui_locale`). */
   interface_language_code: string;
   currency: "EUR" | "USD" | "GBP" | "SEK" | "PLN" | "CHF";
+  /** Mēneša budžets panelim; `null` = nav iestatīts. */
+  monthly_budget: number | null;
   date_order: "dmy" | "ymd" | "mdy";
   date_sep: "." | "-" | "/";
   time_format: "24" | "12";
@@ -22,6 +24,7 @@ export type DisplayPreferences = {
 export const DISPLAY_PREFERENCES_DEFAULTS: DisplayPreferences = {
   interface_language_code: "lv",
   currency: "EUR",
+  monthly_budget: null,
   date_order: "dmy",
   date_sep: ".",
   time_format: "24",
@@ -98,6 +101,19 @@ export function sanitizeDisplayPreferencesPartial(
   if (typeof o.currency === "string" && ALLOWED_CURRENCY.has(o.currency as DisplayPreferences["currency"])) {
     out.currency = o.currency as DisplayPreferences["currency"];
   }
+  if ("monthly_budget" in o) {
+    if (o.monthly_budget == null || o.monthly_budget === "") {
+      out.monthly_budget = null;
+    } else {
+      const n =
+        typeof o.monthly_budget === "number"
+          ? o.monthly_budget
+          : Number.parseFloat(String(o.monthly_budget).replace(",", ".").trim());
+      if (Number.isFinite(n) && n >= 0) {
+        out.monthly_budget = Math.round(n * 100) / 100;
+      }
+    }
+  }
   if (typeof o.date_order === "string" && ALLOWED_DATE_ORDER.has(o.date_order as DisplayPreferences["date_order"])) {
     out.date_order = o.date_order as DisplayPreferences["date_order"];
   }
@@ -123,6 +139,16 @@ export function sanitizeDisplayPreferencesPartial(
   }
 
   return out;
+}
+
+/** Panelim: `null`, ja budžets nav iestatīts. */
+export function readMonthlyBudgetFromPreferences(
+  raw: Partial<DisplayPreferences> | DisplayPreferences | null | undefined,
+): number | null {
+  if (raw == null || typeof raw !== "object") return null;
+  const budget = raw.monthly_budget;
+  if (budget == null || !Number.isFinite(budget) || budget < 0) return null;
+  return budget;
 }
 
 /** Pilns objekts: `base` noklusējumi + derīgās partial vērtības. */

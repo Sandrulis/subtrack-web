@@ -94,6 +94,41 @@ function addDays(d, n) {
     return x;
 }
 
+function subtrackReadFreeTierGateForAnalytics() {
+    if (typeof subtrackReadBootstrapJsonTextById !== 'function') return null;
+    var raw = subtrackReadBootstrapJsonTextById('subtrack-free-tier-gate-json');
+    if (!raw) return null;
+    try {
+        return JSON.parse(raw);
+    } catch (e) {
+        return null;
+    }
+}
+
+function subtrackIsProAnalyticsPreviewLocked() {
+    var g = subtrackReadFreeTierGateForAnalytics();
+    if (!g || !g.enforcement) return false;
+    if (g.isPaidUser === true) return false;
+    return true;
+}
+
+function subtrackSyncAnalyticsPreviewOverlay() {
+    var wrap = document.querySelector('.analytics-preview-wrap--locked');
+    if (!wrap) return;
+    var grid = wrap.querySelector('.analytics-grid');
+    var overlay = wrap.querySelector('.analytics-preview-overlay');
+    if (!grid || !overlay) return;
+    var cards = grid.querySelectorAll('.analytics-card');
+    if (!cards.length) return;
+    var rowBottom = cards[0].getBoundingClientRect().bottom;
+    if (cards.length > 1) {
+        var secondBottom = cards[1].getBoundingClientRect().bottom;
+        if (secondBottom > rowBottom) rowBottom = secondBottom;
+    }
+    var wrapRect = wrap.getBoundingClientRect();
+    overlay.style.top = Math.max(0, rowBottom - wrapRect.top + 18) + 'px';
+}
+
 function renderAnalytics() {
     if (typeof subscriptions === 'undefined') return;
 
@@ -217,6 +252,10 @@ function renderAnalytics() {
     if (typeof refreshDashNotifications === 'function') {
         refreshDashNotifications();
     }
+
+    if (subtrackIsProAnalyticsPreviewLocked()) {
+        requestAnimationFrame(subtrackSyncAnalyticsPreviewOverlay);
+    }
 }
 
 function fsBootAnalytics() {
@@ -226,9 +265,18 @@ function fsBootAnalytics() {
     if (!skip && typeof subtrackReloadSubscriptionsFromBootstrap === 'function') {
         subtrackReloadSubscriptionsFromBootstrap();
     }
-    subtrackSyncSubscriptionsFromApi().then(function () {
-        renderAnalytics();
-    });
+    subtrackSyncSubscriptionsFromApi()
+        .then(function () {
+            renderAnalytics();
+        })
+        .catch(function () {
+            if (typeof renderAnalytics === 'function') renderAnalytics();
+        })
+        .finally(function () {
+            if (typeof subtrackNotifyPageContentReady === 'function') {
+                subtrackNotifyPageContentReady();
+            }
+        });
 }
 
 window.fsBootAnalytics = fsBootAnalytics;

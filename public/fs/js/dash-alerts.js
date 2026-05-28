@@ -42,7 +42,11 @@ function markNotifyItemPaid(rawId) {
     if (due > today) return;
 
     var period = s.period || 'monthly';
-    var newDate = advanceNextDueAfterPayment(s.date, period);
+    var billingDay =
+        typeof subscriptionPreferredBillingDay === 'function'
+            ? subscriptionPreferredBillingDay(s)
+            : null;
+    var newDate = advanceNextDueAfterPayment(s.date, period, s.termEnd, billingDay);
 
     subtrackSetMarkPaidPending(rawId, true);
 

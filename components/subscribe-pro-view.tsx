@@ -8,6 +8,8 @@ import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import { buildPaidPlanAnnualPitchCopy } from "@/lib/paid-plan-annual";
+import { createBillingAmountFormatter } from "@/lib/billing/format-billing-amount";
+import type { BillingCurrency } from "@/lib/billing/billing-currency";
 import { useMemo } from "react";
 
 const PRO_BENEFIT_ICONS = [
@@ -21,34 +23,32 @@ export function SubscribeProView({
   priceEur,
   freeTierLimit,
   annualPriceEur = null,
+  billingCurrency = "EUR",
 }: {
   userDisplay?: NavUserDisplay | null;
   priceEur: number;
   freeTierLimit: number;
   annualPriceEur?: number | null;
+  billingCurrency?: BillingCurrency;
 }) {
   const { t, locale } = useSubtrackIntl();
   const intlLocale = useMemo(() => uiLocaleCodeToBcp47ForIntl(locale), [locale]);
 
-  const fmtEur = useMemo(
-    () => (amount: number) =>
-      new Intl.NumberFormat(intlLocale, {
-        style: "currency",
-        currency: "EUR",
-      }).format(Number.isFinite(amount) ? amount : 0),
-    [intlLocale],
+  const fmtPrice = useMemo(
+    () => createBillingAmountFormatter(intlLocale, billingCurrency),
+    [billingCurrency, intlLocale],
   );
 
-  const priceFmt = useMemo(() => fmtEur(priceEur), [fmtEur, priceEur]);
+  const priceFmt = useMemo(() => fmtPrice(priceEur), [fmtPrice, priceEur]);
 
   const annualPitch = useMemo(
     () =>
-      buildPaidPlanAnnualPitchCopy(priceEur, annualPriceEur, fmtEur, t, {
+      buildPaidPlanAnnualPitchCopy(priceEur, annualPriceEur, fmtPrice, t, {
         line: "subscribe.price.annual_line",
         discount: "subscribe.price.annual_discount",
         equiv: "subscribe.price.annual_equiv",
       }),
-    [annualPriceEur, fmtEur, priceEur, t],
+    [annualPriceEur, fmtPrice, priceEur, t],
   );
 
   const benefitIds = ["unlimited", "calendar", "analytics"] as const;

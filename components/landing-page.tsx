@@ -1,7 +1,12 @@
 ﻿import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
 import { calendarWeekdayHeadersForIntl } from "@/lib/calendar-weekday-headers";
+import { isIntegrationEnabled } from "@/lib/integrations/integration-enabled";
+import { fetchAllowedSubscriptionCategoryKeys } from "@/lib/subscriptions/subscription-categories-server";
 import { getLandingUiPhrases } from "@/lib/landing/get-landing-ui-phrases";
 import { buildPaidPlanAnnualPitchCopy } from "@/lib/paid-plan-annual";
+import { createBillingAmountFormatter } from "@/lib/billing/format-billing-amount";
+import { resolveGuestBillingCurrency } from "@/lib/billing/resolve-billing-currency";
+import type { BillingCurrency } from "@/lib/billing/billing-currency";
 import { getPublicSystemSettings } from "@/lib/system-settings-public";
 import { applySystemNamePlaceholders } from "@/lib/system-name-placeholder";
 import { resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
@@ -143,6 +148,7 @@ export function LandingHeroDashboardMock({
   t,
   demoMode = false,
   paidPlanEnabled = false,
+  billingCurrency = "EUR",
 }: {
   intlLocale: string;
   t: (key: string) => string;
@@ -150,7 +156,10 @@ export function LandingHeroDashboardMock({
   demoMode?: boolean;
   /** Ja maksas plāns ieslēgts: piezīme zem kalendāra par ilustratīvo saturu. */
   paidPlanEnabled?: boolean;
+  /** Norēķinu valūta viesa reģionam (hero paraugu summas). */
+  billingCurrency?: BillingCurrency;
 }) {
+  const fmtMoney = createBillingAmountFormatter(intlLocale, billingCurrency);
   const df = new Intl.DateTimeFormat(intlLocale, {
     day: "numeric",
     month: "long",
@@ -185,7 +194,7 @@ export function LandingHeroDashboardMock({
           <div className="dashboard-overview-stats-row landing-hero-mock-stats">
             <div className="stat-card">
               <div className="stat-label">{t("landing.mock.stat_total_label")}</div>
-              <div className="stat-value">€184.35</div>
+              <div className="stat-value">{fmtMoney(184.35)}</div>
               <div className="stat-note">{t("landing.mock.stat_total_note")}</div>
             </div>
             <div className="stat-card">
@@ -203,7 +212,7 @@ export function LandingHeroDashboardMock({
                   <div className="stat-value stat-value--next">{d18}</div>
                   <div className="stat-next-name">{t("landing.mock.sample_bill_name")}</div>
                 </div>
-                <div className="stat-next-amount">€30.50</div>
+                <div className="stat-next-amount">{fmtMoney(30.5)}</div>
               </div>
             </div>
           </div>
@@ -238,7 +247,7 @@ export function LandingHeroDashboardMock({
               </div>
               <div className="sub-right">
                 <div className="sub-amount-wrap">
-                  <div className="sub-amount">€9.99</div>
+                  <div className="sub-amount">{fmtMoney(9.99)}</div>
                   <div className="sub-period">{t("landing.mock.period_month")}</div>
                 </div>
                 {demoMode ? (
@@ -278,7 +287,7 @@ export function LandingHeroDashboardMock({
               </div>
               <div className="sub-right">
                 <div className="sub-amount-wrap">
-                  <div className="sub-amount">€10.99</div>
+                  <div className="sub-amount">{fmtMoney(10.99)}</div>
                   <div className="sub-period">{t("landing.mock.period_month")}</div>
                 </div>
                 {demoMode ? (
@@ -321,7 +330,7 @@ export function LandingHeroDashboardMock({
               </div>
               <div className="sub-right">
                 <div className="sub-amount-wrap">
-                  <div className="sub-amount">€30.50</div>
+                  <div className="sub-amount">{fmtMoney(30.5)}</div>
                   <div className="sub-period">{t("landing.mock.period_month")}</div>
                 </div>
                 {demoMode ? (
@@ -369,6 +378,11 @@ const FEATURE_ROWS = [
   { icon: "fa-solid fa-pen-to-square", id: "management" as const },
 ] as const;
 
+const FEATURE_ROW_FAMILY_SHARING = {
+  icon: "fa-solid fa-people-group",
+  id: "family_sharing" as const,
+};
+
 function buildLandingPhraseLookup(
   phrases: Record<string, string>,
   systemSiteName: string,
@@ -381,11 +395,25 @@ function buildLandingPhraseLookup(
 }
 
 export async function LandingPageContent() {
-  const [{ locale }, publicSettings, phrases] = await Promise.all([
+  const [
+    { locale },
+    publicSettings,
+    phrases,
+    familySharingEnabled,
+    categoryKeys,
+    guestBillingCurrency,
+  ] = await Promise.all([
     resolveRequestUiLocales(),
     getPublicSystemSettings(),
     getLandingUiPhrases(),
+    isIntegrationEnabled("family_sharing"),
+    fetchAllowedSubscriptionCategoryKeys(),
+    resolveGuestBillingCurrency(),
   ]);
+  const trustCategoryCount = categoryKeys.size;
+  const featureRows = familySharingEnabled
+    ? [...FEATURE_ROWS, FEATURE_ROW_FAMILY_SHARING]
+    : FEATURE_ROWS;
   const { paidPlan, systemName: systemSiteName } = publicSettings;
   const t = buildLandingPhraseLookup(phrases, systemSiteName);
   const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
@@ -396,12 +424,8 @@ export async function LandingPageContent() {
     annual: ReturnType<typeof buildPaidPlanAnnualPitchCopy>;
   } | null = null;
   if (paidPlan?.enabled) {
-    const fmtEur = (amount: number) =>
-      new Intl.NumberFormat(intlLocale, {
-        style: "currency",
-        currency: "EUR",
-      }).format(amount);
-    const monthlyFmt = fmtEur(paidPlan.priceEur);
+    const fmtPrice = createBillingAmountFormatter(intlLocale, guestBillingCurrency);
+    const monthlyFmt = fmtPrice(paidPlan.priceEur);
     const blurb = t("landing.pricing.blurb")
       .replace(/\{count\}/g, String(paidPlan.freeSubscriptionLimit))
       .replace(/\{price\}/g, monthlyFmt);
@@ -410,7 +434,7 @@ export async function LandingPageContent() {
         ? buildPaidPlanAnnualPitchCopy(
             paidPlan.priceEur,
             paidPlan.annualPriceEur,
-            fmtEur,
+            fmtPrice,
             t,
             {
               line: "landing.pricing.annual_line",
@@ -467,6 +491,7 @@ export async function LandingPageContent() {
               intlLocale={intlLocale}
               t={t}
               paidPlanEnabled={Boolean(paidPlan?.enabled)}
+              billingCurrency={guestBillingCurrency}
             />
           </div>
         </div>
@@ -530,22 +555,45 @@ export async function LandingPageContent() {
         </section>
       ) : null}
 
-      <section className="landing-trust">
+      <section className="landing-trust" aria-labelledby="landing-trust-heading">
         <div className="landing-trust-inner">
-          <p className="trust-title">{t("landing.trust.title")}</p>
-          <div className="trust-grid">
-            <div className="trust-item">
-              <strong>100+</strong>
-              <span>{t("landing.trust.stat_items_demo")}</span>
-            </div>
-            <div className="trust-item">
-              <strong>6</strong>
-              <span>{t("landing.trust.categories_demo")}</span>
-            </div>
-            <div className="trust-item">
-              <strong>24/7</strong>
-              <span>{t("landing.trust.online")}</span>
-            </div>
+          <div className="section-label">{t("landing.trust.label")}</div>
+          <h2 id="landing-trust-heading" className="trust-title">
+            {t("landing.trust.title")}
+          </h2>
+          <div
+            className={`trust-grid${familySharingEnabled ? "" : " trust-grid--two"}`}
+          >
+            <article className="trust-card">
+              <div className="trust-card-icon" aria-hidden="true">
+                <i className="fa-solid fa-tags" />
+              </div>
+              <div className="trust-card-body trust-card-body--stack">
+                <p className="trust-card-stat">{trustCategoryCount}</p>
+                <p className="trust-card-title">{t("landing.trust.payment_categories")}</p>
+                <p className="trust-card-hint">{t("landing.trust.categories_hint")}</p>
+              </div>
+            </article>
+            <article className="trust-card">
+              <div className="trust-card-icon" aria-hidden="true">
+                <i className="fa-solid fa-envelope" />
+              </div>
+              <div className="trust-card-body trust-card-body--stack">
+                <p className="trust-card-title">{t("landing.trust.email_reminders")}</p>
+                <p className="trust-card-hint">{t("landing.trust.email_reminders_hint")}</p>
+              </div>
+            </article>
+            {familySharingEnabled ? (
+              <article className="trust-card">
+                <div className="trust-card-icon" aria-hidden="true">
+                  <i className="fa-solid fa-people-group" />
+                </div>
+                <div className="trust-card-body trust-card-body--stack">
+                  <p className="trust-card-title">{t("landing.trust.family_sharing")}</p>
+                  <p className="trust-card-hint">{t("landing.trust.family_sharing_hint")}</p>
+                </div>
+              </article>
+            ) : null}
           </div>
         </div>
       </section>
@@ -556,7 +604,7 @@ export async function LandingPageContent() {
           <h2 className="section-title">{t("landing.features.title")}</h2>
           <p className="section-sub section-sub-wide">{t("landing.features.intro")}</p>
           <div className="features-grid">
-            {FEATURE_ROWS.map((f) => (
+            {featureRows.map((f) => (
               <div key={f.id} className="feature-card">
                 <div className="feature-icon-wrap">
                   <i className={f.icon} />

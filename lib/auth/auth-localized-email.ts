@@ -11,6 +11,7 @@ import {
   isSignupEmailBlocked,
   SIGNUP_EMAIL_TAKEN_MESSAGE,
 } from "@/lib/auth/signup-email-blocked";
+import type { RegistrationGeoPayload } from "@/lib/auth/registration-country-payload";
 
 export type AuthLocalizedEmailResult =
   | { ok: true }
@@ -48,6 +49,7 @@ export async function registerUserWithLocalizedConfirmEmail(input: {
   lastName: string;
   siteUrl: string;
   locale: string;
+  registrationGeo?: RegistrationGeoPayload;
 }): Promise<AuthLocalizedEmailResult> {
   if (!canSendAuthEmailsViaResend()) {
     return {
@@ -92,6 +94,12 @@ export async function registerUserWithLocalizedConfirmEmail(input: {
       data: {
         first_name: input.firstName.trim(),
         last_name: input.lastName.trim(),
+        ...(input.registrationGeo?.registration_country
+          ? {
+              registration_country: input.registrationGeo.registration_country,
+            }
+          : {}),
+        billing_currency: input.registrationGeo?.billing_currency ?? "USD",
       },
     },
   });

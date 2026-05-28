@@ -11,6 +11,7 @@ import type { NavUserDisplay } from "@/lib/auth/user-display";
 export type AdminNavActive =
   | "users"
   | "integrations"
+  | "categories"
   | "system"
   | "languages"
   | "translations"
@@ -29,6 +30,7 @@ function navActiveFromPath(pathname: string): AdminNavActive {
     return "users";
   }
   if (pathname.startsWith("/admin/integrations")) return "integrations";
+  if (pathname.startsWith("/admin/categories")) return "categories";
   if (pathname.startsWith("/admin/system")) return "system";
   if (pathname.startsWith("/admin/languages")) return "languages";
   if (pathname.startsWith("/admin/translations")) return "translations";
@@ -52,6 +54,7 @@ const navItems: {
     | "admin.nav.languages"
     | "admin.nav.translations"
     | "admin.nav.integrations"
+    | "admin.nav.categories"
     | "admin.nav.system"
     | "admin.nav.email_design"
     | "admin.nav.cron_jobs"
@@ -73,6 +76,11 @@ const navItems: {
     href: "/admin/integrations",
     key: "integrations",
     labelKey: "admin.nav.integrations",
+  },
+  {
+    href: "/admin/categories",
+    key: "categories",
+    labelKey: "admin.nav.categories",
   },
   { href: "/admin/system", key: "system", labelKey: "admin.nav.system" },
   { href: "/admin/pwa", key: "pwa", labelKey: "admin.nav.pwa" },

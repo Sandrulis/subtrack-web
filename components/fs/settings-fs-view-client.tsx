@@ -1,9 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { PwaPushSettings } from "@/components/pwa/pwa-push-settings";
-import { PwaSettingsInstall } from "@/components/pwa/pwa-settings-install";
-import { SettingsConnectGoogle } from "@/components/settings-connect-google";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavDash } from "@/components/nav-dash";
@@ -23,6 +20,9 @@ import { applyUiLocaleInBrowser } from "@/lib/html-lang";
 import { pushDomToast } from "@/lib/push-dom-toast";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
+import {
+  AppPageContentGate,
+} from "@/components/app/app-page-content-gate";
 
 function pickInterfaceLanguageAgainstCatalog(
   code: string,
@@ -43,14 +43,12 @@ export function SettingsFsViewClient({
   dbPreferencesRaw,
   languageOptions,
   preferenceBase,
-  oauthGoogleEnabled = false,
 }: {
   userDisplay?: NavUserDisplay | null;
   /** No servera: `users.display_preferences` vai null */
   dbPreferencesRaw: unknown | null;
   languageOptions: SettingsLanguageOption[];
   preferenceBase: DisplayPreferences;
-  oauthGoogleEnabled?: boolean;
 }) {
   const [prefs, setPrefs] = useState<DisplayPreferences>(() =>
     mergeDisplayPreferences({}, preferenceBase),
@@ -202,6 +200,7 @@ export function SettingsFsViewClient({
     <>
       <NavDash active="" userDisplay={userDisplay} />
       <div className="auth-page-inner">
+        <AppPageContentGate ready={hydrated}>
         <div className="auth-card auth-card--settings auth-card--form">
           <div className="auth-card-icon">
             <i className="fa-solid fa-sliders fa-xl" aria-hidden="true" />
@@ -254,6 +253,37 @@ export function SettingsFsViewClient({
                 <option value="PLN">{t("settings.currency_pln_label")}</option>
                 <option value="CHF">{t("settings.currency_chf_label")}</option>
               </select>
+            </div>
+
+            <p className="form-section-label form-section-label--spaced">{t("settings.section_budget")}</p>
+            <div className="form-group">
+              <label htmlFor="set-monthly-budget">{t("settings.label_monthly_budget")}</label>
+              <input
+                id="set-monthly-budget"
+                name="monthly_budget"
+                type="number"
+                min={0}
+                step={0.01}
+                inputMode="decimal"
+                placeholder={t("settings.placeholder_monthly_budget")}
+                value={prefs.monthly_budget ?? ""}
+                disabled={!hydrated}
+                onChange={(e) => {
+                  const raw = e.target.value.trim();
+                  if (raw === "") {
+                    updateField("monthly_budget", null);
+                    return;
+                  }
+                  const parsed = Number.parseFloat(raw.replace(",", "."));
+                  updateField(
+                    "monthly_budget",
+                    Number.isFinite(parsed) && parsed >= 0 ? parsed : null,
+                  );
+                }}
+              />
+              <p className="form-hint form-hint--settings-under-select">
+                {t("settings.hint_monthly_budget")}
+              </p>
             </div>
 
             <p className="form-section-label form-section-label--spaced">{t("admin.forms.section_date")}</p>
@@ -393,14 +423,11 @@ export function SettingsFsViewClient({
             </div>
           </form>
 
-          <SettingsConnectGoogle googleEnabled={oauthGoogleEnabled} />
-          <PwaSettingsInstall />
-          <PwaPushSettings />
-
           <p className="auth-footer">
             <Link href="/dashboard">{t("settings.link_dashboard")}</Link>
           </p>
         </div>
+        </AppPageContentGate>
       </div>
 
       <SiteLandingFooter />

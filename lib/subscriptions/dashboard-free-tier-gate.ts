@@ -1,5 +1,3 @@
-import { navUserHasProEntitlement } from "@/lib/auth/pro-plan-access";
-import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
   normalizePaidPlanRow,
@@ -7,22 +5,11 @@ import {
 } from "@/lib/system-settings-public";
 
 export { canAccessAnalytics } from "./analytics-access";
-
-/** Panelim: vai jābūt klienta pārbaudē pirms „Pievienot” modāļa. */
-export type DashboardFreeTierGatePayload = {
-  /** `system_settings.paid_plan_enabled` */
-  enforcement: boolean;
-  freeLimit: number;
-  /** `paid_plan_active`, `pro_vip` vai aktīvs izmēģinājums */
-  isPaidUser: boolean;
-  priceEur: number;
-  /** Aktīvs Pro izmēģinājums (badge / progress) */
-  trialActive?: boolean;
-  trialDaysRemaining?: number;
-  trialDaysTotal?: number;
-  trialPercentElapsed?: number;
-  trialEndsOnFormatted?: string;
-};
+export {
+  buildDashboardFreeTierGatePayload,
+  isProFeaturePreviewLocked,
+  type DashboardFreeTierGatePayload,
+} from "./dashboard-free-tier-gate-payload";
 
 const PAID_PLAN_FALLBACK: SubtrackPublicPaidPlan = {
   enabled: false,
@@ -51,27 +38,4 @@ export async function fetchSystemPaidPlanLiveForDashboard(): Promise<SubtrackPub
   } catch {
     return { ...PAID_PLAN_FALLBACK };
   }
-}
-
-export function buildDashboardFreeTierGatePayload(
-  userDisplay: NavUserDisplay | null | undefined,
-  paidPlan: SubtrackPublicPaidPlan,
-): DashboardFreeTierGatePayload {
-  const trialActive = userDisplay?.proTrialActive === true;
-  const progress = userDisplay?.proTrialProgress;
-  return {
-    enforcement: Boolean(paidPlan.enabled),
-    freeLimit: paidPlan.freeSubscriptionLimit,
-    isPaidUser: navUserHasProEntitlement(userDisplay),
-    priceEur: paidPlan.priceEur,
-    ...(trialActive && progress
-      ? {
-          trialActive: true,
-          trialDaysRemaining: progress.daysRemaining,
-          trialDaysTotal: progress.daysTotal,
-          trialPercentElapsed: progress.percentElapsed,
-          trialEndsOnFormatted: progress.endsOnFormatted,
-        }
-      : {}),
-  };
 }

@@ -9,6 +9,7 @@ import {
   buildDashboardFreeTierGatePayload,
   fetchSystemPaidPlanLiveForDashboard,
 } from "@/lib/subscriptions/dashboard-free-tier-gate";
+import { fetchEnabledSubscriptionCategoryOptions } from "@/lib/subscriptions/subscription-categories-server";
 import { fsDashboardPhraseKeys } from "@/lib/fs/fs-page-i18n-keys";
 import {
   getUiPhraseForRequest,
@@ -32,16 +33,6 @@ export default async function DemoDashboardRoute() {
     getUiPhrasesForRequest(DEMO_SUB_PHRASE_KEYS),
   ]);
 
-  const freeTierGate = buildDashboardFreeTierGatePayload(
-    userDisplay,
-    paidPlanLive,
-  );
-  const demoFreeTierGate = {
-    ...freeTierGate,
-    enforcement: false,
-    isPaidUser: true,
-  };
-
   const initialSubscriptions = buildDemoDashboardSubscriptions({
     sampleBillName: demoPhrases["landing.mock.sample_bill_name"],
     mortgageName: demoPhrases["demo.dashboard.sub_mortgage"],
@@ -53,6 +44,20 @@ export default async function DemoDashboardRoute() {
     mockWeekBill: demoPhrases["demo.dashboard.mock_week_bill"],
   });
 
+  const categoryOptions = await fetchEnabledSubscriptionCategoryOptions(
+    initialSubscriptions.map((s) => s.category),
+  );
+
+  const freeTierGate = buildDashboardFreeTierGatePayload(
+    userDisplay,
+    paidPlanLive,
+  );
+  const demoFreeTierGate = {
+    ...freeTierGate,
+    enforcement: false,
+    isPaidUser: true,
+  };
+
   const { locale } = await resolveRequestUiLocales();
   const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
   const fsI18n = await getUiPhrasesForRequest(fsDashboardPhraseKeys());
@@ -63,12 +68,14 @@ export default async function DemoDashboardRoute() {
       <FsDashboardBootstrapTemplates
         initialSubscriptions={initialSubscriptions}
         freeTierGate={demoFreeTierGate}
+        categoryOptions={categoryOptions}
         demoMode
       />
       <DashboardFsView
         userDisplay={userDisplay}
         initialSubscriptions={initialSubscriptions}
         freeTierGate={demoFreeTierGate}
+        categoryOptions={categoryOptions}
         demoMode
       />
     </>

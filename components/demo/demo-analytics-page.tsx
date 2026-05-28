@@ -101,14 +101,7 @@ export function DemoAnalyticsPage({
                 >
                   {t("nav.pro_badge")}
                 </span>
-              ) : (
-                <span
-                  className="subtrack-demo-topbar-badge"
-                  title={t("demo.banner")}
-                >
-                  {t("demo.nav.badge")}
-                </span>
-              )}
+              ) : null}
             </div>
             <p className="page-subtitle">{t("fs.analytics.page_subtitle")}</p>
           </div>

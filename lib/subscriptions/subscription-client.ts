@@ -16,6 +16,8 @@ export type SubscriptionClient = {
   amount: number;
   /** Summa var mainīties katru periodu (DB `is_dynamic_amount`). */
   dynamicAmount?: boolean;
+  /** Pēc apmaksas nākamajam termiņam rādīt iepriekšējā perioda bāzes summu. */
+  dynamicCarryPrevious?: boolean;
   /** Bāzes summa tikai periodam `dueAmountOverrideFor` (ja dinamisks). */
   dueAmountOverride?: number | null;
   dueAmountOverrideFor?: string;
@@ -44,6 +46,7 @@ export type SubscriptionRow = {
   term_end: string | null;
   devices: unknown;
   is_dynamic_amount?: boolean;
+  is_dynamic_carry_previous?: boolean;
   due_amount_override?: number | string | null;
   due_amount_override_for?: string | null;
 };

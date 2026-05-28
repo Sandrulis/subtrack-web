@@ -16,6 +16,10 @@ import { FS_COLOR_DOTS } from "@/lib/fs-icons";
 import { pushDomToast } from "@/lib/push-dom-toast";
 import { SubtrackTooltip } from "@/components/subtrack-tooltip";
 import type { FamilySharingDashboardBootstrap } from "@/lib/family-sharing/family-sharing-types";
+import {
+  AppPageContentGate,
+  useClientPageContentReady,
+} from "@/components/app/app-page-content-gate";
 
 function FamilySharingIconActionBtn({
   busy,
@@ -553,6 +557,7 @@ export function FamilySharingView({
   initialSubscriptions: SubscriptionClient[];
 }) {
   const { t } = useSubtrackIntl();
+  const contentReady = useClientPageContentReady();
   const router = useRouter();
   const [links, setLinks] = useState(initialLinks);
   const [email, setEmail] = useState("");
@@ -762,6 +767,7 @@ export function FamilySharingView({
         reloadSubscriptionsFromBootstrap
       />
       <main className="main-content">
+        <AppPageContentGate ready={contentReady} className="app-page-content-gate--main">
         <header className="page-header">
           <div>
             <h1 className="page-title">{t("family_sharing.heading")}</h1>
@@ -917,6 +923,7 @@ export function FamilySharingView({
             ) : null}
           </div>
         ) : null}
+        </AppPageContentGate>
       </main>
       <FamilySharingConfirmModal
         pending={confirmPending}

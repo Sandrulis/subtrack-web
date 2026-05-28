@@ -3,6 +3,7 @@ import type {
   SubscriptionDeviceClient,
   SubscriptionRow,
 } from "./subscription-client";
+import { LEGACY_SUBSCRIPTION_CATEGORY_KEYS } from "./subscription-categories-server";
 
 function coerceDevicesFromDb(raw: unknown): SubscriptionDeviceClient[] {
   if (!Array.isArray(raw)) return [];
@@ -50,6 +51,7 @@ export function mapSubscriptionRowToClient(row: SubscriptionRow): SubscriptionCl
     category: row.category,
     amount: Number.isFinite(amt) ? amt : 0,
     dynamicAmount: row.is_dynamic_amount === true,
+    dynamicCarryPrevious: row.is_dynamic_carry_previous === true,
     dueAmountOverride: (() => {
       if (row.due_amount_override == null || row.due_amount_override === "") {
         return null;
@@ -69,14 +71,20 @@ export function mapSubscriptionRowToClient(row: SubscriptionRow): SubscriptionCl
   };
 }
 
-const ALLOWED_CATEGORY = new Set([
-  "subscription",
-  "bill",
-  "credit",
-  "leasing",
-  "insurance",
-  "other",
-]);
+const LEGACY_ALLOWED_CATEGORY = new Set<string>(LEGACY_SUBSCRIPTION_CATEGORY_KEYS);
+
+function resolveAllowedCategories(
+  allowedCategories?: Set<string> | null,
+): Set<string> {
+  if (allowedCategories && allowedCategories.size > 0) {
+    return allowedCategories;
+  }
+  return LEGACY_ALLOWED_CATEGORY;
+}
+
+function isAllowedCategory(key: string, allowed: Set<string>): boolean {
+  return allowed.has(key);
+}
 
 const ALLOWED_PERIOD = new Set(["monthly", "yearly", "weekly"]);
 
@@ -93,6 +101,7 @@ export type SubscriptionPayloadInput = {
   termEnd?: unknown;
   devices?: unknown;
   dynamicAmount?: unknown;
+  dynamicCarryPrevious?: unknown;
   dueAmountOverride?: unknown;
   dueDate?: unknown;
 };
@@ -172,7 +181,9 @@ export function normalizeDevicesForSubscription(
  */
 export function parseSubscriptionPayload(
   body: SubscriptionPayloadInput | null | undefined,
+  opts?: { allowedCategories?: Set<string> },
 ): { ok: false; message: string } | { ok: true; row: Record<string, unknown> } {
+  const allowedCategory = resolveAllowedCategories(opts?.allowedCategories);
   if (!body || typeof body !== "object") {
     return { ok: false, message: "Invalid JSON body" };
   }
@@ -192,7 +203,7 @@ export function parseSubscriptionPayload(
   }
 
   const categoryRaw = String(body.category ?? "subscription").trim();
-  if (!ALLOWED_CATEGORY.has(categoryRaw)) {
+  if (!isAllowedCategory(categoryRaw, allowedCategory)) {
     return { ok: false, message: "Invalid category" };
   }
   const category = categoryRaw;
@@ -245,12 +256,16 @@ export function parseSubscriptionPayload(
   }
 
   const dynamicAmount = body.dynamicAmount === true || body.dynamicAmount === "true";
+  const dynamicCarryPrevious =
+    dynamicAmount &&
+    (body.dynamicCarryPrevious === true || body.dynamicCarryPrevious === "true");
 
   const row: Record<string, unknown> = {
     name,
     category,
     amount: amountNum,
     is_dynamic_amount: dynamicAmount,
+    is_dynamic_carry_previous: dynamicCarryPrevious,
     period,
     next_payment_date: date,
     icon,
@@ -274,7 +289,9 @@ function clearDueAmountOverrideFields(
 export function parseSubscriptionPatch(
   body: SubscriptionPayloadInput | null | undefined,
   existing?: SubscriptionRow | null,
+  opts?: { allowedCategories?: Set<string> },
 ): { ok: false; message: string } | { ok: true; row: Record<string, unknown> } {
+  const allowedCategory = resolveAllowedCategories(opts?.allowedCategories);
   if (!body || typeof body !== "object") {
     return { ok: false, message: "Invalid JSON body" };
   }
@@ -287,7 +304,7 @@ export function parseSubscriptionPatch(
 
   if (body.category !== undefined) {
     const categoryRaw = String(body.category ?? "").trim();
-    if (!ALLOWED_CATEGORY.has(categoryRaw)) {
+    if (!isAllowedCategory(categoryRaw, allowedCategory)) {
       return { ok: false, message: "Invalid category" };
     }
     row.category = categoryRaw;
@@ -387,7 +404,18 @@ export function parseSubscriptionPatch(
     row.is_dynamic_amount = isDynamic;
     if (!isDynamic) {
       clearDueAmountOverrideFields(row);
+      row.is_dynamic_carry_previous = false;
     }
+  }
+
+  if (body.dynamicCarryPrevious !== undefined) {
+    const effectiveDynamic =
+      row.is_dynamic_amount !== undefined
+        ? row.is_dynamic_amount === true
+        : existing?.is_dynamic_amount === true;
+    row.is_dynamic_carry_previous =
+      effectiveDynamic &&
+      (body.dynamicCarryPrevious === true || body.dynamicCarryPrevious === "true");
   }
 
   if (body.dueAmountOverride !== undefined && existing) {

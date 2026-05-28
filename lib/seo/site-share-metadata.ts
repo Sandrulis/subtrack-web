@@ -56,7 +56,7 @@ export async function getBrandBylinePageTitle(brand: string): Promise<string> {
   if (!line) {
     line =
       pickFallbackPhrase("landing.footer.byline", "en") ??
-      "subscription and recurring payment management.";
+      "subscription and recurring payment tracker.";
   }
   return `${trimmedBrand} – ${line}`;
 }

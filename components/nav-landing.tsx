@@ -5,7 +5,6 @@ import { DashBrandLink } from "@/components/brand/dash-brand-link";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
-import { canAccessAnalytics } from "@/lib/subscriptions/analytics-access";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { AuthedNotifyBootstrap } from "@/components/authed-notify-bootstrap";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
@@ -20,10 +19,9 @@ type NavLandingProps = {
 };
 
 export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
-  const { t, paidPlan } = useSubtrackIntl();
+  const { t } = useSubtrackIntl();
   const pathname = usePathname() ?? "";
-  const showAuthedAnalytics =
-    Boolean(userDisplay) && canAccessAnalytics(paidPlan, userDisplay);
+  const showAuthedAnalytics = Boolean(userDisplay);
   const authedAnalyticsPathActive = pathname.startsWith("/analytics");
   return (
     <>

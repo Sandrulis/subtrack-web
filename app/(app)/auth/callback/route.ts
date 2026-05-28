@@ -2,7 +2,9 @@ import { type EmailOtpType } from "@supabase/supabase-js";
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { backfillUserRegistrationCountry } from "@/lib/auth/backfill-user-registration-country";
 import { syncOAuthAvatarToPublicUser } from "@/lib/auth/sync-oauth-avatar";
+import { touchUserLastSeen } from "@/lib/auth/touch-user-last-seen";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
 
 function safeNextPath(nextParam: string | null): string {
@@ -102,7 +104,11 @@ export async function GET(request: NextRequest) {
     data: { user: sessionUser },
   } = await supabase.auth.getUser();
   if (sessionUser) {
-    await syncOAuthAvatarToPublicUser(supabase, sessionUser);
+    await Promise.all([
+      syncOAuthAvatarToPublicUser(supabase, sessionUser),
+      touchUserLastSeen(supabase),
+      backfillUserRegistrationCountry(sessionUser.id, request.headers),
+    ]);
   }
 
   const redirectUrl = request.nextUrl.clone();

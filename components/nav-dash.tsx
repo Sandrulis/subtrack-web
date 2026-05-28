@@ -3,7 +3,6 @@
 import { DashBrandLink } from "@/components/brand/dash-brand-link";
 import Link from "next/link";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
-import { canAccessAnalytics } from "@/lib/subscriptions/analytics-access";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { AuthedNotifyBootstrap } from "@/components/authed-notify-bootstrap";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
@@ -30,11 +29,10 @@ export function NavDash({
   demoMode = false,
   reloadSubscriptionsFromBootstrap = false,
 }: NavDashProps) {
-  const { t, paidPlan } = useSubtrackIntl();
+  const { t } = useSubtrackIntl();
   const analyticsHref = demoMode ? "/demo/analytics" : "/analytics";
   const dashboardHref = demoMode ? "/demo/dashboard" : "/dashboard";
-  const showAnalyticsNav =
-    demoMode || canAccessAnalytics(paidPlan, userDisplay);
+  const showAnalyticsNav = true;
   return (
     <>
     <AuthedNotifyBootstrap

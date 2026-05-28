@@ -127,6 +127,35 @@ function IconTrash() {
   );
 }
 
+function AdminTodosTrashDropZone({
+  t,
+  active,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+}: {
+  t: (k: string) => string;
+  active: boolean;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+}) {
+  return (
+    <div
+      className={"admin-todos-trash-zone" + (active ? " admin-todos-trash-zone--active" : "")}
+      role="region"
+      aria-label={t("admin.todos.complete")}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      <span className="admin-todos-trash-zone-icon" aria-hidden="true">
+        <i className="fas fa-trash" />
+      </span>
+    </div>
+  );
+}
+
 type TodoCardProps = {
   row: AdminTodoRow;
   t: (k: string) => string;
@@ -379,6 +408,7 @@ export function AdminTodosBoard({ initialRows, loadError }: AdminTodosBoardProps
   const [form, setForm] = useState<TodoFormState>(emptyForm);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropInsert, setDropInsert] = useState<DropInsert | null>(null);
+  const [trashDropActive, setTrashDropActive] = useState(false);
   const [deletePendingId, setDeletePendingId] = useState<string | null>(null);
   const [completePendingId, setCompletePendingId] = useState<string | null>(null);
   const [uiPending, startUiTransition] = useTransition();
@@ -493,6 +523,51 @@ export function AdminTodosBoard({ initialRows, loadError }: AdminTodosBoardProps
     dropLockRef.current = false;
     setDraggingId(null);
     setDropInsert(null);
+    setTrashDropActive(false);
+  };
+
+  const completeFromDrop = (id: string) => {
+    if (dropLockRef.current || uiPending) return;
+    const snapshot = rows;
+    clearDragState();
+    setRows((prev) => prev.filter((r) => r.id !== id));
+
+    void moveAdminTodoAction(id, "done").then((result) => {
+      if (!result.ok) {
+        setRows(snapshot);
+        actionToast(result, t);
+        return;
+      }
+      pushDomToast(t("admin.todos.toast.completed"), "success");
+    });
+  };
+
+  const handleTrashDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!draggingId) {
+      e.dataTransfer.dropEffect = "none";
+      return;
+    }
+    e.dataTransfer.dropEffect = "move";
+    setTrashDropActive(true);
+    setDropInsert(null);
+  };
+
+  const handleTrashDragLeave = (e: React.DragEvent) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+    setTrashDropActive(false);
+  };
+
+  const handleTrashDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const id = e.dataTransfer.getData("text/plain") || draggingId;
+    if (!id) {
+      clearDragState();
+      return;
+    }
+    completeFromDrop(id);
   };
 
   const setDropFromPointer = (
@@ -668,9 +743,23 @@ export function AdminTodosBoard({ initialRows, loadError }: AdminTodosBoardProps
       ) : null}
 
       <div className="admin-todos-layout" aria-busy={uiPending}>
+        <AdminTodosTrashDropZone
+          t={t}
+          active={trashDropActive}
+          onDragOver={handleTrashDragOver}
+          onDragLeave={handleTrashDragLeave}
+          onDrop={handleTrashDrop}
+        />
         <div className="admin-todos-columns-top">
           {BOARD_COLUMNS.map((col) => renderKanbanColumn(col))}
         </div>
+        <AdminTodosTrashDropZone
+          t={t}
+          active={trashDropActive}
+          onDragOver={handleTrashDragOver}
+          onDragLeave={handleTrashDragLeave}
+          onDrop={handleTrashDrop}
+        />
       </div>
 
       {formOpen ? (

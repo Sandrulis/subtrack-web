@@ -13,13 +13,53 @@ export type DemoDashboardSubscriptionPhrases = {
   mockWeekBill: string;
 };
 
+function isoTodayLocal(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function addDaysIso(iso: string, days: number): string {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Šonedēļas maksājums (ne šodien): rīt vai +3 d., bet ne vēlāk par nedēļas beigām (pirmd.–svētd.). */
+function demoDueLaterThisWeekIso(today: string): string {
+  const ref = new Date(`${today}T12:00:00`);
+  const dow = ref.getDay();
+  const daysToSunday = dow === 0 ? 0 : 7 - dow;
+  const weekEnd = addDaysIso(today, daysToSunday);
+  const candidate = addDaysIso(today, dow === 0 ? 1 : Math.min(3, daysToSunday || 1));
+  if (candidate <= today) return addDaysIso(today, 1);
+  return candidate > weekEnd ? weekEnd : candidate;
+}
+
+/** Nākamnedēļas maksājums: otrdiena pēc šīs nedēļas svētdienas. */
+function demoDueNextWeekIso(today: string): string {
+  const ref = new Date(`${today}T12:00:00`);
+  const dow = ref.getDay();
+  const daysToSunday = dow === 0 ? 0 : 7 - dow;
+  const nextMonday = addDaysIso(today, daysToSunday + 1);
+  return addDaysIso(nextMonday, 1);
+}
+
 /**
- * Parauga abonementi `/demo/dashboard` (_FS bootstrap_). Datumi salikti ap **2026-05-18**
- * (kavēti, šodien, tuvākās dienas, vēlāk jūnijā); termiņi ierīcēm aprēķinās pret „šodienu” klientā.
+ * Parauga abonementi `/demo/dashboard` un `/demo/analytics`.
+ * Maksājumu datumi tiek salikti pret **šodienu** (SSR brīdī): 1× nokavēts, 1× šodien,
+ * 1× vēlāk šonedēļ, 1× nākamnedēļ, pārējie tālāk kalendārā.
  */
 export function buildDemoDashboardSubscriptions(
   p: DemoDashboardSubscriptionPhrases,
 ): SubscriptionClient[] {
+  const today = isoTodayLocal();
+
   return [
     {
       id: "demo-fs-od-streaming",
@@ -27,23 +67,9 @@ export function buildDemoDashboardSubscriptions(
       category: "subscription",
       amount: 12.99,
       period: "monthly",
-      date: "2026-05-05",
+      date: addDaysIso(today, -12),
       icon: "fa-solid fa-clapperboard",
       color: "#7c3aed",
-      note: "",
-      termStart: "",
-      termEnd: "",
-      devices: [],
-    },
-    {
-      id: "demo-fs-od-gym",
-      name: p.mockOdGym,
-      category: "other",
-      amount: 39.9,
-      period: "monthly",
-      date: "2026-05-11",
-      icon: "fa-solid fa-dumbbell",
-      color: "#ea580c",
       note: "",
       termStart: "",
       termEnd: "",
@@ -55,7 +81,7 @@ export function buildDemoDashboardSubscriptions(
       category: "subscription",
       amount: 8.99,
       period: "monthly",
-      date: "2026-05-18",
+      date: today,
       icon: "fa-solid fa-utensils",
       color: "#ca8a04",
       note: "",
@@ -70,9 +96,23 @@ export function buildDemoDashboardSubscriptions(
       amount: 41.5,
       dynamicAmount: true,
       period: "monthly",
-      date: "2026-05-22",
+      date: demoDueLaterThisWeekIso(today),
       icon: "fa-solid fa-bolt",
       color: "#0891b2",
+      note: "",
+      termStart: "",
+      termEnd: "",
+      devices: [],
+    },
+    {
+      id: "demo-fs-od-gym",
+      name: p.mockOdGym,
+      category: "other",
+      amount: 39.9,
+      period: "monthly",
+      date: demoDueNextWeekIso(today),
+      icon: "fa-solid fa-dumbbell",
+      color: "#ea580c",
       note: "",
       termStart: "",
       termEnd: "",
@@ -84,7 +124,7 @@ export function buildDemoDashboardSubscriptions(
       category: "subscription",
       amount: 11.99,
       period: "monthly",
-      date: "2026-06-14",
+      date: addDaysIso(today, 26),
       icon: "fa-solid fa-tv",
       color: "#e50914",
       note: "",
@@ -98,7 +138,7 @@ export function buildDemoDashboardSubscriptions(
       category: "credit",
       amount: 578,
       period: "monthly",
-      date: "2026-06-17",
+      date: addDaysIso(today, 40),
       icon: "fa-solid fa-house-chimney",
       color: "#16a34a",
       note: "",
@@ -112,7 +152,7 @@ export function buildDemoDashboardSubscriptions(
       category: "bill",
       amount: 50,
       period: "monthly",
-      date: "2026-06-21",
+      date: addDaysIso(today, 54),
       icon: "fa-solid fa-mobile-screen-button",
       color: "#dc2626",
       note: "",
@@ -124,16 +164,16 @@ export function buildDemoDashboardSubscriptions(
           name: p.deviceWatchFemaleLabel,
           note: "",
           amount: 15,
-          termStart: "2024-10-01",
-          termEnd: "2026-08-15",
+          termStart: addDaysIso(today, -580),
+          termEnd: addDaysIso(today, 75),
         },
         {
           id: 2,
           name: p.deviceWatchMaleLabel,
           note: "",
           amount: 13,
-          termStart: "2026-05-01",
-          termEnd: "2028-04-30",
+          termStart: addDaysIso(today, -28),
+          termEnd: addDaysIso(today, 730),
         },
       ],
     },

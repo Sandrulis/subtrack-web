@@ -6,9 +6,11 @@ import {
   normalizeInviteEmail,
   normalizePartnerColor,
 } from "@/lib/family-sharing/family-sharing-server";
+import { sendFamilySharingInviteUserEmail } from "@/lib/family-sharing/send-family-invite-email";
+import { isTransactionalEmailConfigured } from "@/lib/emails/send-transactional";
 import { isIntegrationEnabled } from "@/lib/integrations/integration-enabled";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
+import { getUiPhraseForRequest, resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
 
 async function requireSessionUser() {
   const supabase = await createServerSupabaseClient();
@@ -99,13 +101,15 @@ export async function POST(request: Request) {
   }
 
   const partnerId = await lookupUserIdByEmail(email);
-  if (!partnerId) {
+  const isExternalInvite = !partnerId;
+
+  if (isExternalInvite && !isTransactionalEmailConfigured()) {
     return NextResponse.json(
       {
         success: false,
-        message: await getUiPhraseForRequest("family_sharing.err_invite_failed"),
+        message: await getUiPhraseForRequest("family_sharing.err_email_not_configured"),
       },
-      { status: 400 },
+      { status: 503 },
     );
   }
 
@@ -142,5 +146,28 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ success: true, id: data?.id ?? null });
+  const linkId = data?.id ?? null;
+  if (!linkId) {
+    return NextResponse.json(
+      { success: false, message: "Failed" },
+      { status: 500 },
+    );
+  }
+
+  if (isExternalInvite) {
+    const { locale } = await resolveRequestUiLocales();
+    const sendResult = await sendFamilySharingInviteUserEmail({ to: email, locale });
+    if (!sendResult.ok) {
+      await supabase.from("family_sharing_links").delete().eq("id", linkId);
+      return NextResponse.json(
+        {
+          success: false,
+          message: await getUiPhraseForRequest("family_sharing.err_invite_failed"),
+        },
+        { status: 502 },
+      );
+    }
+  }
+
+  return NextResponse.json({ success: true, id: linkId, emailed: isExternalInvite });
 }

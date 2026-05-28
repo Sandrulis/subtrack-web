@@ -12,15 +12,21 @@ import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { FA_ICONS_ALL, FS_COLOR_DOTS } from "@/lib/fs-icons";
 import type { FamilySharingDashboardBootstrap } from "@/lib/family-sharing/family-sharing-types";
 import type { SubscriptionWithFamilyShare } from "@/lib/family-sharing/family-sharing-types";
-import type { DashboardFreeTierGatePayload } from "@/lib/subscriptions/dashboard-free-tier-gate";
+import {
+  isProFeaturePreviewLocked,
+  type DashboardFreeTierGatePayload,
+} from "@/lib/subscriptions/dashboard-free-tier-gate-payload";
+import type { SubscriptionCategoryUiOption } from "@/lib/subscriptions/subscription-categories-server";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { SubtrackTooltip } from "@/components/subtrack-tooltip";
 import Link from "next/link";
+import { ProTrialProgressBlock } from "@/components/pro-trial/pro-trial-chrome";
+import { ProFeaturePreviewCtaCard } from "@/components/pro-feature-preview-gate";
 import {
-  ProTrialCalendarBadge,
-  ProTrialProBadge,
-  ProTrialProgressBlock,
-} from "@/components/pro-trial/pro-trial-chrome";
+  AppPageContentGate,
+  dispatchSubtrackPageContentReady,
+  useFsPageContentReady,
+} from "@/components/app/app-page-content-gate";
 
 export function DashboardFsView({
   userDisplay,
@@ -28,6 +34,8 @@ export function DashboardFsView({
   initialPaidCalendarDays = {},
   familySharingBootstrap = { enabled: false, links: [] },
   freeTierGate,
+  categoryOptions = [],
+  monthlyBudget = null,
   demoMode = false,
 }: {
   userDisplay?: NavUserDisplay | null;
@@ -35,6 +43,8 @@ export function DashboardFsView({
   initialPaidCalendarDays?: Record<string, number>;
   familySharingBootstrap?: FamilySharingDashboardBootstrap;
   freeTierGate: DashboardFreeTierGatePayload;
+  categoryOptions?: SubscriptionCategoryUiOption[];
+  monthlyBudget?: number | null;
   /** Publiskais `/demo/dashboard`: bez API, navigācija paliek demo maršrutos. */
   demoMode?: boolean;
 }) {
@@ -50,14 +60,19 @@ export function DashboardFsView({
   const dynamicAmountToggleTitle = [dynamicAmountLabel, dynamicAmountHint]
     .filter((s) => typeof s === "string" && s.trim().length > 0)
     .join(" – ");
+  const dynamicCarryLabel = t("fs.dashboard.label_dynamic_carry_previous");
+  const dynamicCarryHint = t("fs.dashboard.hint_dynamic_carry_previous");
+  const dynamicCarryToggleTitle = [dynamicCarryLabel, dynamicCarryHint]
+    .filter((s) => typeof s === "string" && s.trim().length > 0)
+    .join(" – ");
 
   const showGetProLink =
     freeTierGate.enforcement === true && freeTierGate.isPaidUser !== true;
 
-  const showCalendar =
-    !freeTierGate.enforcement || freeTierGate.isPaidUser === true;
+  const calendarPreviewLocked = isProFeaturePreviewLocked(freeTierGate);
 
   const trialProgress = userDisplay?.proTrialProgress ?? null;
+  const contentReady = useFsPageContentReady();
 
   useEffect(() => {
     let cancelled = false;
@@ -71,7 +86,7 @@ export function DashboardFsView({
         if (cancelled) return;
         window.fsBootDashboard?.();
       } catch {
-        /* ignore */
+        dispatchSubtrackPageContentReady();
       }
     })();
     return () => {
@@ -107,18 +122,18 @@ export function DashboardFsView({
           {trialProgress ? (
             <ProTrialProgressBlock progress={trialProgress} fullWidth />
           ) : null}
+          <AppPageContentGate ready={contentReady} className="app-page-content-gate--main">
           <div className="dashboard-overview">
-            <div
-              className={
-                "dashboard-overview-main" +
-                (showCalendar ? "" : " dashboard-overview-main--no-calendar")
-              }
-            >
-            {showCalendar ? (
+            <div className="dashboard-overview-main">
               <div className="dashboard-overview-calendar-col">
                 <div className="dashboard-top-calendar">
-                  <div className="pay-calendar-card">
-                    {trialProgress ? <ProTrialCalendarBadge /> : demoMode && paidPlan.enabled ? (
+                  <div
+                    className={
+                      "pay-calendar-card" +
+                      (calendarPreviewLocked ? " pay-calendar-card--preview-locked" : "")
+                    }
+                  >
+                    {demoMode && paidPlan.enabled ? (
                       <span
                         className="dash-nav-pro-pill pay-calendar-pro-badge"
                         title={t("nav.analytics_demo_hint")}
@@ -148,12 +163,23 @@ export function DashboardFsView({
                         <i className="fa-solid fa-chevron-right" aria-hidden="true" />
                       </button>
                     </div>
-                    <div
-                      id="pay-calendar"
-                      className="pay-calendar"
-                      role="region"
-                      aria-labelledby="pay-calendar-title"
-                    />
+                    <div className="pay-calendar-body">
+                      <div
+                        id="pay-calendar"
+                        className="pay-calendar"
+                        role="region"
+                        aria-labelledby="pay-calendar-title"
+                      />
+                      {calendarPreviewLocked ? (
+                        <div
+                          className="pay-calendar-preview-overlay"
+                          role="region"
+                          aria-label={t("subscribe.benefit.calendar.title")}
+                        >
+                          <ProFeaturePreviewCtaCard feature="calendar" />
+                        </div>
+                      ) : null}
+                    </div>
                     <div className="pay-calendar-footer">
                       <p className="pay-calendar-hint">
                         <span
@@ -193,20 +219,13 @@ export function DashboardFsView({
                   </div>
                 </div>
               </div>
-            ) : null}
 
             <div className="dashboard-overview-right-col">
                 <div className="dashboard-overview-head-col">
                   <div className="page-header">
                     <div className="page-header-title-stack">
-                      <h1
-                        className={
-                          "page-title" +
-                          (trialProgress ? " page-title--with-trial-badge" : "")
-                        }
-                      >
+                      <h1 className="page-title">
                         {t("landing.mock.subscriptions_title")}
-                        {trialProgress ? <ProTrialProBadge /> : null}
                       </h1>
                       <p className="page-subtitle">{t("landing.mock.subscriptions_subtitle")}</p>
                     </div>
@@ -228,22 +247,31 @@ export function DashboardFsView({
                   </div>
                 </div>
 
-                <div className="dashboard-overview-stats-row">
+                <div
+                  className={
+                    "dashboard-overview-stats-row" +
+                    (monthlyBudget != null
+                      ? " dashboard-overview-stats-row--has-budget"
+                      : "")
+                  }
+                >
                   <div className="stat-card stat-card--total">
                     <div className="stat-label">{t("landing.mock.stat_total_label")}</div>
-                    <div className="stat-value-row">
-                      <div className="stat-value" id="stat-total">
-                        €0.00
+                    <div className="stat-card-main">
+                      <div className="stat-value-row">
+                        <div className="stat-value" id="stat-total">
+                          €0.00
+                        </div>
+                        <span
+                          id="stat-total-combined-mark"
+                          className="stat-total-combined-mark hidden"
+                          aria-hidden="true"
+                        >
+                          *
+                        </span>
                       </div>
-                      <span
-                        id="stat-total-combined-mark"
-                        className="stat-total-combined-mark hidden"
-                        aria-hidden="true"
-                      >
-                        *
-                      </span>
                     </div>
-                    <div className="stat-card-total-foot">
+                    <div className="stat-card-foot stat-card-total-foot">
                       <div className="stat-note">{t("landing.mock.stat_total_note")}</div>
                       <div className="stat-card-total-foot-end">
                         <span
@@ -265,11 +293,46 @@ export function DashboardFsView({
                   </div>
                   <div className="stat-card">
                     <div className="stat-label">{t("landing.mock.stat_active_label")}</div>
-                    <div className="stat-value" id="stat-count">
-                      0
+                    <div className="stat-card-main">
+                      <div className="stat-value" id="stat-count">
+                        0
+                      </div>
                     </div>
-                    <div className="stat-note">{t("landing.mock.stat_active_note")}</div>
+                    <div className="stat-card-foot">
+                      <div className="stat-note">{t("landing.mock.stat_active_note")}</div>
+                    </div>
                   </div>
+                  {monthlyBudget != null ? (
+                    <div
+                      className="stat-card stat-card--budget"
+                      id="stat-budget-card"
+                    >
+                      <div className="stat-label">{t("fs.dashboard.stat_budget_remaining_label")}</div>
+                      <div className="stat-card-main">
+                        <div className="stat-value" id="stat-budget-remaining">
+                          €0.00
+                        </div>
+                        <div className="stat-budget-total" id="stat-budget-total">
+                          €0.00
+                        </div>
+                      </div>
+                      <div className="stat-card-foot">
+                        <div className="stat-note" id="stat-budget-note">
+                          {t("fs.dashboard.stat_budget_remaining_note")}
+                        </div>
+                      </div>
+                      <div
+                        className="stat-budget-progress"
+                        role="progressbar"
+                        id="stat-budget-progress"
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={0}
+                      >
+                        <div className="stat-budget-progress-fill" id="stat-budget-progress-fill" />
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="dashboard-overview-next-slot dashboard-next-pay-slot">
@@ -323,6 +386,7 @@ export function DashboardFsView({
               </div>
             </div>
           </div>
+          </AppPageContentGate>
         </main>
 
         <SiteLandingFooter />
@@ -355,17 +419,33 @@ export function DashboardFsView({
                 id="sub-name"
                 placeholder={t("fs.dashboard.placeholder_sub_name")}
               />
+              <div
+                id="sub-name-suggestions"
+                className="sub-name-suggestions hidden"
+                role="group"
+                aria-label={t("fs.dashboard.name_suggestions_aria")}
+              />
             </div>
 
             <div className="form-group">
               <label htmlFor="sub-category">{t("fs.dashboard.label_category")}</label>
               <select id="sub-category" className="form-select">
-                <option value="subscription">{t("landing.mock.pill_subscription")}</option>
-                <option value="bill">{t("landing.mock.pill_bill")}</option>
-                <option value="credit">{t("landing.mock.pill_credit")}</option>
-                <option value="leasing">{t("landing.mock.pill_leasing")}</option>
-                <option value="insurance">{t("landing.mock.pill_insurance")}</option>
-                <option value="other">{t("landing.mock.pill_other")}</option>
+                {categoryOptions.length > 0 ? (
+                  categoryOptions.map((opt) => (
+                    <option key={opt.key} value={opt.key}>
+                      {opt.label}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="subscription">{t("landing.mock.pill_subscription")}</option>
+                    <option value="bill">{t("landing.mock.pill_bill")}</option>
+                    <option value="credit">{t("landing.mock.pill_credit")}</option>
+                    <option value="leasing">{t("landing.mock.pill_leasing")}</option>
+                    <option value="insurance">{t("landing.mock.pill_insurance")}</option>
+                    <option value="other">{t("landing.mock.pill_other")}</option>
+                  </>
+                )}
               </select>
             </div>
 
@@ -531,20 +611,45 @@ export function DashboardFsView({
           </div>
           <div className="modal-footer modal-footer--with-dynamic">
             <div className="modal-footer-dynamic">
-              <SubtrackTooltip label={dynamicAmountToggleTitle}>
-                <button
-                  type="button"
-                  role="switch"
-                  className="admin-switch"
-                  id="sub-dynamic-amount-switch"
-                  aria-label={dynamicAmountToggleTitle}
-                  aria-checked={false}
-                >
-                  <span className="admin-switch-track" aria-hidden="true" />
-                  <span className="admin-switch-thumb" aria-hidden="true" />
-                </button>
-              </SubtrackTooltip>
-              <span className="modal-footer-dynamic-label">{dynamicAmountLabel}</span>
+              <div className="modal-footer-dynamic-row">
+                <SubtrackTooltip label={dynamicAmountToggleTitle}>
+                  <button
+                    type="button"
+                    role="switch"
+                    className="admin-switch"
+                    id="sub-dynamic-amount-switch"
+                    aria-label={dynamicAmountToggleTitle}
+                    aria-checked={false}
+                  >
+                    <span className="admin-switch-track" aria-hidden="true" />
+                    <span className="admin-switch-thumb" aria-hidden="true" />
+                  </button>
+                </SubtrackTooltip>
+                <span className="modal-footer-dynamic-label">{dynamicAmountLabel}</span>
+              </div>
+              <div
+                id="sub-dynamic-carry-wrap"
+                className="modal-footer-dynamic-carry hidden"
+              >
+                <div className="modal-footer-dynamic-row">
+                  <SubtrackTooltip label={dynamicCarryToggleTitle}>
+                    <button
+                      type="button"
+                      role="switch"
+                      className="admin-switch"
+                      id="sub-dynamic-carry-switch"
+                      aria-label={dynamicCarryToggleTitle}
+                      aria-checked={false}
+                    >
+                      <span className="admin-switch-track" aria-hidden="true" />
+                      <span className="admin-switch-thumb" aria-hidden="true" />
+                    </button>
+                  </SubtrackTooltip>
+                  <span className="modal-footer-dynamic-carry-label">
+                    {dynamicCarryLabel}
+                  </span>
+                </div>
+              </div>
             </div>
             <div className="modal-footer-actions">
               <button

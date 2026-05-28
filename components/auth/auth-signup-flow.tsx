@@ -12,9 +12,11 @@ const initialSignupState: SignupFormState = { ok: false };
 export function AuthSignupCard({
   oauthGoogleEnabled,
   oauthAppleEnabled,
+  initialEmail = "",
 }: {
   oauthGoogleEnabled: boolean;
   oauthAppleEnabled: boolean;
+  initialEmail?: string;
 }) {
   const { t } = useSubtrackIntl();
   const [state, formAction, pending] = useActionState(
@@ -76,7 +78,12 @@ export function AuthSignupCard({
       <h1>{t("auth.signup.title")}</h1>
       <p className="auth-subtitle">{t("auth.signup.subtitle")}</p>
 
-      <SignupForm formAction={formAction} pending={pending} formError={state.error} />
+      <SignupForm
+        formAction={formAction}
+        pending={pending}
+        formError={state.error}
+        initialEmail={initialEmail}
+      />
 
       <LoginSocialButtons
         googleEnabled={oauthGoogleEnabled}

@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { FsI18nBootstrap } from "@/components/fs/fs-i18n-bootstrap";
 import { FsAnalyticsBootstrapTemplates } from "@/components/fs/fs-analytics-bootstrap-templates";
 import { AnalyticsFsView } from "@/components/fs/analytics-fs-view";
 import { getSessionUserDisplay } from "@/lib/auth/user-display";
 import {
-  canAccessAnalytics,
+  buildDashboardFreeTierGatePayload,
   fetchSystemPaidPlanLiveForDashboard,
 } from "@/lib/subscriptions/dashboard-free-tier-gate";
 import { fetchSubscriptionsForSession } from "@/lib/subscriptions/fetch-subscriptions-server";
@@ -24,11 +23,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AnalyticsPage() {
-  const userDisplay = await getSessionUserDisplay();
-  const paid = await fetchSystemPaidPlanLiveForDashboard();
-  if (!canAccessAnalytics(paid, userDisplay)) {
-    redirect("/dashboard");
-  }
+  const [userDisplay, paidPlanLive] = await Promise.all([
+    getSessionUserDisplay(),
+    fetchSystemPaidPlanLiveForDashboard(),
+  ]);
+  const freeTierGate = buildDashboardFreeTierGatePayload(userDisplay, paidPlanLive);
 
   const initialSubscriptions = await fetchSubscriptionsForSession();
   const { locale } = await resolveRequestUiLocales();
@@ -38,10 +37,14 @@ export default async function AnalyticsPage() {
   return (
     <>
       <FsI18nBootstrap phrases={fsI18n} intlLocale={intlLocale} />
-      <FsAnalyticsBootstrapTemplates initialSubscriptions={initialSubscriptions} />
+      <FsAnalyticsBootstrapTemplates
+        initialSubscriptions={initialSubscriptions}
+        freeTierGate={freeTierGate}
+      />
       <AnalyticsFsView
         userDisplay={userDisplay}
         initialSubscriptions={initialSubscriptions}
+        freeTierGate={freeTierGate}
       />
     </>
   );

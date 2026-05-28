@@ -12,6 +12,10 @@ import {
 import { pushDomToast } from "@/lib/push-dom-toast";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
+import {
+  AppPageContentGate,
+  useClientPageContentReady,
+} from "@/components/app/app-page-content-gate";
 
 const AUTOSAVE_DEBOUNCE_MS = 450;
 
@@ -101,6 +105,7 @@ export function EmailNotificationsView({
   initialPreferences: unknown;
 }) {
   const { t } = useSubtrackIntl();
+  const contentReady = useClientPageContentReady();
   const router = useRouter();
   const searchParams = useSearchParams();
   const showTrialToggle = userDisplay?.proTrialActive === true;
@@ -179,6 +184,7 @@ export function EmailNotificationsView({
     <>
       <NavDash userDisplay={userDisplay} />
       <div className="auth-page-inner auth-page-inner--email-notif">
+        <AppPageContentGate ready={contentReady}>
         <div className="auth-card auth-card--settings auth-card--email-notif">
           <header className="email-notif-header">
             <div className="email-notif-header-icon" aria-hidden="true">
@@ -240,6 +246,7 @@ export function EmailNotificationsView({
             </Link>
           </nav>
         </div>
+        </AppPageContentGate>
       </div>
 
       <SiteLandingFooter />

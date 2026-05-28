@@ -12,7 +12,6 @@ export function SettingsFsView({
   dbPreferencesRaw,
   languageOptions,
   preferenceBase,
-  oauthGoogleEnabled = false,
 }: {
   userDisplay?: NavUserDisplay | null;
   dbPreferencesRaw: unknown | null;
@@ -23,7 +22,6 @@ export function SettingsFsView({
    * `interface_language_code` (`getPublicSystemSettings` + valodu katalogs).
    */
   preferenceBase: DisplayPreferences;
-  oauthGoogleEnabled?: boolean;
 }) {
   return (
     <SettingsFsViewClient
@@ -31,7 +29,6 @@ export function SettingsFsView({
       dbPreferencesRaw={dbPreferencesRaw}
       languageOptions={languageOptions}
       preferenceBase={preferenceBase}
-      oauthGoogleEnabled={oauthGoogleEnabled}
     />
   );
 }

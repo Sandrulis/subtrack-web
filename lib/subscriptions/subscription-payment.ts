@@ -49,7 +49,7 @@ function sumDeviceAmountsForPaidOn(
   }, 0);
 }
 
-function resolveBaseAmountForDue(
+export function resolveBaseAmountForDue(
   subscription: {
     amount: unknown;
     is_dynamic_amount?: boolean;

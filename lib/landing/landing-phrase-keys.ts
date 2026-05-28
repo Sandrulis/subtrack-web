@@ -6,6 +6,7 @@ export const LANDING_FEATURE_CARD_IDS = [
   "categories",
   "analytics",
   "management",
+  "family_sharing",
 ] as const;
 
 export const LANDING_UI_PHRASE_KEYS = [
@@ -48,10 +49,14 @@ export const LANDING_UI_PHRASE_KEYS = [
   "landing.pricing.label",
   "landing.pricing.title",
   "subscribe.hero.lead",
+  "landing.trust.label",
   "landing.trust.title",
-  "landing.trust.stat_items_demo",
-  "landing.trust.categories_demo",
-  "landing.trust.online",
+  "landing.trust.payment_categories",
+  "landing.trust.categories_hint",
+  "landing.trust.email_reminders",
+  "landing.trust.email_reminders_hint",
+  "landing.trust.family_sharing",
+  "landing.trust.family_sharing_hint",
   "landing.features.label",
   "landing.features.title",
   "landing.features.intro",

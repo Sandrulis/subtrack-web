@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { fetchAllowedSubscriptionCategoryKeys } from "@/lib/subscriptions/subscription-categories-server";
 import {
   mapSubscriptionRowToClient,
   normalizeDevicesForSubscription,
@@ -13,6 +14,7 @@ import {
   isMarkPaidPatchBody,
   parseAmountPaidOverride,
   parsePaidOnFromPatch,
+  resolveBaseAmountForDue,
 } from "@/lib/subscriptions/subscription-payment";
 
 const UUID_RE =
@@ -94,10 +96,12 @@ export async function PATCH(
   }
 
   const existingRow = existing as SubscriptionRow;
+  const allowedCategories = await fetchAllowedSubscriptionCategoryKeys();
 
   const parsed = parseSubscriptionPatch(
     json as Parameters<typeof parseSubscriptionPatch>[0],
     existingRow,
+    { allowedCategories },
   );
   if (!parsed.ok) {
     return NextResponse.json(
@@ -107,8 +111,34 @@ export async function PATCH(
   }
 
   if (isMarkPaidPatchBody(body)) {
-    parsed.row.due_amount_override = null;
-    parsed.row.due_amount_override_for = null;
+    const carryPrevious =
+      existingRow.is_dynamic_amount === true &&
+      existingRow.is_dynamic_carry_previous === true;
+    const nextDue = String(parsed.row.next_payment_date ?? "").trim();
+    if (carryPrevious && /^\d{4}-\d{2}-\d{2}$/.test(nextDue)) {
+      const paidOn = parsePaidOnFromPatch(
+        body,
+        String(existingRow.next_payment_date ?? ""),
+      );
+      if (paidOn) {
+        const carriedBase = resolveBaseAmountForDue(existingRow, paidOn);
+        const baseNum = parseFloat(String(existingRow.amount ?? 0));
+        const base = Number.isFinite(baseNum) ? baseNum : 0;
+        if (Math.abs(carriedBase - base) >= 0.0001) {
+          parsed.row.due_amount_override = carriedBase;
+          parsed.row.due_amount_override_for = nextDue;
+        } else {
+          parsed.row.due_amount_override = null;
+          parsed.row.due_amount_override_for = null;
+        }
+      } else {
+        parsed.row.due_amount_override = null;
+        parsed.row.due_amount_override_for = null;
+      }
+    } else {
+      parsed.row.due_amount_override = null;
+      parsed.row.due_amount_override_for = null;
+    }
   }
 
   const { data, error } = await supabase

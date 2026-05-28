@@ -36,6 +36,8 @@ export const FS_DASHBOARD_DEMO_EXTRA_KEYS = [
   "fs.dashboard.aria_change_amount",
   "fs.dashboard.label_dynamic_amount",
   "fs.dashboard.hint_dynamic_amount",
+  "fs.dashboard.label_dynamic_carry_previous",
+  "fs.dashboard.hint_dynamic_carry_previous",
   "fs.dashboard.toast_amount_updated",
   "fs.dashboard.tooltip_delete",
   "fs.dashboard.aria_delete",
@@ -96,6 +98,19 @@ export const FS_DASHBOARD_DEMO_EXTRA_KEYS = [
   "family_sharing.badge_shared",
   "fs.dashboard.stat_total_combined_hint",
   "fs.dashboard.stat_own_only_label",
+  "fs.dashboard.stat_budget_remaining_label",
+  "fs.dashboard.stat_budget_remaining_note",
+  "fs.dashboard.stat_budget_over_note",
+  "fs.dashboard.stat_budget_progress_aria",
+  "fs.dashboard.name_suggestions_aria",
+  "fs.dashboard.name_suggest.netflix",
+  "fs.dashboard.name_suggest.spotify",
+  "fs.dashboard.name_suggest.gym",
+  "fs.dashboard.name_suggest.youtube",
+  "fs.dashboard.name_suggest.mobile",
+  "fs.dashboard.name_suggest.internet",
+  "fs.dashboard.name_suggest.rent",
+  "fs.dashboard.name_suggest.insurance",
 ] as const;
 
 /** Tikai augšējās joslas paziņojumi (`dash-alerts.js` + `formatOverdueLabel`), ja nav pilnā paneļa bootstrap. Ietver arī „atzīmēt samaksāts” un toast tekstu vienam maksājumam. */

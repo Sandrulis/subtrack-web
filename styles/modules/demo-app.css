@@ -1,4 +1,5 @@
-/* /demo/* routes: banner, topbar badge, analytics donut (ārpus landing-page griezuma) */
+/* /demo/* routes: banner, topbar badge, analytics donut */
+/* Publiskās /demo/* lapas */
 .subtrack-demo-banner {
     /* Horizontālais ritms kā .dash-topbar-shell: ārējais pilnā platumā, iekšējā rinda ar padding iekš max-width */
     margin-top: 10px;
@@ -49,6 +50,22 @@
     color: #0f766e;
     background: #ccfbf1;
     border: 1px solid #5eead4;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+@media (max-width: 960px) {
+    header.dash-topbar .dash-topbar-left:has(.subtrack-demo-topbar-badge) {
+        flex-wrap: nowrap;
+        gap: 6px 8px;
+    }
+
+    header.dash-topbar .subtrack-demo-topbar-badge {
+        margin-left: 4px;
+        padding: 1px 5px;
+        font-size: 9px;
+        letter-spacing: 0.02em;
+    }
 }
 
 .demo-main .landing-hero-dashboard-mock {

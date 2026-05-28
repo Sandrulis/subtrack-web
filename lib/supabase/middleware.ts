@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { touchUserLastSeen } from "@/lib/auth/touch-user-last-seen";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
 
 const PROTECTED_PREFIXES = [
@@ -118,6 +119,15 @@ export async function updateSession(request: NextRequest) {
     const redirectRes = NextResponse.redirect(dash);
     copyCookies(supabaseResponse, redirectRes);
     return redirectRes;
+  }
+
+  if (
+    user &&
+    request.method === "GET" &&
+    !isApiPath(path) &&
+    !isPublicApiPath(path)
+  ) {
+    await touchUserLastSeen(supabase);
   }
 
   return supabaseResponse;

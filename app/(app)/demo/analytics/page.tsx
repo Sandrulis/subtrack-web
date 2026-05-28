@@ -6,6 +6,10 @@ import { DemoAnalyticsPage } from "@/components/demo/demo-analytics-page";
 import { getSessionUserDisplaySafe } from "@/lib/auth/user-display";
 import { buildDemoAnalyticsSnapshot } from "@/lib/demo/build-demo-analytics-snapshot";
 import { buildDemoDashboardSubscriptions } from "@/lib/demo/demo-dashboard-subscriptions";
+import {
+  buildDashboardFreeTierGatePayload,
+  fetchSystemPaidPlanLiveForDashboard,
+} from "@/lib/subscriptions/dashboard-free-tier-gate";
 import { DEMO_DASHBOARD_PHRASE_KEYS } from "@/lib/demo/demo-dashboard-phrase-keys";
 import {
   fsAnalyticsPhraseKeys,
@@ -25,11 +29,18 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DemoAnalyticsRoute() {
-  const userDisplay = await getSessionUserDisplaySafe();
-  const [demoPhrases, { locale }] = await Promise.all([
+  const [userDisplay, paidPlanLive, demoPhrases, { locale }] = await Promise.all([
+    getSessionUserDisplaySafe(),
+    fetchSystemPaidPlanLiveForDashboard(),
     getUiPhrasesForRequest(DEMO_DASHBOARD_PHRASE_KEYS),
     resolveRequestUiLocales(),
   ]);
+  const freeTierGate = buildDashboardFreeTierGatePayload(userDisplay, paidPlanLive);
+  const demoFreeTierGate = {
+    ...freeTierGate,
+    enforcement: false,
+    isPaidUser: true,
+  };
   const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
   const formatMonthDay = (iso: string) =>
     new Intl.DateTimeFormat(intlLocale, {
@@ -57,7 +68,10 @@ export default async function DemoAnalyticsRoute() {
     <>
       <FsDemoAnalyticsWindowFlag />
       <FsI18nBootstrap phrases={fsI18nMerged} intlLocale={intlLocale} />
-      <FsAnalyticsBootstrapTemplates initialSubscriptions={subs} />
+      <FsAnalyticsBootstrapTemplates
+        initialSubscriptions={subs}
+        freeTierGate={demoFreeTierGate}
+      />
       <DemoAnalyticsPage
         userDisplay={userDisplay}
         analyticsSnapshot={analyticsSnapshot}

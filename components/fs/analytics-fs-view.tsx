@@ -9,21 +9,35 @@ import {
 } from "@/components/fs/load-fs-scripts";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import type { SubscriptionClient } from "@/lib/subscriptions/subscription-client";
+import {
+  isProFeaturePreviewLocked,
+  type DashboardFreeTierGatePayload,
+} from "@/lib/subscriptions/dashboard-free-tier-gate-payload";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import type { ProTrialProgress } from "@/lib/auth/pro-trial-access";
-import { ProTrialProBadge, ProTrialProgressBlock } from "@/components/pro-trial/pro-trial-chrome";
+import { ProTrialProgressBlock } from "@/components/pro-trial/pro-trial-chrome";
+import { ProFeaturePreviewCtaCard } from "@/components/pro-feature-preview-gate";
+import {
+  AppPageContentGate,
+  dispatchSubtrackPageContentReady,
+  useFsPageContentReady,
+} from "@/components/app/app-page-content-gate";
 
 const ANALYTICS_TAIL_SCRIPTS = ["/fs/js/analytics.js"] as const;
 
 export function AnalyticsFsView({
   userDisplay,
   initialSubscriptions,
+  freeTierGate,
 }: {
   userDisplay?: NavUserDisplay | null;
   initialSubscriptions: SubscriptionClient[];
+  freeTierGate: DashboardFreeTierGatePayload;
 }) {
   const { t } = useSubtrackIntl();
   const trialProgress: ProTrialProgress | null = userDisplay?.proTrialProgress ?? null;
+  const analyticsPreviewLocked = isProFeaturePreviewLocked(freeTierGate);
+  const contentReady = useFsPageContentReady();
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +52,7 @@ export function AnalyticsFsView({
         if (cancelled) return;
         window.fsBootAnalytics?.();
       } catch {
-        /* ignore */
+        dispatchSubtrackPageContentReady();
       }
     })();
     return () => {
@@ -56,20 +70,18 @@ export function AnalyticsFsView({
           ) : null}
           <div className="page-header">
             <div className="page-header-title-stack">
-              <h1
-                className={
-                  "page-title" + (trialProgress ? " page-title--with-trial-badge" : "")
-                }
-              >
-                {t("nav.analytics")}
-                {trialProgress ? (
-                  <ProTrialProBadge className="pro-trial-analytics-badge" />
-                ) : null}
-              </h1>
+              <h1 className="page-title">{t("nav.analytics")}</h1>
               <p className="page-subtitle">{t("fs.analytics.page_subtitle")}</p>
             </div>
           </div>
 
+          <AppPageContentGate ready={contentReady} className="app-page-content-gate--main">
+          <div
+            className={
+              "analytics-preview-wrap" +
+              (analyticsPreviewLocked ? " analytics-preview-wrap--locked" : "")
+            }
+          >
           <div className="analytics-grid">
             <div className="stat-card analytics-card">
               <div className="stat-label">{t("fs.analytics.stat_monthly_total")}</div>
@@ -128,6 +140,17 @@ export function AnalyticsFsView({
               </p>
             </div>
           </div>
+          {analyticsPreviewLocked ? (
+            <div
+              className="analytics-preview-overlay"
+              role="region"
+              aria-label={t("subscribe.benefit.analytics.title")}
+            >
+              <ProFeaturePreviewCtaCard feature="analytics" />
+            </div>
+          ) : null}
+          </div>
+          </AppPageContentGate>
         </main>
 
         <SiteLandingFooter />

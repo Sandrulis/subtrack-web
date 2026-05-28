@@ -3,6 +3,7 @@
 import { SubtrackTooltip } from "@/components/subtrack-tooltip";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { pushDomToast } from "@/lib/push-dom-toast";
+import { formatUserLastSeenDisplay } from "@/lib/admin/format-user-last-seen-display";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import { navUserHasProEntitlement } from "@/lib/auth/pro-plan-access";
 import { UserAvatar } from "@/components/user-avatar";
@@ -17,6 +18,8 @@ export type AdminUsersViewUser = {
   email: string;
   is_admin: number;
   created_at: string;
+  /** `public.users.last_seen` (null, ja vēl nav aktivitātes pēc migrācijas) */
+  last_seen: string | null;
   /** Kad `paid_plan_enabled` un kolonna pieejama no DB */
   paidPlanActive?: boolean;
   proVip?: boolean;
@@ -230,7 +233,13 @@ export function AdminUsersView({
                               {t("admin.users.col_registered")}
                             </span>
                             <span className="admin-user-meta-mobile-value">
-                              {formatDateTimeIntl(u.created_at, intlLocale)}
+                              <AdminUserRegisteredDates
+                                createdAt={u.created_at}
+                                lastSeen={u.last_seen}
+                                intlLocale={intlLocale}
+                                lastSeenLabel={t("admin.users.last_seen")}
+                                t={t}
+                              />
                             </span>
                           </div>
                           {paidPlanEnabled ? (
@@ -264,7 +273,13 @@ export function AdminUsersView({
                       </td>
                     ) : null}
                     <td className="admin-table-col-registered">
-                      {formatDateTimeIntl(u.created_at, intlLocale)}
+                      <AdminUserRegisteredDates
+                        createdAt={u.created_at}
+                        lastSeen={u.last_seen}
+                        intlLocale={intlLocale}
+                        lastSeenLabel={t("admin.users.last_seen")}
+                        t={t}
+                      />
                     </td>
                     <td className="admin-table-col-actions admin-actions-cell">
                       <AdminUserDeleteControl
@@ -511,6 +526,56 @@ function SubscriptionCountsCell(props: {
   return (
     <div className="admin-sub-counts">
       <span className="admin-sub-counts-total">{total}</span>
+    </div>
+  );
+}
+
+function stableLastSeenLabel(
+  lastSeen: string | null,
+  intlLocale: string,
+): string {
+  if (!lastSeen?.trim()) return "–";
+  const d = new Date(lastSeen);
+  if (Number.isNaN(d.getTime())) return "–";
+  return formatDateTimeIntl(lastSeen, intlLocale);
+}
+
+function AdminUserRegisteredDates({
+  createdAt,
+  lastSeen,
+  intlLocale,
+  lastSeenLabel,
+  t,
+}: {
+  createdAt: string;
+  lastSeen: string | null;
+  intlLocale: string;
+  lastSeenLabel: string;
+  t: (key: string) => string;
+}) {
+  const [lastSeenText, setLastSeenText] = useState(() =>
+    stableLastSeenLabel(lastSeen, intlLocale),
+  );
+
+  useEffect(() => {
+    setLastSeenText(formatUserLastSeenDisplay(lastSeen, t, intlLocale));
+  }, [lastSeen, intlLocale, t]);
+
+  return (
+    <div className="admin-user-dates-col">
+      <time dateTime={createdAt || undefined}>
+        {formatDateTimeIntl(createdAt, intlLocale)}
+      </time>
+      <div className="admin-user-last-seen">
+        <span className="admin-user-last-seen-label">{lastSeenLabel}</span>
+        <time
+          className="admin-user-last-seen-value"
+          dateTime={lastSeen ?? undefined}
+          title={lastSeen ? formatDateTimeIntl(lastSeen, intlLocale) : undefined}
+        >
+          {lastSeenText}
+        </time>
+      </div>
     </div>
   );
 }

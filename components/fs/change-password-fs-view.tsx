@@ -7,6 +7,10 @@ import { NavDash } from "@/components/nav-dash";
 import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import {
+  AppPageContentGate,
+  useClientPageContentReady,
+} from "@/components/app/app-page-content-gate";
 
 export function ChangePasswordFsView({
   userDisplay,
@@ -21,7 +25,9 @@ export function ChangePasswordFsView({
   recoveryMode?: boolean;
 }) {
   const { t } = useSubtrackIntl();
+  const contentReady = useClientPageContentReady();
   const inner = (
+    <AppPageContentGate ready={contentReady}>
     <div className="auth-page-inner">
       <div className="auth-card auth-card--form">
         <div className="auth-card-icon">
@@ -49,6 +55,7 @@ export function ChangePasswordFsView({
         </p>
       </div>
     </div>
+    </AppPageContentGate>
   );
 
   if (recoveryMode) {

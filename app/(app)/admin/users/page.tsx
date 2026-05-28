@@ -87,7 +87,7 @@ export default async function AdminUsersPage() {
     supabase
       .from("users")
       .select(
-        "id, name, surname, email, is_admin, created_at, paid_plan_active, pro_vip, avatar_url",
+        "id, name, surname, email, is_admin, created_at, last_seen, paid_plan_active, pro_vip, avatar_url",
       )
       .order("created_at", { ascending: false }),
     supabase.from("subscriptions").select("user_id, category"),
@@ -116,6 +116,10 @@ export default async function AdminUsersPage() {
         ? r.is_admin
         : Number.parseInt(String(r.is_admin ?? 0), 10) || 0,
     created_at: r.created_at ?? "",
+    last_seen:
+      typeof (r as { last_seen?: unknown }).last_seen === "string"
+        ? (r as { last_seen: string }).last_seen
+        : null,
     paidPlanActive: r.paid_plan_active === true,
     proVip: r.pro_vip === true,
     avatarUrl:

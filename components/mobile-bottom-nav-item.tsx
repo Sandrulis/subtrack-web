@@ -27,6 +27,7 @@ export function MobileBottomNavItem({
         (active ? " is-route-active" : "") +
         (className ? ` ${className}` : "")
       }
+      aria-label={label}
       aria-current={active ? "page" : undefined}
       {...linkProps}
     >

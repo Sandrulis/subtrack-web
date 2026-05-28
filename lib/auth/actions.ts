@@ -19,6 +19,7 @@ import {
   isSignupEmailBlocked,
   SIGNUP_EMAIL_TAKEN_MESSAGE,
 } from "@/lib/auth/signup-email-blocked";
+import { buildRegistrationGeoPayload } from "@/lib/auth/registration-country-payload";
 
 /** Signup e-pasta pārbaude: max pieprasījumi uz IP minūtē (M2 enumerācijas mazināšana). */
 const SIGNUP_EMAIL_EXISTS_MAX_PER_MIN = 24;
@@ -144,6 +145,8 @@ export async function signUpAction(
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
     "http://localhost:3000";
 
+  const registrationGeo = await buildRegistrationGeoPayload();
+
   if (canSendAuthEmailsViaResend()) {
     const { locale } = await resolveRequestUiLocales();
     const custom = await registerUserWithLocalizedConfirmEmail({
@@ -153,6 +156,7 @@ export async function signUpAction(
       lastName,
       siteUrl: site,
       locale,
+      registrationGeo,
     });
 
     if (!custom.ok) {
@@ -179,6 +183,10 @@ export async function signUpAction(
       data: {
         first_name: firstName,
         last_name: lastName,
+        ...(registrationGeo.registration_country
+          ? { registration_country: registrationGeo.registration_country }
+          : {}),
+        billing_currency: registrationGeo.billing_currency,
       },
     },
   });

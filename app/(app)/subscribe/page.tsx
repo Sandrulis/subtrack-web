@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { SubscribeProView } from "@/components/subscribe-pro-view";
 import { navUserHasProEntitlement } from "@/lib/auth/pro-plan-access";
 import { getSessionUserDisplay } from "@/lib/auth/user-display";
+import { loadAuthContext } from "@/lib/auth/load-auth-context";
 import { fetchSystemPaidPlanLiveForDashboard } from "@/lib/subscriptions/dashboard-free-tier-gate";
+import { resolveSessionUserBillingCurrency } from "@/lib/billing/resolve-billing-currency";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -23,9 +25,17 @@ export default async function SubscribePage() {
   }
 
   const userDisplay = await getSessionUserDisplay();
+  if (!userDisplay) {
+    redirect("/login");
+  }
   if (navUserHasProEntitlement(userDisplay)) {
     redirect("/dashboard");
   }
+
+  const { user } = await loadAuthContext();
+  const billingCurrency = user?.id
+    ? await resolveSessionUserBillingCurrency(user.id)
+    : "EUR";
 
   return (
     <SubscribeProView
@@ -35,6 +45,7 @@ export default async function SubscribePage() {
       annualPriceEur={
         paid.annualBillingEnabled ? paid.annualPriceEur : null
       }
+      billingCurrency={billingCurrency}
     />
   );
 }

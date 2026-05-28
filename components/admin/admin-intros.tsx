@@ -13,6 +13,16 @@ export function AdminIntegrationsIntro() {
   );
 }
 
+export function AdminCategoriesIntro() {
+  const { t } = useSubtrackIntl();
+  return (
+    <div className="admin-page-head">
+      <h1 className="admin-page-title">{t("admin.categories.heading")}</h1>
+      <p className="admin-page-lead">{t("admin.categories.lead")}</p>
+    </div>
+  );
+}
+
 export function AdminPwaIntro() {
   const { t } = useSubtrackIntl();
   return (

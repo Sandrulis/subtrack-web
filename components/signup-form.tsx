@@ -31,15 +31,17 @@ export function SignupForm({
   formAction,
   pending = false,
   formError,
+  initialEmail = "",
 }: {
   formAction: (payload: FormData) => void;
   pending?: boolean;
   formError?: string;
+  initialEmail?: string;
 }) {
   const { t } = useSubtrackIntl();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail.trim());
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
 

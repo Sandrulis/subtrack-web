@@ -215,6 +215,8 @@ function continueDashboardBoot() {
     initCalendarNav();
     initPayCalIncludePaidToggle();
     initSubDynamicAmountSwitch();
+    initSubDynamicCarrySwitch();
+    syncSubDynamicCarryVisibility();
     initSubAmountInlineEdit();
     initIconPicker();
     initColorPicker();
@@ -231,9 +233,18 @@ function fsBootDashboard() {
     Promise.all([
         subtrackSyncSubscriptionsFromApi(),
         subtrackSyncFamilySharingBootstrapFromApi(),
-    ]).then(function () {
-        continueDashboardBoot();
-    });
+    ])
+        .then(function () {
+            continueDashboardBoot();
+        })
+        .catch(function () {
+            continueDashboardBoot();
+        })
+        .finally(function () {
+            if (typeof subtrackNotifyPageContentReady === 'function') {
+                subtrackNotifyPageContentReady();
+            }
+        });
 }
 
 window.fsBootDashboard = fsBootDashboard;
@@ -311,15 +322,24 @@ function pad2Cal(n) {
 function getPaymentsByDateInMonth(y, m) {
     var map = {};
     subscriptions.forEach(function (s) {
-        var dayIso = normalizeSubscriptionDateIso(s.date);
-        if (!dayIso) return;
-        if (!isDueDateWithinTerm(dayIso, s.termEnd)) return;
-        var d = new Date(dayIso + 'T00:00:00');
-        if (isNaN(d.getTime())) return;
-        if (d.getFullYear() !== y || d.getMonth() !== m) return;
-        var key = dayIso;
-        if (!map[key]) map[key] = [];
-        map[key].push(s);
+        var dates =
+            typeof subscriptionDueDatesInMonth === 'function'
+                ? subscriptionDueDatesInMonth(s, y, m)
+                : [];
+        if (!dates.length) {
+            var dayIso = normalizeSubscriptionDateIso(s.date);
+            if (!dayIso) return;
+            if (!isDueDateWithinTerm(dayIso, s.termEnd)) return;
+            var d = new Date(dayIso + 'T00:00:00');
+            if (isNaN(d.getTime())) return;
+            if (d.getFullYear() !== y || d.getMonth() !== m) return;
+            dates = [dayIso];
+        }
+        for (var di = 0; di < dates.length; di++) {
+            var key = dates[di];
+            if (!map[key]) map[key] = [];
+            map[key].push(s);
+        }
     });
     return map;
 }
@@ -385,6 +405,11 @@ function subDynamicAmountSwitchOn() {
     return !!(btn && btn.classList.contains('is-on'));
 }
 
+function subDynamicCarrySwitchOn() {
+    var btn = document.getElementById('sub-dynamic-carry-switch');
+    return !!(btn && btn.classList.contains('is-on'));
+}
+
 function setSubDynamicAmountSwitch(on) {
     var btn = document.getElementById('sub-dynamic-amount-switch');
     if (!btn) return;
@@ -394,6 +419,29 @@ function setSubDynamicAmountSwitch(on) {
         btn.classList.remove('is-on');
     }
     btn.setAttribute('aria-checked', on ? 'true' : 'false');
+    syncSubDynamicCarryVisibility();
+}
+
+function setSubDynamicCarrySwitch(on) {
+    var btn = document.getElementById('sub-dynamic-carry-switch');
+    if (!btn) return;
+    if (on) {
+        btn.classList.add('is-on');
+    } else {
+        btn.classList.remove('is-on');
+    }
+    btn.setAttribute('aria-checked', on ? 'true' : 'false');
+}
+
+function syncSubDynamicCarryVisibility() {
+    var wrap = document.getElementById('sub-dynamic-carry-wrap');
+    if (!wrap) return;
+    if (subDynamicAmountSwitchOn()) {
+        wrap.classList.remove('hidden');
+    } else {
+        wrap.classList.add('hidden');
+        setSubDynamicCarrySwitch(false);
+    }
 }
 
 function initSubDynamicAmountSwitch() {
@@ -403,6 +451,17 @@ function initSubDynamicAmountSwitch() {
     btn.addEventListener('click', function () {
         if (isModalSaveBusy()) return;
         setSubDynamicAmountSwitch(!subDynamicAmountSwitchOn());
+    });
+}
+
+function initSubDynamicCarrySwitch() {
+    var btn = document.getElementById('sub-dynamic-carry-switch');
+    if (!btn || btn.dataset.subtrackBound === '1') return;
+    btn.dataset.subtrackBound = '1';
+    btn.addEventListener('click', function () {
+        if (isModalSaveBusy()) return;
+        if (!subDynamicAmountSwitchOn()) return;
+        setSubDynamicCarrySwitch(!subDynamicCarrySwitchOn());
     });
 }
 
@@ -551,6 +610,44 @@ function calendarWeekdayHeaders(locale) {
     return out;
 }
 
+function subtrackIsProCalendarPreviewLocked() {
+    var g = subtrackReadFreeTierGate();
+    if (!g || !g.enforcement) return false;
+    if (g.isPaidUser === true) return false;
+    return true;
+}
+
+/** Kategoriju josla virs saraksta: Pro, kad ieslēgts maksas plāns; citādi visiem. */
+function subtrackCanShowDashboardCategoryBar() {
+    var g = subtrackReadFreeTierGate();
+    if (!g || !g.enforcement) return true;
+    return g.isPaidUser === true;
+}
+
+function subtrackPayCalCellPreviewLocked(cellIndex) {
+    if (!subtrackIsProCalendarPreviewLocked()) return false;
+    return Math.floor(cellIndex / 7) >= 1;
+}
+
+function subtrackSyncCalendarPreviewOverlay() {
+    var card = document.querySelector('.pay-calendar-card--preview-locked');
+    if (!card) return;
+    var host = document.getElementById('pay-calendar');
+    var overlay = card.querySelector('.pay-calendar-preview-overlay');
+    if (!host || !overlay) return;
+    var weekdays = host.querySelector('.pay-cal-weekdays');
+    var grid = host.querySelector('.pay-cal-grid');
+    if (!grid) return;
+    var cells = grid.querySelectorAll('.pay-cal-cell');
+    var top = weekdays ? weekdays.offsetHeight + 6 : 0;
+    var rowH = 0;
+    for (var ci = 0; ci < cells.length && ci < 7; ci++) {
+        if (cells[ci].offsetHeight > rowH) rowH = cells[ci].offsetHeight;
+    }
+    top += rowH + 5;
+    overlay.style.top = top + 'px';
+}
+
 function renderPaymentCalendar() {
     var host = document.getElementById('pay-calendar');
     if (!host) return;
@@ -599,7 +696,11 @@ function renderPaymentCalendar() {
     html += '</div><div class="pay-cal-grid">';
 
     for (var i = 0; i < startPad; i++) {
-        html += '<div class="pay-cal-cell pay-cal-cell--empty" aria-hidden="true"></div>';
+        var padClasses = ['pay-cal-cell', 'pay-cal-cell--empty'];
+        if (subtrackPayCalCellPreviewLocked(i)) {
+            padClasses.push('pay-cal-cell--preview-week-lock');
+        }
+        html += '<div class="' + padClasses.join(' ') + '" aria-hidden="true"></div>';
     }
 
     for (var day = 1; day <= daysInMonth; day++) {
@@ -608,6 +709,9 @@ function renderPaymentCalendar() {
         cellDate.setHours(0, 0, 0, 0);
 
         var classes = ['pay-cal-cell'];
+        if (subtrackPayCalCellPreviewLocked(startPad + day - 1)) {
+            classes.push('pay-cal-cell--preview-week-lock');
+        }
         if (cellDate.getTime() === today.getTime()) {
             classes.push('pay-cal-cell--today');
         }
@@ -641,24 +745,17 @@ function renderPaymentCalendar() {
             if (showPaidOnDue) {
                 classes.push('pay-cal-cell--due-with-paid');
             }
-            var anyOverdue = false;
-            for (var li = 0; li < list.length; li++) {
-                var diso = normalizeSubscriptionDateIso(list[li].date);
-                if (!diso) continue;
-                var ds = new Date(diso + 'T00:00:00');
-                ds.setHours(0, 0, 0, 0);
-                if (ds < today) {
-                    anyOverdue = true;
-                    break;
-                }
-            }
-            if (anyOverdue) {
+            if (cellDate.getTime() < today.getTime()) {
                 classes.push('pay-cal-cell--overdue');
             }
             var tipParts = [];
             for (var tj = 0; tj < list.length; tj++) {
                 var sj = list[tj];
-                tipParts.push(escHtml(sj.name) + ' – €' + subscriptionMonthlyTotal(sj).toFixed(2));
+                var amt =
+                    typeof subscriptionPaymentAmountForDue === 'function'
+                        ? subscriptionPaymentAmountForDue(sj, iso)
+                        : subscriptionMonthlyTotal(sj, iso);
+                tipParts.push(escHtml(sj.name) + ' – €' + amt.toFixed(2));
             }
             if (showPaidOnDue) {
                 var tipPaidDue =
@@ -715,6 +812,9 @@ function renderPaymentCalendar() {
 
     html += '</div>';
     host.innerHTML = html; /* escHtml tooltips */
+    if (subtrackIsProCalendarPreviewLocked()) {
+        requestAnimationFrame(subtrackSyncCalendarPreviewOverlay);
+    }
 }
 
 /**
@@ -1189,13 +1289,27 @@ function markPaid(id) {
     }
     var paidOnIso = normalizeSubscriptionDateIso(s.date);
     var period = s.period || 'monthly';
-    var newDate = advanceNextDueAfterPayment(s.date, period, s.termEnd);
+    var billingDay =
+        typeof subscriptionPreferredBillingDay === 'function'
+            ? subscriptionPreferredBillingDay(s)
+            : null;
+    var newDate = advanceNextDueAfterPayment(s.date, period, s.termEnd, billingDay);
 
     subtrackSetMarkPaidPending(id, true);
 
     if (typeof window !== 'undefined' && window.__SUBTRACK_DEMO_DASHBOARD__) {
+        var prevBase =
+            paidOnIso && typeof effectiveBaseAmountForDue === 'function'
+                ? effectiveBaseAmountForDue(s, paidOnIso)
+                : parseFloat(s.amount) || 0;
         s.date = normalizeSubscriptionDateIso(newDate) || newDate;
-        if (typeof clearDuePeriodAmountOverride === 'function') {
+        if (
+            s.dynamicAmount === true &&
+            s.dynamicCarryPrevious === true &&
+            typeof setDuePeriodAmountOverride === 'function'
+        ) {
+            setDuePeriodAmountOverride(s, prevBase, s.date);
+        } else if (typeof clearDuePeriodAmountOverride === 'function') {
             clearDuePeriodAmountOverride(s);
         }
         if (paidOnIso && typeof subtrackAddPaidCalendarDay === 'function') {
@@ -1262,6 +1376,12 @@ var DASHBOARD_CATEGORY_COLORS = [
 function renderDashboardCategoryBar() {
     var host = document.getElementById('dashboard-category-bar');
     if (!host) return;
+
+    if (!subtrackCanShowDashboardCategoryBar()) {
+        host.classList.add('hidden');
+        host.innerHTML = '';
+        return;
+    }
 
     var byCat = {};
     subtrackSubscriptionsForStatsList().forEach(function (s) {
@@ -1589,8 +1709,100 @@ function updateStats() {
     var countEl = document.getElementById('stat-count');
     if (countEl) countEl.textContent = String(subscriptions.length);
 
+    renderBudgetStat(total);
+
     renderNextPayStatsBlock();
     renderDashboardCategoryBar();
+}
+
+var SUBTRACK_PREFS_STORAGE_KEY = 'subtrack_fs_user_prefs';
+
+function subtrackReadMonthlyBudgetFromBootstrap() {
+    var raw =
+        typeof subtrackReadBootstrapJsonTextById === 'function'
+            ? subtrackReadBootstrapJsonTextById('subtrack-display-prefs-bootstrap-json')
+            : '';
+    if (raw) {
+        try {
+            var parsed = JSON.parse(raw);
+            if (parsed && typeof parsed.monthlyBudget === 'number' && isFinite(parsed.monthlyBudget)) {
+                return parsed.monthlyBudget >= 0 ? parsed.monthlyBudget : null;
+            }
+        } catch (e) {
+            /* ignore */
+        }
+    }
+    if (typeof localStorage === 'undefined') return null;
+    try {
+        var lsRaw = localStorage.getItem(SUBTRACK_PREFS_STORAGE_KEY);
+        if (!lsRaw) return null;
+        var prefs = JSON.parse(lsRaw);
+        if (prefs && typeof prefs.monthly_budget === 'number' && isFinite(prefs.monthly_budget)) {
+            return prefs.monthly_budget >= 0 ? prefs.monthly_budget : null;
+        }
+    } catch (e2) {
+        /* ignore */
+    }
+    return null;
+}
+
+function renderBudgetStat(totalMonthly) {
+    var card = document.getElementById('stat-budget-card');
+    if (!card) return;
+
+    var budget = subtrackReadMonthlyBudgetFromBootstrap();
+    var row = card.closest('.dashboard-overview-stats-row');
+    if (budget == null || !isFinite(budget)) {
+        card.classList.add('hidden');
+        if (row) row.classList.remove('dashboard-overview-stats-row--has-budget');
+        return;
+    }
+
+    card.classList.remove('hidden');
+    if (row) row.classList.add('dashboard-overview-stats-row--has-budget');
+
+    var remaining = budget - totalMonthly;
+    var valEl = document.getElementById('stat-budget-remaining');
+    var budgetEl = document.getElementById('stat-budget-total');
+    var noteEl = document.getElementById('stat-budget-note');
+    var progressRoot = document.getElementById('stat-budget-progress');
+    var progressFill = document.getElementById('stat-budget-progress-fill');
+    var absVal = Math.abs(remaining);
+    var usedPct = budget > 0 ? Math.min(100, (totalMonthly / budget) * 100) : 0;
+
+    card.classList.remove('stat-card--budget-positive', 'stat-card--budget-negative');
+    if (remaining >= 0) {
+        card.classList.add('stat-card--budget-positive');
+        if (noteEl) {
+            noteEl.textContent =
+                FsT('fs.dashboard.stat_budget_remaining_note') || 'atlicis';
+        }
+    } else {
+        card.classList.add('stat-card--budget-negative');
+        if (noteEl) {
+            noteEl.textContent = FsT('fs.dashboard.stat_budget_over_note') || 'pārsniegts';
+        }
+    }
+
+    if (valEl) {
+        valEl.textContent = (remaining < 0 ? '-€' : '€') + absVal.toFixed(2);
+    }
+    if (budgetEl) {
+        budgetEl.textContent = '€' + budget.toFixed(2);
+    }
+    if (progressFill) {
+        progressFill.style.width = usedPct.toFixed(1) + '%';
+    }
+    if (progressRoot) {
+        progressRoot.setAttribute('aria-valuenow', String(Math.round(usedPct)));
+        progressRoot.setAttribute(
+            'aria-label',
+            (FsT('fs.dashboard.stat_budget_progress_aria') || 'Izlietots no budžeta') +
+                ' ' +
+                Math.round(usedPct) +
+                '%',
+        );
+    }
 }
 
 /* ---- Free tier: neļaut atvērt „Pievienot” modāli pie limita ---- */
@@ -1659,6 +1871,171 @@ function syncBodyModalScrollLock() {
     else root.classList.remove('subtrack-modal-open');
 }
 
+/** Noklusējuma nosaukumi (FsT – lietotāja UI valodā). */
+var NAME_SUGGEST_DEFAULT_KEYS = [
+    'fs.dashboard.name_suggest.netflix',
+    'fs.dashboard.name_suggest.spotify',
+    'fs.dashboard.name_suggest.gym',
+    'fs.dashboard.name_suggest.youtube',
+    'fs.dashboard.name_suggest.mobile',
+    'fs.dashboard.name_suggest.internet',
+    'fs.dashboard.name_suggest.rent',
+    'fs.dashboard.name_suggest.insurance',
+];
+
+/** Maks. čipi (~3 rindas pa ~3 gab.). */
+var NAME_SUGGEST_MAX_ITEMS = 9;
+
+function fsUiLangCode() {
+    var loc =
+        typeof fsIntlLocale === 'function' ? fsIntlLocale() : 'lv-LV';
+    loc = String(loc || 'lv').toLowerCase();
+    var dash = loc.indexOf('-');
+    return dash === -1 ? loc : loc.slice(0, dash);
+}
+
+/** Vai nosaukums atbilst saskarnes valodai (skripts / diakritika). */
+function subscriptionNameMatchesUiLocale(name, langCode) {
+    var n = String(name || '').trim();
+    if (!n) return false;
+    var code = String(langCode || 'lv').toLowerCase();
+    var hasCyrillic = /[\u0400-\u04FF]/.test(n);
+    var hasLvDiacritics = /[āčēģīķļņšūž]/i.test(n);
+    if (code === 'ru') return hasCyrillic;
+    if (hasCyrillic) return false;
+    if (code === 'lv') return true;
+    if (code === 'en') {
+        return !hasLvDiacritics && /^[\x20-\x7E\u00A0-\u024F]*$/.test(n);
+    }
+    if (code === 'de') {
+        return /[äöüß]/i.test(n) || (!hasLvDiacritics && !hasCyrillic);
+    }
+    if (code === 'fr' || code === 'es' || code === 'pt') {
+        return /[àâçéèêëîïôùûœæáíóúñãõü]/i.test(n) || (!hasLvDiacritics && !hasCyrillic);
+    }
+    return !hasCyrillic;
+}
+
+function getLocalizedDefaultNameSuggestions() {
+    var out = [];
+    var ki;
+    for (ki = 0; ki < NAME_SUGGEST_DEFAULT_KEYS.length; ki++) {
+        var lbl = FsT(NAME_SUGGEST_DEFAULT_KEYS[ki]);
+        if (lbl) out.push(lbl);
+    }
+    return out;
+}
+
+function computeTopSubscriptionNames(limit) {
+    var map = Object.create(null);
+    var order = [];
+    var i;
+    for (i = 0; i < subscriptions.length; i++) {
+        var s = subscriptions[i];
+        var raw = s && s.name ? String(s.name).trim() : '';
+        if (!raw) continue;
+        var key = raw.toLowerCase();
+        if (!map[key]) {
+            map[key] = { label: raw, count: 0 };
+            order.push(key);
+        }
+        map[key].count++;
+    }
+    order.sort(function (a, b) {
+        var da = map[a];
+        var db = map[b];
+        if (db.count !== da.count) return db.count - da.count;
+        return da.label.localeCompare(db.label, undefined, { sensitivity: 'base' });
+    });
+    var out = [];
+    for (i = 0; i < order.length && out.length < limit; i++) {
+        out.push(map[order[i]].label);
+    }
+    return out;
+}
+
+function getNameSuggestionLabels() {
+    var lang = fsUiLangCode();
+    var fromSubs = computeTopSubscriptionNames(NAME_SUGGEST_MAX_ITEMS * 3);
+    var popular = [];
+    var si;
+    for (si = 0; si < fromSubs.length && popular.length < NAME_SUGGEST_MAX_ITEMS; si++) {
+        if (subscriptionNameMatchesUiLocale(fromSubs[si], lang)) {
+            popular.push(fromSubs[si]);
+        }
+    }
+    var defaults = getLocalizedDefaultNameSuggestions();
+    if (!popular.length) return defaults.slice(0, NAME_SUGGEST_MAX_ITEMS);
+
+    var seen = Object.create(null);
+    var merged = [];
+    function pushUnique(lbl) {
+        var key = String(lbl).toLowerCase();
+        if (seen[key] || merged.length >= NAME_SUGGEST_MAX_ITEMS) return;
+        seen[key] = true;
+        merged.push(lbl);
+    }
+    for (si = 0; si < popular.length; si++) pushUnique(popular[si]);
+    for (si = 0; si < defaults.length; si++) pushUnique(defaults[si]);
+    return merged;
+}
+
+function renderNameSuggestions() {
+    var host = document.getElementById('sub-name-suggestions');
+    if (!host) return;
+    if (editingId != null) {
+        host.innerHTML = '';
+        host.classList.add('hidden');
+        return;
+    }
+    var nameEl = document.getElementById('sub-name');
+    if (nameEl && String(nameEl.value || '').trim().length > 0) {
+        host.innerHTML = '';
+        host.classList.add('hidden');
+        return;
+    }
+    var labels = getNameSuggestionLabels();
+    if (!labels.length) {
+        host.innerHTML = '';
+        host.classList.add('hidden');
+        return;
+    }
+    var aria = FsT('fs.dashboard.name_suggestions_aria');
+    host.classList.remove('hidden');
+    host.setAttribute('role', 'group');
+    if (aria) host.setAttribute('aria-label', aria);
+    else host.removeAttribute('aria-label');
+    var html = '';
+    var li;
+    for (li = 0; li < labels.length; li++) {
+        html +=
+            '<button type="button" class="sub-name-suggestion-chip" data-name="' +
+            escAttr(labels[li]) +
+            '">' +
+            escHtml(labels[li]) +
+            '</button>';
+    }
+    host.innerHTML = html;
+}
+
+function initNameSuggestionsOnce() {
+    var host = document.getElementById('sub-name-suggestions');
+    if (!host || host.dataset.subtrackNameSuggest === '1') return;
+    host.dataset.subtrackNameSuggest = '1';
+    host.addEventListener('click', function (e) {
+        var btn = e.target.closest('.sub-name-suggestion-chip');
+        if (!btn || editingId != null) return;
+        var name = btn.getAttribute('data-name') || '';
+        var nameEl = document.getElementById('sub-name');
+        if (!nameEl) return;
+        nameEl.value = name;
+        applyAutoVisualForAdd(name);
+        renderIconPickerHints();
+        renderNameSuggestions();
+        nameEl.focus();
+    });
+}
+
 /* ---- Add Modal ---- */
 function openAddModal() {
     if (subtrackIsFreeTierAddBlocked()) {
@@ -1673,6 +2050,7 @@ function openAddModal() {
     setModalSavePending(false);
     modalSaveSetLabel(FsT('fs.dashboard.modal_add_submit'));
     document.getElementById('sub-name').value = '';
+    reorderSubCategorySelect(subscriptions);
     document.getElementById('sub-category').value = 'subscription';
     document.getElementById('sub-amount').value = '';
     document.getElementById('sub-period').value = 'monthly';
@@ -1681,6 +2059,8 @@ function openAddModal() {
     document.getElementById('sub-term-end').value = '';
     setDefaultDate();
     setSubDynamicAmountSwitch(false);
+    setSubDynamicCarrySwitch(false);
+    syncSubDynamicCarryVisibility();
     userPickedIcon = false;
     userPickedColor = false;
     applyAutoVisualForAdd('');
@@ -1691,6 +2071,7 @@ function openAddModal() {
             renderIconPickerHints();
         });
     });
+    renderNameSuggestions();
     setTimeout(function() { document.getElementById('sub-name').focus(); }, 100);
 }
 
@@ -1707,6 +2088,7 @@ function openEditModal(id) {
     setModalSavePending(false);
     modalSaveSetLabel(FsT('fs.dashboard.modal_save'));
     document.getElementById('sub-name').value = s.name || '';
+    reorderSubCategorySelect(subscriptions);
     document.getElementById('sub-category').value = normalizeCategoryKey(s.category);
     document.getElementById('sub-amount').value = s.amount != null ? s.amount : '';
     document.getElementById('sub-period').value = s.period || 'monthly';
@@ -1725,6 +2107,8 @@ function openEditModal(id) {
     selectIcon(s.icon || 'fa-solid fa-film');
     selectColor(s.color || '#0d9488');
     setSubDynamicAmountSwitch(s.dynamicAmount === true);
+    setSubDynamicCarrySwitch(s.dynamicCarryPrevious === true);
+    syncSubDynamicCarryVisibility();
     document.getElementById('modal-overlay').classList.add('open');
     syncBodyModalScrollLock();
     requestAnimationFrame(function () {
@@ -1732,6 +2116,7 @@ function openEditModal(id) {
             renderIconPickerHints();
         });
     });
+    renderNameSuggestions();
     setTimeout(function() { document.getElementById('sub-name').focus(); }, 100);
 }
 
@@ -1766,6 +2151,7 @@ function setModalSavePending(pending) {
     var cancelBtn = document.getElementById('modal-cancel-btn');
     var closeBtn = document.getElementById('modal-close-btn');
     var dynamicSwitch = document.getElementById('sub-dynamic-amount-switch');
+    var carrySwitch = document.getElementById('sub-dynamic-carry-switch');
     if (saveBtn) {
         var spinner = saveBtn.querySelector('.dash-save-spinner');
         saveBtn.disabled = !!pending;
@@ -1780,6 +2166,9 @@ function setModalSavePending(pending) {
     }
     if (dynamicSwitch) {
         dynamicSwitch.disabled = !!pending;
+    }
+    if (carrySwitch) {
+        carrySwitch.disabled = !!pending;
     }
 }
 
@@ -1845,6 +2234,8 @@ function saveSubscription() {
         category: category,
         amount: amount,
         dynamicAmount: subDynamicAmountSwitchOn(),
+        dynamicCarryPrevious:
+            subDynamicAmountSwitchOn() && subDynamicCarrySwitchOn(),
         period: period,
         date: date,
         icon: selectedIcon,
@@ -2363,6 +2754,7 @@ function bindIconPickerNameInputOnce() {
     nameEl.addEventListener('input', function () {
         applyAutoVisualForAdd(nameEl.value.trim());
         renderIconPickerHints();
+        renderNameSuggestions();
     });
 }
 
@@ -2397,6 +2789,7 @@ function initIconPicker() {
     initIconPickerSearchDelegate();
     bindIconPickerNameInputOnce();
     bindIconPickerSearchInputOnce();
+    initNameSuggestionsOnce();
     initHintsShellResizeObserve();
     renderIconPickerHints();
 }

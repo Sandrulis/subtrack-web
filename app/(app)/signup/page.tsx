@@ -5,9 +5,15 @@ import { FsScripts } from "@/components/fs/load-fs-scripts";
 import { NavLanding } from "@/components/nav-landing";
 import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
 import { getLoginSocialIntegrationFlags } from "@/lib/integrations/login-social-flags";
+import { isValidInviteEmail, normalizeInviteEmail } from "@/lib/family-sharing/family-sharing-server";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
 const SIGNUP_SCRIPTS = ["/fs/js/signup.js"] as const;
+
+function signupEmailFromSearchParam(raw: string | undefined): string {
+  const email = normalizeInviteEmail(raw ?? "");
+  return isValidInviteEmail(email) ? email : "";
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -18,9 +24,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; email?: string }>;
 }) {
   const sp = await searchParams;
+  const initialEmail = signupEmailFromSearchParam(sp.email);
 
   const { googleEnabled: oauthGoogleEnabled, appleEnabled: oauthAppleEnabled } =
     await getLoginSocialIntegrationFlags();
@@ -33,6 +40,7 @@ export default async function SignupPage({
           <AuthSignupCard
             oauthGoogleEnabled={oauthGoogleEnabled}
             oauthAppleEnabled={oauthAppleEnabled}
+            initialEmail={initialEmail}
           />
         </main>
 

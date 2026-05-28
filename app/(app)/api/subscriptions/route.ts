@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { fetchDashboardSubscriptionsWithFamilyShare } from "@/lib/family-sharing/family-sharing-server";
 import { fetchPaidCalendarDaysForSession } from "@/lib/subscriptions/fetch-paid-calendar-server";
+import { fetchAllowedSubscriptionCategoryKeys } from "@/lib/subscriptions/subscription-categories-server";
 import {
   mapSubscriptionRowToClient,
   parseSubscriptionPayload,
@@ -66,8 +67,12 @@ export async function POST(request: Request) {
     );
   }
 
+  const supabase = await createServerSupabaseClient();
+  const allowedCategories = await fetchAllowedSubscriptionCategoryKeys();
+
   const parsed = parseSubscriptionPayload(
     json as Parameters<typeof parseSubscriptionPayload>[0],
+    { allowedCategories },
   );
   if (!parsed.ok) {
     return NextResponse.json(
@@ -75,8 +80,6 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-
-  const supabase = await createServerSupabaseClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -77,6 +77,7 @@
         min-height: 0;
     }
 }
+
 .dashboard-overview-calendar-col {
     min-width: 0;
     display: flex;
@@ -104,6 +105,73 @@
 
 .dashboard-overview-stats-row > .stat-card {
     height: 100%;
+    gap: 0;
+}
+
+.dashboard-overview-stats-row--has-budget {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dashboard-overview-stats-row > .stat-card .stat-card-main {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 58px;
+    margin-top: 6px;
+}
+
+.dashboard-overview-stats-row > .stat-card .stat-card-foot {
+    flex-shrink: 0;
+    margin-top: 6px;
+}
+
+.stat-card--budget {
+    position: relative;
+    overflow: hidden;
+    padding-bottom: 27px;
+}
+
+.stat-card--budget-positive {
+    background: var(--primary-light);
+    border: 2px solid var(--primary);
+}
+
+.stat-card--budget-negative {
+    background: var(--danger-light);
+    border: 2px solid var(--danger);
+}
+
+.stat-budget-total {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.stat-budget-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 5px;
+    background: rgba(15, 23, 42, 0.1);
+}
+
+.stat-budget-progress-fill {
+    height: 100%;
+    width: 0;
+    max-width: 100%;
+    transition: width 0.25s ease;
+}
+
+.stat-card--budget-positive .stat-budget-progress-fill {
+    background: var(--primary);
+}
+
+.stat-card--budget-negative .stat-budget-progress-fill {
+    background: var(--danger);
 }
 
 .dashboard-overview-next-slot {
@@ -123,6 +191,135 @@
     border-radius: var(--radius);
     padding: 18px 18px 14px;
     box-shadow: var(--shadow-sm);
+}
+
+/* Pro priekšskatījums: izpludināts saturs + CTA (bez Pro badge) */
+.pro-feature-preview-gate {
+    position: relative;
+    min-width: 0;
+}
+
+.pro-feature-preview-gate--locked .pro-feature-preview-gate__content {
+    filter: blur(5px);
+    opacity: 0.92;
+    pointer-events: none;
+    user-select: none;
+}
+
+.pro-feature-preview-gate__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 16px;
+    box-sizing: border-box;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.35) 0%,
+        rgba(255, 255, 255, 0.72) 42%,
+        rgba(255, 255, 255, 0.88) 100%
+    );
+}
+
+.pro-feature-preview-gate--locked .pro-feature-preview-gate__overlay {
+    display: flex;
+}
+
+.pro-feature-preview-gate__card {
+    width: min(100%, 280px);
+    margin: 0 auto;
+    padding: 16px 18px;
+    text-align: center;
+    background: var(--bg-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+}
+
+.pro-feature-preview-gate__icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 10px;
+    border-radius: 999px;
+    color: #0d9488;
+    background: #f0fdfa;
+    font-size: 16px;
+}
+
+.pro-feature-preview-gate__title {
+    margin: 0 0 6px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+}
+
+.pro-feature-preview-gate__hint {
+    margin: 0 0 14px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+.pro-feature-preview-gate__cta {
+    width: 100%;
+    justify-content: center;
+}
+
+/* Kalendārs: 1. nedēļa + navigācija + leģenda redzama; no 2. nedēļas blur + CTA */
+.pay-calendar-body {
+    position: relative;
+    min-width: 0;
+}
+
+.pay-calendar-card--preview-locked {
+    padding-bottom: 7px;
+}
+
+.pay-calendar-card--preview-locked .pay-cal-cell--preview-week-lock {
+    filter: blur(5px);
+    opacity: 0.88;
+    pointer-events: none;
+    user-select: none;
+}
+
+.pay-calendar-card--preview-locked .pay-calendar-footer {
+    margin-top: 6px;
+}
+
+.pay-calendar-preview-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 12px 6px;
+    box-sizing: border-box;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 255, 255, 0.78) 28%,
+        rgba(255, 255, 255, 0.92) 100%
+    );
+    pointer-events: auto;
+}
+
+.pay-calendar-card--preview-locked .pay-calendar-preview-overlay {
+    min-height: 92px;
+    padding-bottom: 3px;
+}
+
+.pay-calendar-preview-overlay .pro-feature-preview-gate__card {
+    width: min(100%, 260px);
+    margin: 0 auto;
 }
 
 /* Pro badge – augšējā labā stūrī (nevis visa kartes platums) */
@@ -449,6 +646,14 @@
     border-radius: 3px;
     display: inline-block;
     flex-shrink: 0;
+}
+
+.pay-cal-legend-i--due {
+    background: var(--primary-light);
+    border: 1px solid rgba(0, 163, 141, 0.35);
+}
+
+.pay-cal-legend-i--overdue {
     background: var(--danger-light);
     border: 1px solid rgba(239, 68, 68, 0.35);
 }
@@ -1006,3 +1211,338 @@
     letter-spacing: -0.5px;
     text-align: right;
 }
+
+.sub-amount.sub-amount--editing {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.sub-amount-currency {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text);
+}
+
+.sub-amount-inline-input {
+    width: 5.5rem;
+    max-width: 100%;
+    font-size: 18px;
+    font-weight: 800;
+    text-align: right;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 8px;
+    color: var(--text);
+    background: var(--surface);
+}
+
+.sub-amount-inline-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.15);
+}
+
+.sub-actions .icon-btn.change-amount {
+    color: #6b5b95;
+}
+
+.sub-actions .icon-btn.change-amount:hover:not(:disabled) {
+    background: #f5f3f9;
+    color: #5a4d82;
+}
+
+.sub-period {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-align: right;
+}
+
+.sub-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity .15s;
+}
+
+.sub-item:hover .sub-actions { opacity: 1; }
+
+/* Abonementu saraksts: darbību pogas (klusas, ne piesātinātas) */
+.sub-actions .icon-btn:not(.delete):not(.mark-paid) {
+    color: #5b7cb8;
+}
+
+.sub-actions .icon-btn:not(.delete):not(.mark-paid):hover:not(:disabled) {
+    background: #f1f5fb;
+    color: #4a6fa5;
+}
+
+.sub-actions .icon-btn.delete {
+    color: #c96a6a;
+}
+
+.sub-actions .icon-btn.delete:hover:not(:disabled):not(.delete--pending) {
+    background: #faf5f5;
+    color: #b85c5c;
+}
+
+.sub-actions .icon-btn.delete.delete--pending:hover {
+    background: transparent;
+    color: #c96a6a;
+}
+
+.sub-actions .icon-btn.mark-paid {
+    background: #edf7f1;
+    color: #3d8f6e;
+}
+
+.sub-actions .icon-btn.mark-paid:hover:not(:disabled):not(.mark-paid--pending) {
+    background: #e3f2ea;
+    color: #358063;
+}
+
+.sub-actions .icon-btn.mark-paid .mark-paid-spinner {
+    border-color: rgba(61, 143, 110, 0.2);
+    border-top-color: #3d8f6e;
+}
+
+.sub-actions .icon-btn.mark-paid.mark-paid--pending:hover {
+    background: #edf7f1;
+    color: #3d8f6e;
+}
+
+/* Kredīts / atmaksas termiņš - progress */
+.sub-term-block {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-light);
+    width: 100%;
+}
+
+.sub-term-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px 16px;
+    margin-bottom: 5px;
+}
+
+.sub-term-atlikums {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.sub-term-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.sub-term-label i {
+    font-size: 11px;
+    opacity: 0.85;
+}
+
+.sub-term-label .sub-device-list-note {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-light);
+}
+
+.sub-term-label .sub-device-amount-inline {
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--text);
+    white-space: nowrap;
+}
+
+.sub-term-pct {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.sub-term-pct strong {
+    color: var(--text);
+    font-weight: 700;
+}
+
+.sub-term-pct-done {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.sub-term-bar-track {
+    height: 6px;
+    border-radius: 100px;
+    background: var(--bg-subtle);
+    overflow: hidden;
+}
+
+.sub-term-bar-fill {
+    height: 100%;
+    border-radius: 100px;
+    min-width: 0;
+    transition: width 0.35s ease;
+}
+
+.icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: background .15s, color .15s;
+    color: var(--text-muted);
+    position: relative;
+    overflow: visible;
+}
+
+.icon-btn:hover { background: var(--bg); color: var(--text); }
+.icon-btn.delete:hover { background: var(--danger-light); color: var(--danger); }
+.icon-btn.mark-paid:hover { background: var(--primary-light); color: var(--primary); }
+
+/* Custom tooltips (melns bubble, nav native `title`) */
+[data-tooltip] {
+    position: relative;
+    overflow: visible;
+}
+
+[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 8px);
+    transform: translateX(-50%);
+    padding: 7px 11px;
+    background: #111827;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+    border-radius: 6px;
+    white-space: nowrap;
+    max-width: min(280px, 85vw);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 400;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.12s ease, visibility 0.12s ease;
+    pointer-events: none;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+}
+
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text-muted);
+}
+
+.empty-state--dashboard {
+    padding: 0 0 48px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.empty-state-card {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 36px 28px 40px;
+    background: var(--bg-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.empty-state--dashboard .empty-state-card {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 44px 28px 46px;
+    box-sizing: border-box;
+}
+
+.empty-state-icon-wrap {
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 22px;
+    border-radius: 50%;
+    background: linear-gradient(155deg, var(--primary-light) 0%, #e8f4fc 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.empty-state-main-icon {
+    font-size: 30px;
+    color: var(--primary-dark);
+    opacity: 1;
+}
+
+.empty-state--dashboard .empty-state-card p {
+    margin-bottom: 0;
+}
+
+.empty-state .empty-icon-fa {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: .35;
+    color: var(--text-muted);
+}
+
+.empty-state--dashboard .empty-state-lead {
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text-muted);
+    margin-bottom: 0;
+    max-width: 42rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.empty-state--dashboard .empty-state-cta-wrap {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.empty-state h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+}
+
+.empty-state p {
+    font-size: 14px;
+    margin-bottom: 24px;
+}
+
