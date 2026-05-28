@@ -37,10 +37,10 @@ export async function backfillUserRegistrationCountry(
   }
 
   const billingCurrency = countryCodeToBillingCurrency(country);
-  const merged = mergeDisplayPreferences(
-    sanitizeDisplayPreferencesPartial(row.display_preferences),
-    { currency: billingCurrency },
-  );
+  const merged = mergeDisplayPreferences({
+    ...sanitizeDisplayPreferencesPartial(row.display_preferences),
+    currency: billingCurrency,
+  });
 
   const { error: updErr } = await svc
     .from("users")
