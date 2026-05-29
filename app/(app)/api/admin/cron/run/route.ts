@@ -63,7 +63,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await runCronJobFromServer(jobRaw, { forceSchedule });
+  const result = await runCronJobFromServer(jobRaw, {
+    forceSchedule,
+    testUserId: sessionUser.id,
+  });
 
   return NextResponse.json({
     success: result.ok,

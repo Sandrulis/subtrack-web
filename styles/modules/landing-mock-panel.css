@@ -106,10 +106,26 @@
 .dashboard-overview-stats-row > .stat-card {
     height: 100%;
     gap: 0;
+    min-width: 0;
+    padding: 18px 16px;
+    box-sizing: border-box;
 }
 
 .dashboard-overview-stats-row--has-budget {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dashboard-overview-stats-row > .stat-card .stat-label {
+    font-size: 11px;
+    letter-spacing: 0.55px;
+    line-height: 1.35;
+}
+
+.dashboard-overview-stats-row > .stat-card .stat-value {
+    font-size: clamp(1.125rem, 1.6vw + 0.65rem, 1.625rem);
+    letter-spacing: -0.4px;
+    line-height: 1.15;
+    max-width: 100%;
 }
 
 .dashboard-overview-stats-row > .stat-card .stat-card-main {
@@ -118,12 +134,24 @@
     flex-direction: column;
     justify-content: flex-end;
     min-height: 58px;
+    min-width: 0;
+    width: 100%;
     margin-top: 6px;
 }
 
 .dashboard-overview-stats-row > .stat-card .stat-card-foot {
     flex-shrink: 0;
     margin-top: 6px;
+}
+
+.dashboard-overview-stats-row > .stat-card.stat-card--total .stat-card-main .stat-value-row {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+}
+
+.dashboard-overview-stats-row > .stat-card .stat-budget-total {
+    font-size: 12px;
 }
 
 .stat-card--budget {

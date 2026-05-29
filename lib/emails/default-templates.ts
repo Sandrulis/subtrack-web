@@ -542,6 +542,122 @@ const defaults: Record<EmailTemplateId, LocaleMap> = {
       "Вы получили это, потому что пробный период активен и вы включили напоминания в {SYSTEM_NAME}.",
     ),
   },
+  win_back_7d: {
+    en: c(
+      "We miss you – {SYSTEM_NAME}",
+      "It's been a week since your last visit.",
+      "Come back to {SYSTEM_NAME}",
+      "You haven't opened {SYSTEM_NAME} in {INACTIVE_DAYS} days (last seen {LAST_SEEN_DATE}). Your subscriptions are still here – open the dashboard and stay on top of payments.",
+      "Open {SYSTEM_NAME}",
+      "You received this because you enabled win-back emails in {SYSTEM_NAME}.",
+    ),
+    fr: c(
+      "Vous nous manquez – {SYSTEM_NAME}",
+      "Cela fait une semaine depuis votre dernière visite.",
+      "Revenez sur {SYSTEM_NAME}",
+      "Vous n'avez pas ouvert {SYSTEM_NAME} depuis {INACTIVE_DAYS} jours (dernière visite {LAST_SEEN_DATE}). Vos abonnements vous attendent.",
+      "Ouvrir {SYSTEM_NAME}",
+      "Vous recevez ce message car vous avez activé les e-mails de relance dans {SYSTEM_NAME}.",
+    ),
+    de: c(
+      "Wir vermissen Sie – {SYSTEM_NAME}",
+      "Eine Woche seit Ihrem letzten Besuch.",
+      "Zurück zu {SYSTEM_NAME}",
+      "Sie haben {SYSTEM_NAME} seit {INACTIVE_DAYS} Tagen nicht geöffnet (zuletzt {LAST_SEEN_DATE}). Ihre Abos warten auf Sie.",
+      "{SYSTEM_NAME} öffnen",
+      "Sie erhalten dies, weil Sie Win-back-E-Mails in {SYSTEM_NAME} aktiviert haben.",
+    ),
+    es: c(
+      "Te echamos de menos – {SYSTEM_NAME}",
+      "Ha pasado una semana desde tu última visita.",
+      "Vuelve a {SYSTEM_NAME}",
+      "No has abierto {SYSTEM_NAME} en {INACTIVE_DAYS} días (última visita {LAST_SEEN_DATE}). Tus suscripciones siguen aquí.",
+      "Abrir {SYSTEM_NAME}",
+      "Recibes esto porque activaste los correos de reactivación en {SYSTEM_NAME}.",
+    ),
+    pt: c(
+      "Sentimos a sua falta – {SYSTEM_NAME}",
+      "Já passou uma semana desde a sua última visita.",
+      "Volte ao {SYSTEM_NAME}",
+      "Não abriu o {SYSTEM_NAME} há {INACTIVE_DAYS} dias (última visita {LAST_SEEN_DATE}). As suas subscrições continuam aqui.",
+      "Abrir {SYSTEM_NAME}",
+      "Recebe isto porque ativou e-mails de reativação no {SYSTEM_NAME}.",
+    ),
+    lv: c(
+      "Pietrūkst {SYSTEM_NAME}",
+      "Pagājusi nedēļa kopš pēdējās vizītes.",
+      "Atgriezies {SYSTEM_NAME}",
+      "Tu neesi atvēris {SYSTEM_NAME} {INACTIVE_DAYS} dienas (pēdējoreiz {LAST_SEEN_DATE}). Tavi maksājumi joprojām ir šeit – atver paneli un pārvaldi termiņus.",
+      "Atvērt {SYSTEM_NAME}",
+      "Tu saņēmi šo vēstuli, jo esi ieslēdzis atgriešanās e-pastus {SYSTEM_NAME}.",
+    ),
+    ru: c(
+      "Мы скучаем – {SYSTEM_NAME}",
+      "Прошла неделя с последнего визита.",
+      "Вернитесь в {SYSTEM_NAME}",
+      "Вы не открывали {SYSTEM_NAME} {INACTIVE_DAYS} дн. (последний раз {LAST_SEEN_DATE}). Подписки на месте – откройте панель.",
+      "Открыть {SYSTEM_NAME}",
+      "Вы получили это, потому что включили письма возврата в {SYSTEM_NAME}.",
+    ),
+  },
+  win_back_30d: {
+    en: c(
+      "Still here for you – {SYSTEM_NAME}",
+      "It's been a month since your last visit.",
+      "Your payments are waiting",
+      "You haven't opened {SYSTEM_NAME} in {INACTIVE_DAYS} days (last seen {LAST_SEEN_DATE}). Log in anytime – your subscription overview is ready when you are.",
+      "Open {SYSTEM_NAME}",
+      "You received this because you enabled win-back emails in {SYSTEM_NAME}.",
+    ),
+    fr: c(
+      "Toujours là pour vous – {SYSTEM_NAME}",
+      "Un mois depuis votre dernière visite.",
+      "Vos paiements vous attendent",
+      "Vous n'avez pas ouvert {SYSTEM_NAME} depuis {INACTIVE_DAYS} jours (dernière visite {LAST_SEEN_DATE}). Reconnectez-vous quand vous voulez.",
+      "Ouvrir {SYSTEM_NAME}",
+      "Vous recevez ce message car vous avez activé les e-mails de relance dans {SYSTEM_NAME}.",
+    ),
+    de: c(
+      "Wir sind noch da – {SYSTEM_NAME}",
+      "Ein Monat seit Ihrem letzten Besuch.",
+      "Ihre Zahlungen warten",
+      "Sie haben {SYSTEM_NAME} seit {INACTIVE_DAYS} Tagen nicht geöffnet (zuletzt {LAST_SEEN_DATE}). Melden Sie sich an, wann es passt.",
+      "{SYSTEM_NAME} öffnen",
+      "Sie erhalten dies, weil Sie Win-back-E-Mails in {SYSTEM_NAME} aktiviert haben.",
+    ),
+    es: c(
+      "Seguimos aquí – {SYSTEM_NAME}",
+      "Ha pasado un mes desde tu última visita.",
+      "Tus pagos te esperan",
+      "No has abierto {SYSTEM_NAME} en {INACTIVE_DAYS} días (última visita {LAST_SEEN_DATE}). Entra cuando quieras.",
+      "Abrir {SYSTEM_NAME}",
+      "Recibes esto porque activaste los correos de reactivación en {SYSTEM_NAME}.",
+    ),
+    pt: c(
+      "Continuamos aqui – {SYSTEM_NAME}",
+      "Já passou um mês desde a sua última visita.",
+      "Os seus pagamentos esperam",
+      "Não abriu o {SYSTEM_NAME} há {INACTIVE_DAYS} dias (última visita {LAST_SEEN_DATE}). Entre quando quiser.",
+      "Abrir {SYSTEM_NAME}",
+      "Recebe isto porque ativou e-mails de reativação no {SYSTEM_NAME}.",
+    ),
+    lv: c(
+      "Mēs joprojām esam šeit – {SYSTEM_NAME}",
+      "Pagājis mēnesis kopš pēdējās vizītes.",
+      "Tavi maksājumi gaida",
+      "Tu neesi atvēris {SYSTEM_NAME} {INACTIVE_DAYS} dienas (pēdējoreiz {LAST_SEEN_DATE}). Ielogojies, kad ērti – pārskats ir gatavs.",
+      "Atvērt {SYSTEM_NAME}",
+      "Tu saņēmi šo vēstuli, jo esi ieslēdzis atgriešanās e-pastus {SYSTEM_NAME}.",
+    ),
+    ru: c(
+      "Мы на месте – {SYSTEM_NAME}",
+      "Прошёл месяц с последнего визита.",
+      "Платежи ждут вас",
+      "Вы не открывали {SYSTEM_NAME} {INACTIVE_DAYS} дн. (последний раз {LAST_SEEN_DATE}). Заходите, когда удобно.",
+      "Открыть {SYSTEM_NAME}",
+      "Вы получили это, потому что включили письма возврата в {SYSTEM_NAME}.",
+    ),
+  },
 };
 
 export function getDefaultEmailCopy(
@@ -622,6 +738,29 @@ export function applyTrialPlaceholders(
       .replaceAll("{SYSTEM_NAME}", ctx.systemName)
       .replaceAll("{TRIAL_DAYS}", String(ctx.trialDaysRemaining))
       .replaceAll("{TRIAL_END_DATE}", ctx.trialEndDateFormatted);
+  return {
+    subject: rep(copy.subject),
+    preheader: rep(copy.preheader),
+    headline: rep(copy.headline),
+    body: rep(copy.body),
+    ctaLabel: rep(copy.ctaLabel),
+    footerNote: rep(copy.footerNote),
+  };
+}
+
+export function applyWinBackPlaceholders(
+  copy: EmailTemplateCopy,
+  ctx: {
+    systemName: string;
+    inactiveDays: number;
+    lastSeenFormatted: string;
+  },
+): EmailTemplateCopy {
+  const rep = (s: string) =>
+    s
+      .replaceAll("{SYSTEM_NAME}", ctx.systemName)
+      .replaceAll("{INACTIVE_DAYS}", String(ctx.inactiveDays))
+      .replaceAll("{LAST_SEEN_DATE}", ctx.lastSeenFormatted);
   return {
     subject: rep(copy.subject),
     preheader: rep(copy.preheader),

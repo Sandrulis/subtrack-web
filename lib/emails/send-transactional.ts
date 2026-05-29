@@ -1,6 +1,14 @@
+import { formatCronEmailDate } from "@/lib/cron/email-cron-common";
+import type { DisplayPreferences } from "@/lib/user-display-preferences";
 import { resolveEmailCopy } from "./merge-template-copy";
 import { renderEmailHtml } from "./render-email-html";
-import type { EmailPreviewLocale, EmailTemplateId, EmailTemplatesStore } from "./template-types";
+import type {
+  EmailPreviewLocale,
+  EmailTemplateId,
+  EmailTemplatesStore,
+} from "./template-types";
+
+export type WinBackTemplateId = "win_back_7d" | "win_back_30d";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
 import { buildPreviewRenderContext } from "./preview-context";
 import {
@@ -10,7 +18,6 @@ import {
 } from "./weekly-summary-email";
 import {
   formatAmountForEmail,
-  formatDueDateForEmail,
   type OverdueSubscriptionRow,
 } from "@/lib/subscriptions/overdue-for-email";
 
@@ -147,10 +154,17 @@ export async function sendPaymentDueTodayEmail(input: {
   systemName: string;
   siteUrl: string;
   templatesStore: EmailTemplatesStore;
+  systemDisplayPreferences: DisplayPreferences;
+  userDisplayPreferences?: unknown;
 }): Promise<SendEmailResult> {
-  const { row, systemName, siteUrl, templatesStore } = input;
+  const { row, systemName, siteUrl, templatesStore, systemDisplayPreferences, userDisplayPreferences } =
+    input;
   const amountFormatted = formatAmountForEmail(row.amount, row.currency, row.locale);
-  const dueDateFormatted = formatDueDateForEmail(row.nextPaymentDate, row.locale);
+  const dueDateFormatted = formatCronEmailDate(
+    new Date(`${row.nextPaymentDate}T12:00:00Z`),
+    userDisplayPreferences,
+    systemDisplayPreferences,
+  );
 
   const copy = resolveEmailCopy(
     "payment_due_today",
@@ -235,6 +249,46 @@ export async function sendTrialEndingEmail(input: {
   const ctx = buildPreviewRenderContext("trial_ending", systemName, siteUrl);
   ctx.trialDaysRemaining = trialDaysRemaining;
   ctx.trialEndDateFormatted = trialEndDateFormatted;
+
+  const html = renderEmailHtml(copy, ctx);
+  return sendViaResend({ to, subject: copy.subject, html });
+}
+
+export async function sendWinBackEmail(input: {
+  to: string;
+  locale: EmailPreviewLocale;
+  systemName: string;
+  siteUrl: string;
+  templatesStore: EmailTemplatesStore;
+  templateId: WinBackTemplateId;
+  inactiveDays: number;
+  lastSeenFormatted: string;
+}): Promise<SendEmailResult> {
+  const {
+    to,
+    locale,
+    systemName,
+    siteUrl,
+    templatesStore,
+    templateId,
+    inactiveDays,
+    lastSeenFormatted,
+  } = input;
+
+  const copy = resolveEmailCopy(
+    templateId,
+    locale,
+    templatesStore,
+    systemName,
+    undefined,
+    undefined,
+    undefined,
+    { inactiveDays, lastSeenFormatted },
+  );
+
+  const ctx = buildPreviewRenderContext(templateId, systemName, siteUrl);
+  ctx.inactiveDays = inactiveDays;
+  ctx.lastSeenFormatted = lastSeenFormatted;
 
   const html = renderEmailHtml(copy, ctx);
   return sendViaResend({ to, subject: copy.subject, html });

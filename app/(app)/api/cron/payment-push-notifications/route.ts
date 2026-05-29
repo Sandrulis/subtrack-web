@@ -12,6 +12,12 @@ import {
 } from "@/lib/user-display-preferences";
 
 import { authorizeCron } from "@/lib/security/cron-auth";
+import {
+  cronIncludesUser,
+  getCronTestUserId,
+  isCronAdminTestRun,
+} from "@/lib/cron/cron-admin-test";
+import type { PaymentDueAlert } from "@/lib/push/payment-due-alerts";
 
 function todayIsoUtc(): string {
   return new Date().toISOString().slice(0, 10);
@@ -63,10 +69,18 @@ export async function GET(request: Request) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "http://localhost:3000";
   const systemName = await getSystemSiteName();
   const sentUtcDay = todayIsoUtc();
+  const testUserId = getCronTestUserId(request);
+  const isTest = isCronAdminTestRun(request);
 
-  const { data: pushRows, error: pushErr } = await supabase
+  let pushQuery = supabase
     .from("push_subscriptions")
     .select("user_id, endpoint, p256dh, auth");
+
+  if (testUserId) {
+    pushQuery = pushQuery.eq("user_id", testUserId);
+  }
+
+  const { data: pushRows, error: pushErr } = await pushQuery;
 
   if (pushErr) {
     return NextResponse.json({ success: false, message: pushErr.message }, { status: 500 });
@@ -93,17 +107,23 @@ export async function GET(request: Request) {
   const errors: string[] = [];
 
   for (const [userId, subs] of byUser) {
-    const { data: already } = await supabase
-      .from("push_notification_log")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("reminder_type", "payment_digest")
-      .eq("sent_on", sentUtcDay)
-      .maybeSingle();
-
-    if (already) {
-      skippedAlready += 1;
+    if (!cronIncludesUser(userId, testUserId)) {
       continue;
+    }
+
+    if (!isTest) {
+      const { data: already } = await supabase
+        .from("push_notification_log")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("reminder_type", "payment_digest")
+        .eq("sent_on", sentUtcDay)
+        .maybeSingle();
+
+      if (already) {
+        skippedAlready += 1;
+        continue;
+      }
     }
 
     const { data: userRow } = await supabase
@@ -126,8 +146,17 @@ export async function GET(request: Request) {
       continue;
     }
 
-    const alerts = collectPaymentDueAlerts(userSubs ?? [], todayIso);
-    if (alerts.length === 0) {
+    let alerts = collectPaymentDueAlerts(userSubs ?? [], todayIso);
+    if (alerts.length === 0 && isTest) {
+      const sample: PaymentDueAlert = {
+        subscriptionId: "admin-test",
+        name: "Netflix (tests)",
+        kind: "due_today",
+        dueDate: todayIso,
+        overdueDays: 0,
+      };
+      alerts = [sample];
+    } else if (alerts.length === 0) {
       skippedNoDue += 1;
       continue;
     }
@@ -157,17 +186,33 @@ export async function GET(request: Request) {
     }
 
     if (delivered) {
-      const { error: logErr } = await supabase.from("push_notification_log").insert({
-        user_id: userId,
-        reminder_type: "payment_digest",
-        sent_on: sentUtcDay,
-      });
-      if (logErr) {
-        errors.push(`log ${userId}: ${logErr.message}`);
+      if (!isTest) {
+        const { error: logErr } = await supabase.from("push_notification_log").insert({
+          user_id: userId,
+          reminder_type: "payment_digest",
+          sent_on: sentUtcDay,
+        });
+        if (logErr) {
+          errors.push(`log ${userId}: ${logErr.message}`);
+        } else {
+          sentUsers += 1;
+        }
       } else {
         sentUsers += 1;
       }
     }
+  }
+
+  if (isTest && byUser.size === 0) {
+    return NextResponse.json({
+      success: true,
+      sentUsers: 0,
+      skippedNoDue: 0,
+      skippedAlready: 0,
+      testMode: true,
+      message: "Testa lietotājam nav reģistrētu PWA push ierīču.",
+      errors: [],
+    });
   }
 
   return NextResponse.json({
@@ -175,6 +220,7 @@ export async function GET(request: Request) {
     sentUsers,
     skippedNoDue,
     skippedAlready,
+    testMode: isTest,
     errors: errors.slice(0, 20),
   });
 }

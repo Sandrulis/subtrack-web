@@ -2,6 +2,8 @@ export const CRON_JOB_IDS = [
   "due-today-payment-emails",
   "weekly-summary-emails",
   "trial-ending-emails",
+  "win-back-7d-emails",
+  "win-back-30d-emails",
   "payment-push-notifications",
 ] as const;
 
@@ -19,6 +21,8 @@ export function cronJobApiPath(job: CronJobId): string {
 export function cronJobSupportsForceSchedule(job: CronJobId): boolean {
   return (
     job === "weekly-summary-emails" ||
-    job === "trial-ending-emails"
+    job === "trial-ending-emails" ||
+    job === "win-back-7d-emails" ||
+    job === "win-back-30d-emails"
   );
 }

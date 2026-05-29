@@ -7,10 +7,14 @@ import {
   resolveEmailCopy,
 } from "@/lib/emails/merge-template-copy";
 import { ensureSystemNamePlaceholderInCopy } from "@/lib/emails/system-name-in-copy";
+import { EMAIL_DESIGN_PREVIEW_ISO } from "@/lib/emails/email-design-preview-dates";
 import {
   buildPreviewRenderContext,
   overduePreviewContext,
+  trialEndingPreviewContext,
+  winBackPreviewContext,
 } from "@/lib/emails/preview-context";
+import type { DisplayPreferences } from "@/lib/user-display-preferences";
 import { renderEmailHtml } from "@/lib/emails/render-email-html";
 import { buildSupabasePasteBundle } from "@/lib/emails/supabase-export";
 import {
@@ -44,6 +48,8 @@ const TEMPLATE_LABEL_KEYS: Record<
   | "admin.email_design.template.payment_due_today"
   | "admin.email_design.template.weekly_summary"
   | "admin.email_design.template.trial_ending"
+  | "admin.email_design.template.win_back_7d"
+  | "admin.email_design.template.win_back_30d"
 > = {
   confirm_signup: "admin.email_design.template.confirm_signup",
   reset_password: "admin.email_design.template.reset_password",
@@ -54,6 +60,8 @@ const TEMPLATE_LABEL_KEYS: Record<
   payment_due_today: "admin.email_design.template.payment_due_today",
   weekly_summary: "admin.email_design.template.weekly_summary",
   trial_ending: "admin.email_design.template.trial_ending",
+  win_back_7d: "admin.email_design.template.win_back_7d",
+  win_back_30d: "admin.email_design.template.win_back_30d",
 };
 
 export type EmailDesignLocaleOption = {
@@ -68,6 +76,7 @@ type AdminEmailDesignPanelProps = {
   loadError: string | null;
   resendConfigured: boolean;
   localeOptions: EmailDesignLocaleOption[];
+  systemDisplayPreferences: unknown;
 };
 
 function copyToClipboard(text: string): Promise<boolean> {
@@ -84,7 +93,9 @@ export function AdminEmailDesignPanel({
   loadError,
   resendConfigured,
   localeOptions,
+  systemDisplayPreferences,
 }: AdminEmailDesignPanelProps) {
+  const systemPrefs = systemDisplayPreferences as Partial<DisplayPreferences> | null;
   const { t } = useSubtrackIntl();
   const locales = useMemo(() => {
     if (localeOptions.length > 0) {
@@ -133,14 +144,24 @@ export function AdminEmailDesignPanel({
   );
 
   const previewCopy = useMemo(() => {
-    const overdue = isPaymentTemplate ? overduePreviewContext(locale) : undefined;
+    const overdue = isPaymentTemplate
+      ? overduePreviewContext(locale, systemPrefs)
+      : undefined;
     const weekRange =
       templateId === "weekly_summary"
-        ? formatWeekRangeLabel("2026-05-19", "2026-05-25", locale)
+        ? formatWeekRangeLabel(
+            EMAIL_DESIGN_PREVIEW_ISO.weeklyStart,
+            EMAIL_DESIGN_PREVIEW_ISO.weeklyEnd,
+            locale,
+          )
         : undefined;
     const trialCtx =
       templateId === "trial_ending"
-        ? { trialDaysRemaining: 3, trialEndDateFormatted: "2026-05-26" }
+        ? trialEndingPreviewContext(locale, systemPrefs)
+        : undefined;
+    const winBackCtx =
+      templateId === "win_back_7d" || templateId === "win_back_30d"
+        ? winBackPreviewContext(templateId, locale, systemPrefs)
         : undefined;
     return resolveEmailCopy(
       templateId,
@@ -150,11 +171,14 @@ export function AdminEmailDesignPanel({
       overdue,
       weekRange ? { weekRangeLabel: weekRange } : undefined,
       trialCtx,
+      winBackCtx,
     );
-  }, [storeForPreview, templateId, locale, initialSystemName, isPaymentTemplate]);
+  }, [storeForPreview, templateId, locale, initialSystemName, isPaymentTemplate, systemPrefs]);
 
   const previewHtml = useMemo(() => {
-    const overdue = isPaymentTemplate ? overduePreviewContext(locale) : undefined;
+    const overdue = isPaymentTemplate
+      ? overduePreviewContext(locale, systemPrefs)
+      : undefined;
     const ctx = buildPreviewRenderContext(templateId, initialSystemName, siteUrl);
     if (overdue) {
       ctx.paymentName = overdue.paymentName;
@@ -163,7 +187,7 @@ export function AdminEmailDesignPanel({
       ctx.overdueDays = overdue.overdueDays;
     }
     if (templateId === "weekly_summary") {
-      const today = "2026-05-19";
+      const today = EMAIL_DESIGN_PREVIEW_ISO.weeklyToday;
       const { startIso, endIso } = getWeekBoundsIso(today, "monday");
       const payload = buildWeeklySummaryPayload(
         [
@@ -202,11 +226,17 @@ export function AdminEmailDesignPanel({
       void endIso;
     }
     if (templateId === "trial_ending") {
-      ctx.trialDaysRemaining = 3;
-      ctx.trialEndDateFormatted = "2026-05-26";
+      const trial = trialEndingPreviewContext(locale, systemPrefs);
+      ctx.trialDaysRemaining = trial.trialDaysRemaining;
+      ctx.trialEndDateFormatted = trial.trialEndDateFormatted;
+    }
+    if (templateId === "win_back_7d" || templateId === "win_back_30d") {
+      const wb = winBackPreviewContext(templateId, locale, systemPrefs);
+      ctx.inactiveDays = wb.inactiveDays;
+      ctx.lastSeenFormatted = wb.lastSeenFormatted;
     }
     return renderEmailHtml(previewCopy, ctx);
-  }, [previewCopy, templateId, initialSystemName, siteUrl, locale, isPaymentTemplate]);
+  }, [previewCopy, templateId, initialSystemName, siteUrl, locale, isPaymentTemplate, systemPrefs]);
 
   const resolvedForExport = previewCopy;
 
@@ -406,6 +436,10 @@ export function AdminEmailDesignPanel({
             ) : templateId === "trial_ending" ? (
               <p className="form-hint">
                 {t("admin.email_design.placeholders_trial")}
+              </p>
+            ) : templateId === "win_back_7d" || templateId === "win_back_30d" ? (
+              <p className="form-hint">
+                {t("admin.email_design.placeholders_win_back")}
               </p>
             ) : (
               <p className="form-hint">

@@ -12,6 +12,8 @@ const SUPABASE_CTA_URL: Record<EmailTemplateId, string> = {
   payment_due_today: "{{ .SiteURL }}/dashboard",
   weekly_summary: "{{ .SiteURL }}/dashboard",
   trial_ending: "{{ .SiteURL }}/subscribe",
+  win_back_7d: "{{ .SiteURL }}/dashboard",
+  win_back_30d: "{{ .SiteURL }}/dashboard",
 };
 
 /** Supabase Auth šabloniem: teksts ar Go mainīgajiem (bez pilna HTML wrapper, ja vēlies vienkāršāku) */

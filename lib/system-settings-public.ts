@@ -12,6 +12,11 @@ import {
 } from "@/lib/pwa/public-pwa-settings";
 import { parsePaidPlanPriceField } from "@/lib/paid-plan-annual";
 import {
+  normalizePaidPlanLifetimeRow,
+  resolvePaidPlanLifetimePublic,
+  type PaidPlanLifetimePublic,
+} from "@/lib/paid-plan-lifetime";
+import {
   DISPLAY_PREFERENCES_DEFAULTS,
   mergeDisplayPreferences,
   sanitizeDisplayPreferencesPartial,
@@ -29,7 +34,11 @@ export type SubtrackPublicPaidPlan = {
   annualBillingEnabled: boolean;
   /** Gada cena EUR no DB; publiski rāda, ja derīga un slēdzis ieslēgts. */
   annualPriceEur: number | null;
+  /** Lifetime Pro opcija (laika / pirkumu limits). */
+  lifetime: PaidPlanLifetimePublic;
 };
+
+export type { PaidPlanLifetimePublic } from "@/lib/paid-plan-lifetime";
 
 export type { PublicBrandLogoAssets } from "@/lib/brand/logo-assets";
 
@@ -49,6 +58,16 @@ const PAID_PLAN_DEFAULTS: SubtrackPublicPaidPlan = {
   freeSubscriptionLimit: 5,
   annualBillingEnabled: false,
   annualPriceEur: null,
+  lifetime: {
+    enabled: false,
+    priceEur: null,
+    endsAt: null,
+    purchaseLimit: null,
+    purchaseCount: 0,
+    active: false,
+    remainingMs: null,
+    purchasesRemaining: null,
+  },
 };
 
 export function coercePgBool(v: unknown): boolean {
@@ -75,6 +94,8 @@ export function normalizePaidPlanRow(data: unknown): SubtrackPublicPaidPlan {
         : NaN;
   const annualBillingEnabled = enabled && coercePgBool(r.paid_plan_annual_enabled);
   const annualPriceEur = parsePaidPlanPriceField(r.paid_plan_annual_price_eur);
+  const lifetimeConfig = normalizePaidPlanLifetimeRow({ ...r, paid_plan_enabled: enabled });
+  const lifetime = resolvePaidPlanLifetimePublic(lifetimeConfig);
   return {
     enabled,
     priceEur: Number.isFinite(price) ? price : PAID_PLAN_DEFAULTS.priceEur,
@@ -83,6 +104,7 @@ export function normalizePaidPlanRow(data: unknown): SubtrackPublicPaidPlan {
       : PAID_PLAN_DEFAULTS.freeSubscriptionLimit,
     annualBillingEnabled,
     annualPriceEur,
+    lifetime,
   };
 }
 
@@ -103,7 +125,7 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
   const { data, error } = await supabase
     .from("system_settings")
     .select(
-      "system_name, logo_revision, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, pwa_enabled, pwa_install_banner_enabled, pwa_install_settings_enabled, pwa_cache_revision, pwa_theme_color, pwa_background_color, pwa_short_name",
+      "system_name, logo_revision, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, paid_plan_lifetime_enabled, paid_plan_lifetime_price_eur, paid_plan_lifetime_ends_at, paid_plan_lifetime_purchase_limit, paid_plan_lifetime_purchase_count, pwa_enabled, pwa_install_banner_enabled, pwa_install_settings_enabled, pwa_cache_revision, pwa_theme_color, pwa_background_color, pwa_short_name",
     )
     .eq("id", 1)
     .maybeSingle();
@@ -145,7 +167,7 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
  * Pēc `/admin/system` saglabāšanas: `revalidateTag("system-settings")`.
  */
 export async function getPublicSystemSettings(): Promise<PublicSystemSettings> {
-  return unstable_cache(fetchPublicSystemSettings, ["subtrack-system-settings-v7"], {
+  return unstable_cache(fetchPublicSystemSettings, ["subtrack-system-settings-v8"], {
     revalidate: 3600,
     tags: ["system-settings"],
   })();

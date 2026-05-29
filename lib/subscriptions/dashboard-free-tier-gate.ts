@@ -17,6 +17,16 @@ const PAID_PLAN_FALLBACK: SubtrackPublicPaidPlan = {
   freeSubscriptionLimit: 5,
   annualBillingEnabled: false,
   annualPriceEur: null,
+  lifetime: {
+    enabled: false,
+    priceEur: null,
+    endsAt: null,
+    purchaseLimit: null,
+    purchaseCount: 0,
+    active: false,
+    remainingMs: null,
+    purchasesRemaining: null,
+  },
 };
 
 /**
@@ -29,7 +39,7 @@ export async function fetchSystemPaidPlanLiveForDashboard(): Promise<SubtrackPub
     const { data, error } = await supabase
       .from("system_settings")
       .select(
-        "paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, pro_trial_enabled, pro_trial_days",
+        "paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, paid_plan_lifetime_enabled, paid_plan_lifetime_price_eur, paid_plan_lifetime_ends_at, paid_plan_lifetime_purchase_limit, paid_plan_lifetime_purchase_count, pro_trial_enabled, pro_trial_days",
       )
       .eq("id", 1)
       .maybeSingle();

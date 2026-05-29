@@ -15,6 +15,10 @@ import {
   paidPlanAnnualDiscountPercent,
   paidPlanAnnualEquivMonthlyFromAnnual,
 } from "@/lib/paid-plan-annual";
+import {
+  formatLifetimeEndsAtForDatetimeLocal,
+  type PaidPlanLifetimeConfig,
+} from "@/lib/paid-plan-lifetime";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 export type AdminSystemPanelProps = {
@@ -34,6 +38,7 @@ export type AdminSystemPanelProps = {
     enabled: boolean;
     days: number;
   };
+  initialPaidPlanLifetime: PaidPlanLifetimeConfig;
 };
 
 const AUTOSAVE_DEBOUNCE_MS = 450;
@@ -79,6 +84,7 @@ function buildFormData(
     annualPriceEur: number | null;
   },
   trial: { enabled: boolean; days: number },
+  lifetime: PaidPlanLifetimeConfig,
 ): FormData | null {
   const name = systemName.trim();
   if (!name) {
@@ -106,6 +112,21 @@ function buildFormData(
   fd.set("paid_plan_free_subscription_limit", String(paid.freeSubscriptionLimit));
   fd.set("pro_trial_enabled", paid.enabled && trial.enabled ? "1" : "0");
   fd.set("pro_trial_days", String(trial.days));
+  fd.set(
+    "paid_plan_lifetime_enabled",
+    paid.enabled && lifetime.enabled ? "1" : "0",
+  );
+  if (paid.enabled && lifetime.enabled) {
+    if (lifetime.priceEur != null) {
+      fd.set("paid_plan_lifetime_price_eur", lifetime.priceEur.toFixed(2));
+    }
+    if (lifetime.endsAt) {
+      fd.set("paid_plan_lifetime_ends_at", lifetime.endsAt);
+    }
+    if (lifetime.purchaseLimit != null) {
+      fd.set("paid_plan_lifetime_purchase_limit", String(lifetime.purchaseLimit));
+    }
+  }
   return fd;
 }
 
@@ -119,7 +140,11 @@ function fdSignature(fd: FormData): string {
     `\0${String(fd.get("paid_plan_annual_price_eur"))}` +
     `\0${String(fd.get("paid_plan_price_eur"))}` +
     `\0${String(fd.get("paid_plan_free_subscription_limit"))}` +
-    `\0${String(fd.get("pro_trial_enabled"))}\0${String(fd.get("pro_trial_days"))}`
+    `\0${String(fd.get("pro_trial_enabled"))}\0${String(fd.get("pro_trial_days"))}` +
+    `\0${String(fd.get("paid_plan_lifetime_enabled"))}` +
+    `\0${String(fd.get("paid_plan_lifetime_price_eur"))}` +
+    `\0${String(fd.get("paid_plan_lifetime_ends_at"))}` +
+    `\0${String(fd.get("paid_plan_lifetime_purchase_limit"))}`
   );
 }
 
@@ -131,6 +156,7 @@ export function AdminSystemPanel({
   initialDefaults,
   initialPaidPlan,
   initialProTrial,
+  initialPaidPlanLifetime,
 }: AdminSystemPanelProps) {
   const { t, locale } = useSubtrackIntl();
   const [systemName, setSystemName] = useState(initialSystemName);
@@ -157,6 +183,22 @@ export function AdminSystemPanel({
   );
   const [proTrialEnabled, setProTrialEnabled] = useState(initialProTrial.enabled);
   const [proTrialDays, setProTrialDays] = useState(String(initialProTrial.days));
+  const [paidPlanLifetimeEnabled, setPaidPlanLifetimeEnabled] = useState(
+    initialPaidPlanLifetime.enabled,
+  );
+  const [paidPlanLifetimePrice, setPaidPlanLifetimePrice] = useState(
+    initialPaidPlanLifetime.priceEur != null
+      ? initialPaidPlanLifetime.priceEur.toFixed(2)
+      : "",
+  );
+  const [paidPlanLifetimeEndsAt, setPaidPlanLifetimeEndsAt] = useState(
+    formatLifetimeEndsAtForDatetimeLocal(initialPaidPlanLifetime.endsAt),
+  );
+  const [paidPlanLifetimePurchaseLimit, setPaidPlanLifetimePurchaseLimit] = useState(
+    initialPaidPlanLifetime.purchaseLimit != null
+      ? String(initialPaidPlanLifetime.purchaseLimit)
+      : "",
+  );
   const [saveHud, setSaveHud] = useState<SaveHud>("idle");
 
   const hydratedRef = useRef(false);
@@ -173,6 +215,7 @@ export function AdminSystemPanel({
     prefs: initialDefaults,
     paid: initialPaidPlan,
     trial: initialProTrial,
+    lifetime: initialPaidPlanLifetime,
   });
   snapshotRef.current = {
     systemName,
@@ -196,6 +239,30 @@ export function AdminSystemPanel({
     trial: {
       enabled: paidPlanEnabled && proTrialEnabled,
       days: Number.parseInt(proTrialDays, 10) || initialProTrial.days,
+    },
+    lifetime: {
+      enabled: paidPlanEnabled && paidPlanLifetimeEnabled,
+      priceEur:
+        paidPlanEnabled && paidPlanLifetimeEnabled
+          ? (() => {
+              const raw = String(paidPlanLifetimePrice).replace(",", ".").trim();
+              if (!raw) return null;
+              const n = Number.parseFloat(raw);
+              return Number.isFinite(n) ? Math.round(n * 100) / 100 : null;
+            })()
+          : null,
+      endsAt:
+        paidPlanEnabled && paidPlanLifetimeEnabled && paidPlanLifetimeEndsAt.trim()
+          ? (() => {
+              const ms = Date.parse(paidPlanLifetimeEndsAt.trim());
+              return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+            })()
+          : null,
+      purchaseLimit:
+        paidPlanEnabled && paidPlanLifetimeEnabled && paidPlanLifetimePurchaseLimit.trim()
+          ? Number.parseInt(paidPlanLifetimePurchaseLimit, 10) || null
+          : null,
+      purchaseCount: initialPaidPlanLifetime.purchaseCount,
     },
   };
 
@@ -244,7 +311,7 @@ export function AdminSystemPanel({
       paid: pd,
       trial: tr,
     } = snapshotRef.current;
-    const fd = buildFormData(sn, sce, p, pd, tr);
+    const fd = buildFormData(sn, sce, p, pd, tr, snapshotRef.current.lifetime);
     if (!fd) return;
     const sig = fdSignature(fd);
     if (sig === persistedSigRef.current) return;
@@ -265,7 +332,7 @@ export function AdminSystemPanel({
       paid: pd,
       trial: tr,
     } = snapshotRef.current;
-    const fd = buildFormData(sn, sce, p, pd, tr);
+    const fd = buildFormData(sn, sce, p, pd, tr, snapshotRef.current.lifetime);
     if (!fd) {
       pushDomToast(t("admin.forms.err_system_name_required"), "error");
       return;
@@ -316,6 +383,7 @@ export function AdminSystemPanel({
         initialDefaults,
         initialPaidPlan,
         initialProTrial,
+        initialPaidPlanLifetime,
       );
       if (fd) persistedSigRef.current = fdSignature(fd);
     });
@@ -325,6 +393,7 @@ export function AdminSystemPanel({
     initialSystemName,
     initialPaidPlan,
     initialProTrial,
+    initialPaidPlanLifetime,
   ]);
 
   useEffect(() => {
@@ -430,6 +499,7 @@ export function AdminSystemPanel({
                 if (!next) {
                   setPaidPlanAnnualEnabled(false);
                   setProTrialEnabled(false);
+                  setPaidPlanLifetimeEnabled(false);
                 }
                 scheduleAutosave();
               }}
@@ -541,6 +611,100 @@ export function AdminSystemPanel({
                       {t("admin.forms.paid_plan_annual_hint_discount").replace(
                         /\{discount\}/g,
                         formatPaidPlanDiscountPercent(annualPricePreview.discountPercent),
+                      )}
+                    </p>
+                  ) : null}
+                </>
+              ) : null}
+              <div
+                className="form-group"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  flexWrap: "wrap",
+                  marginTop: 16,
+                }}
+              >
+                <PaidPlanSwitch
+                  checked={paidPlanLifetimeEnabled}
+                  disabled={loadError !== null}
+                  onCheckedChange={(next) => {
+                    setPaidPlanLifetimeEnabled(next);
+                    scheduleAutosave();
+                  }}
+                  ariaLabelledBy="sys_paid_lifetime_toggle_label"
+                />
+                <span id="sys_paid_lifetime_toggle_label">
+                  {t("admin.forms.paid_plan_lifetime_enable")}
+                </span>
+              </div>
+              {paidPlanLifetimeEnabled ? (
+                <>
+                  <div className="form-row" style={{ marginTop: 12 }}>
+                    <div className="form-group">
+                      <label htmlFor="sys_paid_lifetime_price">
+                        {t("admin.forms.label_paid_plan_lifetime_price")}
+                      </label>
+                      <input
+                        id="sys_paid_lifetime_price"
+                        type="number"
+                        name="paid_plan_lifetime_price_eur"
+                        min={0.01}
+                        max={9999.99}
+                        step={0.01}
+                        value={paidPlanLifetimePrice}
+                        disabled={loadError !== null}
+                        onChange={(e) => {
+                          setPaidPlanLifetimePrice(e.target.value);
+                          scheduleAutosave();
+                        }}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="sys_paid_lifetime_limit">
+                        {t("admin.forms.label_paid_plan_lifetime_purchase_limit")}
+                      </label>
+                      <input
+                        id="sys_paid_lifetime_limit"
+                        inputMode="numeric"
+                        name="paid_plan_lifetime_purchase_limit"
+                        placeholder={t("admin.forms.placeholder_paid_plan_lifetime_purchase_limit")}
+                        value={paidPlanLifetimePurchaseLimit}
+                        disabled={loadError !== null}
+                        onChange={(e) => {
+                          setPaidPlanLifetimePurchaseLimit(
+                            e.target.value.replace(/\D/g, "").slice(0, 7),
+                          );
+                          scheduleAutosave();
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group" style={{ marginTop: 12, maxWidth: 320 }}>
+                    <label htmlFor="sys_paid_lifetime_ends">
+                      {t("admin.forms.label_paid_plan_lifetime_ends_at")}
+                    </label>
+                    <input
+                      id="sys_paid_lifetime_ends"
+                      type="datetime-local"
+                      name="paid_plan_lifetime_ends_at"
+                      value={paidPlanLifetimeEndsAt}
+                      disabled={loadError !== null}
+                      onChange={(e) => {
+                        setPaidPlanLifetimeEndsAt(e.target.value);
+                        scheduleAutosave();
+                      }}
+                    />
+                  </div>
+                  <p className="form-hint" style={{ marginTop: 8 }}>
+                    {t("admin.forms.paid_plan_lifetime_hint")}
+                  </p>
+                  {initialPaidPlanLifetime.purchaseCount > 0 ? (
+                    <p className="form-hint" style={{ marginTop: 4 }}>
+                      {t("admin.forms.paid_plan_lifetime_purchase_count").replace(
+                        /\{count\}/g,
+                        String(initialPaidPlanLifetime.purchaseCount),
                       )}
                     </p>
                   ) : null}

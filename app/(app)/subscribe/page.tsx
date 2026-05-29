@@ -5,6 +5,7 @@ import { navUserHasProEntitlement } from "@/lib/auth/pro-plan-access";
 import { getSessionUserDisplay } from "@/lib/auth/user-display";
 import { loadAuthContext } from "@/lib/auth/load-auth-context";
 import { fetchSystemPaidPlanLiveForDashboard } from "@/lib/subscriptions/dashboard-free-tier-gate";
+import { paidPlanShowsLifetime } from "@/lib/paid-plan-lifetime";
 import { resolveSessionUserBillingCurrency } from "@/lib/billing/resolve-billing-currency";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
@@ -37,6 +38,16 @@ export default async function SubscribePage() {
     ? await resolveSessionUserBillingCurrency(user.id)
     : "EUR";
 
+  const lifetime =
+    paidPlanShowsLifetime(paid.lifetime) && paid.lifetime.priceEur != null
+      ? {
+          priceEur: paid.lifetime.priceEur,
+          endsAt: paid.lifetime.endsAt,
+          remainingMs: paid.lifetime.remainingMs,
+          purchasesRemaining: paid.lifetime.purchasesRemaining,
+        }
+      : null;
+
   return (
     <SubscribeProView
       userDisplay={userDisplay}
@@ -45,6 +56,7 @@ export default async function SubscribePage() {
       annualPriceEur={
         paid.annualBillingEnabled ? paid.annualPriceEur : null
       }
+      lifetime={lifetime}
       billingCurrency={billingCurrency}
     />
   );

@@ -5,6 +5,7 @@ import { requireAdminUser } from "@/lib/auth/require-admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 import { parsePaidPlanPriceField } from "@/lib/paid-plan-annual";
+import { parseLifetimeEndsAtFromForm } from "@/lib/paid-plan-lifetime";
 import {
   sanitizeDisplayPreferencesPartial,
   type DisplayPreferences,
@@ -152,6 +153,55 @@ export async function saveSystemSettingsAction(
     }
   }
 
+  const paid_plan_lifetime_enabled =
+    paid_plan_enabled && readFormBool(formData, "paid_plan_lifetime_enabled");
+  let paid_plan_lifetime_price_eur: number | null = null;
+  let paid_plan_lifetime_ends_at: string | null = null;
+  let paid_plan_lifetime_purchase_limit: number | null = null;
+  if (paid_plan_lifetime_enabled) {
+    const lifetimePriceStr = readFormString(formData, "paid_plan_lifetime_price_eur").replace(
+      ",",
+      ".",
+    );
+    const lifetimePrice = parsePaidPlanPriceField(lifetimePriceStr);
+    if (lifetimePrice == null) {
+      return {
+        ok: false,
+        message: await getUiPhraseForRequest("admin.forms.err_paid_plan_lifetime_price"),
+      };
+    }
+    paid_plan_lifetime_price_eur = lifetimePrice;
+
+    const endsRaw = readFormString(formData, "paid_plan_lifetime_ends_at");
+    if (endsRaw) {
+      paid_plan_lifetime_ends_at = parseLifetimeEndsAtFromForm(endsRaw);
+      if (!paid_plan_lifetime_ends_at) {
+        return {
+          ok: false,
+          message: await getUiPhraseForRequest("admin.forms.err_paid_plan_lifetime_ends_at"),
+        };
+      }
+    }
+
+    const limitRawLifetime = readFormString(formData, "paid_plan_lifetime_purchase_limit");
+    if (limitRawLifetime) {
+      if (!/^\d+$/.test(limitRawLifetime)) {
+        return {
+          ok: false,
+          message: await getUiPhraseForRequest("admin.forms.err_paid_plan_lifetime_purchase_limit"),
+        };
+      }
+      const parsedLimit = Number.parseInt(limitRawLifetime, 10);
+      if (parsedLimit < 1 || parsedLimit > 1000000) {
+        return {
+          ok: false,
+          message: await getUiPhraseForRequest("admin.forms.err_paid_plan_lifetime_purchase_limit"),
+        };
+      }
+      paid_plan_lifetime_purchase_limit = parsedLimit;
+    }
+  }
+
   const supabase = await createServerSupabaseClient();
 
   const pro_trial_days = pro_trial_enabled
@@ -170,6 +220,10 @@ export async function saveSystemSettingsAction(
       paid_plan_enabled,
       paid_plan_annual_enabled,
       paid_plan_annual_price_eur,
+      paid_plan_lifetime_enabled,
+      paid_plan_lifetime_price_eur,
+      paid_plan_lifetime_ends_at,
+      paid_plan_lifetime_purchase_limit,
       paid_plan_price_eur: Math.round(price * 100) / 100,
       paid_plan_free_subscription_limit: limit,
       pro_trial_enabled,
@@ -179,7 +233,10 @@ export async function saveSystemSettingsAction(
 
   if (error) {
     let msg = error.message;
-    if (/paid_plan_annual_price/i.test(msg) && /column/i.test(msg)) {
+    if (/paid_plan_lifetime/i.test(msg) && /column/i.test(msg)) {
+      msg =
+        "Migrācija `database/supabase/156_paid_plan_lifetime.sql` vēl nav palaista (trēkst kolonnas).";
+    } else if (/paid_plan_annual_price/i.test(msg) && /column/i.test(msg)) {
       msg =
         "Migrācija `database/supabase/103_paid_plan_annual_price.sql` vēl nav palaista (trēkst kolonnas).";
     } else if (/paid_plan_annual/i.test(msg) && /column/i.test(msg)) {

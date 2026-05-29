@@ -1,8 +1,12 @@
 import { loadEmailTemplatesStoreForSend } from "@/lib/emails/load-email-templates-store";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
+import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import {
   DISPLAY_PREFERENCES_DEFAULTS,
-  mergeDisplayPreferences,
+  formatDateForDisplayPreferences,
+  mergeDisplayPreferencesForUser,
+  resolveSystemDisplayPreferences,
+  type DisplayPreferences,
 } from "@/lib/user-display-preferences";
 import {
   normalizeEmailLocale,
@@ -21,6 +25,8 @@ export type EmailCronContext = {
   systemName: string;
   currency: string;
   templatesStore: EmailTemplatesStore;
+  /** Sistēmas noklusējums (`/admin/system`) virs `DISPLAY_PREFERENCES_DEFAULTS`. */
+  systemDisplayPreferences: DisplayPreferences;
 };
 
 export async function loadEmailCronContext(): Promise<
@@ -54,15 +60,10 @@ export async function loadEmailCronContext(): Promise<
     };
   }
 
-  const prefs =
-    settings?.default_display_preferences &&
-    typeof settings.default_display_preferences === "object"
-      ? (settings.default_display_preferences as Record<string, unknown>)
-      : {};
-  const currency =
-    typeof prefs.currency === "string" && prefs.currency.trim()
-      ? prefs.currency.trim()
-      : DISPLAY_PREFERENCES_DEFAULTS.currency;
+  const systemDisplayPreferences = resolveSystemDisplayPreferences(
+    settings?.default_display_preferences,
+  );
+  const currency = systemDisplayPreferences.currency;
 
   return {
     supabase,
@@ -70,24 +71,40 @@ export async function loadEmailCronContext(): Promise<
     systemName: tplBundle.systemName,
     currency,
     templatesStore: tplBundle.store,
+    systemDisplayPreferences,
   };
 }
 
-export function parseUserLocaleAndTz(displayPreferences: unknown): {
+export function mergeUserDisplayPreferencesForEmail(
+  userRaw: unknown,
+  systemDisplayPreferences: DisplayPreferences,
+): DisplayPreferences {
+  return mergeDisplayPreferencesForUser(userRaw, systemDisplayPreferences);
+}
+
+/** Kalendāra datums e-pastā: lietotāja `date_order` / `date_sep` / TZ, citādi sistēmas defaults. */
+export function formatCronEmailDate(
+  date: Date,
+  userRaw: unknown,
+  systemDisplayPreferences: DisplayPreferences,
+): string {
+  const prefs = mergeUserDisplayPreferencesForEmail(userRaw, systemDisplayPreferences);
+  const intlLocale = uiLocaleCodeToBcp47ForIntl(prefs.interface_language_code);
+  return formatDateForDisplayPreferences(date, prefs, intlLocale);
+}
+
+export function parseUserLocaleAndTz(
+  displayPreferences: unknown,
+  systemDisplayPreferences: DisplayPreferences = DISPLAY_PREFERENCES_DEFAULTS,
+): {
   locale: EmailPreviewLocale;
   timezone: string;
   weekStart: "monday" | "sunday";
 } {
-  const merged = mergeDisplayPreferences({}, DISPLAY_PREFERENCES_DEFAULTS);
-  if (displayPreferences && typeof displayPreferences === "object") {
-    const o = displayPreferences as Record<string, unknown>;
-    const code = String(o.interface_language_code ?? "").trim();
-    if (code) merged.interface_language_code = code;
-    const tz = String(o.timezone ?? "").trim();
-    if (tz) merged.timezone = tz;
-    const ws = String(o.week_start ?? "").trim();
-    if (ws === "monday" || ws === "sunday") merged.week_start = ws;
-  }
+  const merged = mergeUserDisplayPreferencesForEmail(
+    displayPreferences,
+    systemDisplayPreferences,
+  );
   return {
     locale: normalizeEmailLocale(merged.interface_language_code),
     timezone: merged.timezone,
@@ -97,7 +114,7 @@ export function parseUserLocaleAndTz(displayPreferences: unknown): {
 
 export function userWantsEmail(
   emailPrefsRaw: unknown,
-  kind: "dueToday" | "weekly" | "trialEnd",
+  kind: "dueToday" | "weekly" | "trialEnd" | "winBack",
 ): boolean {
   return readEmailNotificationPreferences(emailPrefsRaw)[kind];
 }

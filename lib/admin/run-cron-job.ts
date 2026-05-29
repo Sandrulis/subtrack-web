@@ -14,7 +14,7 @@ export type RunCronJobResult = {
 
 export async function runCronJobFromServer(
   job: CronJobId,
-  options?: { forceSchedule?: boolean },
+  options?: { forceSchedule?: boolean; testUserId?: string },
 ): Promise<RunCronJobResult> {
   const secret = process.env.CRON_SECRET?.trim();
   if (!secret) {
@@ -28,9 +28,11 @@ export async function runCronJobFromServer(
 
   const force =
     options?.forceSchedule === true && cronJobSupportsForceSchedule(job);
+  const testUserId = options?.testUserId?.trim();
   const path = cronJobApiPath(job);
   const url = new URL(path, `${getPublicSiteUrl()}/`);
   if (force) url.searchParams.set("force", "1");
+  if (testUserId) url.searchParams.set("testUserId", testUserId);
 
   let res: Response;
   try {

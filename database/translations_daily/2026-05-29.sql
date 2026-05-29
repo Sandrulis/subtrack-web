@@ -499,8 +499,293 @@ VALUES
   ('admin.blog.field.url_preview', 'ru', 'Адрес:'),
   ('admin.blog.field.slug_hint', 'lv', 'URL tiks izveidots no virsraksta (/blog/…, atstarpes → "-").'),
   ('admin.blog.field.slug_hint', 'en', 'The URL is generated from the title (/blog/…, spaces → "-").'),
-  ('admin.blog.field.slug_hint', 'ru', 'URL создаётся из заголовка (/blog/…, пробелы → "-").')
+  ('admin.blog.field.slug_hint', 'ru', 'URL создаётся из заголовка (/blog/…, пробелы → "-").'),
+  ('admin.email_design.template.win_back_7d', 'lv', 'Win-back (7 dienas)'),
+  ('admin.email_design.template.win_back_7d', 'en', 'Win-back (7 days)'),
+  ('admin.email_design.template.win_back_7d', 'fr', 'Relance (7 jours)'),
+  ('admin.email_design.template.win_back_7d', 'de', 'Win-back (7 Tage)'),
+  ('admin.email_design.template.win_back_7d', 'es', 'Reactivación (7 días)'),
+  ('admin.email_design.template.win_back_7d', 'pt', 'Reativação (7 dias)'),
+  ('admin.email_design.template.win_back_7d', 'ru', 'Возврат (7 дней)'),
+  ('admin.email_design.template.win_back_30d', 'lv', 'Win-back (30 dienas)'),
+  ('admin.email_design.template.win_back_30d', 'en', 'Win-back (30 days)'),
+  ('admin.email_design.template.win_back_30d', 'fr', 'Relance (30 jours)'),
+  ('admin.email_design.template.win_back_30d', 'de', 'Win-back (30 Tage)'),
+  ('admin.email_design.template.win_back_30d', 'es', 'Reactivación (30 días)'),
+  ('admin.email_design.template.win_back_30d', 'pt', 'Reativação (30 dias)'),
+  ('admin.email_design.template.win_back_30d', 'ru', 'Возврат (30 дней)'),
+  (
+    'admin.email_design.placeholders_win_back',
+    'lv',
+    'Vietturi: {INACTIVE_DAYS}, {LAST_SEEN_DATE}, {SYSTEM_NAME}.'
+  ),
+  (
+    'admin.email_design.placeholders_win_back',
+    'en',
+    'Placeholders: {INACTIVE_DAYS}, {LAST_SEEN_DATE}, {SYSTEM_NAME}.'
+  ),
+  (
+    'admin.email_design.placeholders_win_back',
+    'fr',
+    'Variables : {INACTIVE_DAYS}, {LAST_SEEN_DATE}, {SYSTEM_NAME}.'
+  ),
+  (
+    'admin.email_design.placeholders_win_back',
+    'de',
+    'Platzhalter: {INACTIVE_DAYS}, {LAST_SEEN_DATE}, {SYSTEM_NAME}.'
+  ),
+  (
+    'admin.email_design.placeholders_win_back',
+    'es',
+    'Marcadores: {INACTIVE_DAYS}, {LAST_SEEN_DATE}, {SYSTEM_NAME}.'
+  ),
+  (
+    'admin.email_design.placeholders_win_back',
+    'pt',
+    'Marcadores: {INACTIVE_DAYS}, {LAST_SEEN_DATE}, {SYSTEM_NAME}.'
+  ),
+  (
+    'admin.email_design.placeholders_win_back',
+    'ru',
+    'Плейсхолдеры: {INACTIVE_DAYS}, {LAST_SEEN_DATE}, {SYSTEM_NAME}.'
+  ),
+  ('admin.cron_jobs.job_win_back_7d', 'lv', 'Win-back (7 dienas)'),
+  ('admin.cron_jobs.job_win_back_7d', 'en', 'Win-back (7 days)'),
+  ('admin.cron_jobs.job_win_back_7d', 'fr', 'Relance (7 jours)'),
+  ('admin.cron_jobs.job_win_back_7d', 'de', 'Win-back (7 Tage)'),
+  ('admin.cron_jobs.job_win_back_7d', 'es', 'Reactivación (7 días)'),
+  ('admin.cron_jobs.job_win_back_7d', 'pt', 'Reativação (7 dias)'),
+  ('admin.cron_jobs.job_win_back_7d', 'ru', 'Возврат (7 дней)'),
+  (
+    'admin.cron_jobs.job_win_back_7d_desc',
+    'lv',
+    'E-pasts, ja lietotājs nav bijis aktīvs tieši 7 kalendāra dienas; plkst. 9:00 TZ; force apiet laiku.'
+  ),
+  (
+    'admin.cron_jobs.job_win_back_7d_desc',
+    'en',
+    'Email when inactive exactly 7 calendar days; 09:00 user TZ; force bypasses time window.'
+  ),
+  (
+    'admin.cron_jobs.job_win_back_7d_desc',
+    'fr',
+    'E-mail si inactif exactement 7 jours ; 9h00 fuseau ; force ignore la fenêtre.'
+  ),
+  (
+    'admin.cron_jobs.job_win_back_7d_desc',
+    'de',
+    'E-Mail bei genau 7 Tagen Inaktivität; 9:00 Nutzer-TZ; Force umgeht Zeitfenster.'
+  ),
+  (
+    'admin.cron_jobs.job_win_back_7d_desc',
+    'es',
+    'Correo si inactivo exactamente 7 días; 9:00 zona; forzar omite la ventana.'
+  ),
+  (
+    'admin.cron_jobs.job_win_back_7d_desc',
+    'pt',
+    'E-mail se inativo exatamente 7 dias; 9:00 fuso; forçar ignora a janela.'
+  ),
+  (
+    'admin.cron_jobs.job_win_back_7d_desc',
+    'ru',
+    'Письмо при ровно 7 днях неактивности; 9:00 пояс; force обходит окно.'
+  ),
+  ('admin.cron_jobs.job_win_back_30d', 'lv', 'Win-back (30 dienas)'),
+  ('admin.cron_jobs.job_win_back_30d', 'en', 'Win-back (30 days)'),
+  ('admin.cron_jobs.job_win_back_30d', 'fr', 'Relance (30 jours)'),
+  ('admin.cron_jobs.job_win_back_30d', 'de', 'Win-back (30 Tage)'),
+  ('admin.cron_jobs.job_win_back_30d', 'es', 'Reactivación (30 días)'),
+  ('admin.cron_jobs.job_win_back_30d', 'pt', 'Reativação (30 dias)'),
+  ('admin.cron_jobs.job_win_back_30d', 'ru', 'Возврат (30 дней)'),
+  (
+    'admin.cron_jobs.job_win_back_30d_desc',
+    'lv',
+    'E-pasts, ja lietotājs nav bijis aktīvs tieši 30 kalendāra dienas; plkst. 9:00 TZ; force apiet laiku.'
+  ),
+  (
+    'admin.cron_jobs.job_win_back_30d_desc',
+    'en',
+    'Email when inactive exactly 30 calendar days; 09:00 user TZ; force bypasses time window.'
+  ),
+  (
+    'admin.cron_jobs.job_win_back_30d_desc',
+    'fr',
+    'E-mail si inactif exactement 30 jours ; 9h00 fuseau ; force ignore la fenêtre.'
+  ),
+  (
+    'admin.cron_jobs.job_win_back_30d_desc',
+    'de',
+    'E-Mail bei genau 30 Tagen Inaktivität; 9:00 Nutzer-TZ; Force umgeht Zeitfenster.'
+  ),
+  (
+    'admin.cron_jobs.job_win_back_30d_desc',
+    'es',
+    'Correo si inactivo exactamente 30 días; 9:00 zona; forzar omite la ventana.'
+  ),
+  (
+    'admin.cron_jobs.job_win_back_30d_desc',
+    'pt',
+    'E-mail se inativo exatamente 30 dias; 9:00 fuso; forçar ignora a janela.'
+  ),
+  (
+    'admin.cron_jobs.job_win_back_30d_desc',
+    'ru',
+    'Письмо при ровно 30 днях неактивности; 9:00 пояс; force обходит окно.'
+  ),
+  ('email.notifications.toggle_win_back', 'lv', 'Atgriešanās e-pasti'),
+  ('email.notifications.toggle_win_back', 'en', 'Win-back emails'),
+  ('email.notifications.toggle_win_back', 'fr', 'E-mails de relance'),
+  ('email.notifications.toggle_win_back', 'de', 'Win-back-E-Mails'),
+  ('email.notifications.toggle_win_back', 'es', 'Correos de reactivación'),
+  ('email.notifications.toggle_win_back', 'pt', 'E-mails de reativação'),
+  ('email.notifications.toggle_win_back', 'ru', 'Письма возврата'),
+  (
+    'email.notifications.hint_win_back',
+    'lv',
+    'Pēc 7 un 30 dienām bez aktivitātes (pēdējā vizīte), plkst. 9:00 tavā laika joslā.'
+  ),
+  (
+    'email.notifications.hint_win_back',
+    'en',
+    'After 7 and 30 days without activity (last visit), at 9:00 in your timezone.'
+  ),
+  (
+    'email.notifications.hint_win_back',
+    'fr',
+    'Après 7 et 30 jours sans activité (dernière visite), à 9h00 votre fuseau.'
+  ),
+  (
+    'email.notifications.hint_win_back',
+    'de',
+    'Nach 7 und 30 Tagen ohne Aktivität (letzter Besuch), 9:00 Ihre Zeitzone.'
+  ),
+  (
+    'email.notifications.hint_win_back',
+    'es',
+    'Tras 7 y 30 días sin actividad (última visita), a las 9:00 tu zona.'
+  ),
+  (
+    'email.notifications.hint_win_back',
+    'pt',
+    'Após 7 e 30 dias sem atividade (última visita), às 9:00 seu fuso.'
+  ),
+  (
+    'email.notifications.hint_win_back',
+    'ru',
+    'Через 7 и 30 дней без активности (последний визит), в 9:00 ваш пояс.'
+  )
 ON CONFLICT (translation_key, locale)
 DO UPDATE SET
   value = excluded.value,
   updated_at = now();
+
+-- Lifetime Pro (admin + landing #pricing)
+INSERT INTO public.site_translations (translation_key, locale, value)
+VALUES
+  ('admin.forms.paid_plan_lifetime_enable', 'lv', 'Lifetime Pro opcija'),
+  ('admin.forms.paid_plan_lifetime_enable', 'en', 'Lifetime Pro option'),
+  ('admin.forms.paid_plan_lifetime_enable', 'ru', 'Lifetime Pro'),
+  ('admin.forms.label_paid_plan_lifetime_price', 'lv', 'Lifetime cena (EUR)'),
+  ('admin.forms.label_paid_plan_lifetime_price', 'en', 'Lifetime price (EUR)'),
+  ('admin.forms.label_paid_plan_lifetime_price', 'ru', 'Lifetime цена (EUR)'),
+  ('admin.forms.label_paid_plan_lifetime_ends_at', 'lv', 'Beigu datums un laiks'),
+  ('admin.forms.label_paid_plan_lifetime_ends_at', 'en', 'End date and time'),
+  ('admin.forms.label_paid_plan_lifetime_ends_at', 'ru', 'Дата и время окончания'),
+  ('admin.forms.label_paid_plan_lifetime_purchase_limit', 'lv', 'Iegādes limits'),
+  ('admin.forms.label_paid_plan_lifetime_purchase_limit', 'en', 'Purchase limit'),
+  ('admin.forms.label_paid_plan_lifetime_purchase_limit', 'ru', 'Лимит покупок'),
+  ('admin.forms.placeholder_paid_plan_lifetime_purchase_limit', 'lv', 'Nav limita'),
+  ('admin.forms.placeholder_paid_plan_lifetime_purchase_limit', 'en', 'No limit'),
+  ('admin.forms.placeholder_paid_plan_lifetime_purchase_limit', 'ru', 'Без лимита'),
+  ('admin.forms.paid_plan_lifetime_hint', 'lv', 'Piedāvājums pazūd, kad beidzas laiks vai sasniegts iegādes limits. Vismaz vienu limitu ieteicams norādīt.'),
+  ('admin.forms.paid_plan_lifetime_hint', 'en', 'The offer ends when the time runs out or the purchase limit is reached. At least one limit is recommended.'),
+  ('admin.forms.paid_plan_lifetime_hint', 'ru', 'Предложение заканчивается по истечении времени или при достижении лимита покупок. Рекомендуется указать хотя бы один лимит.'),
+  ('admin.forms.paid_plan_lifetime_purchase_count', 'lv', 'Reģistrētas lifetime iegādes: {count}'),
+  ('admin.forms.paid_plan_lifetime_purchase_count', 'en', 'Lifetime purchases recorded: {count}'),
+  ('admin.forms.paid_plan_lifetime_purchase_count', 'ru', 'Зарегистрировано lifetime покупок: {count}'),
+  ('admin.forms.err_paid_plan_lifetime_price', 'lv', 'Norādi derīgu lifetime cenu (0,01–9999,99 EUR).'),
+  ('admin.forms.err_paid_plan_lifetime_price', 'en', 'Enter a valid lifetime price (0.01–9999.99 EUR).'),
+  ('admin.forms.err_paid_plan_lifetime_price', 'ru', 'Укажите lifetime цену от 0,01 до 9999,99 EUR.'),
+  ('admin.forms.err_paid_plan_lifetime_ends_at', 'lv', 'Norādi derīgu beigu datumu un laiku.'),
+  ('admin.forms.err_paid_plan_lifetime_ends_at', 'en', 'Enter a valid end date and time.'),
+  ('admin.forms.err_paid_plan_lifetime_ends_at', 'ru', 'Укажите корректные дату и время окончания.'),
+  ('admin.forms.err_paid_plan_lifetime_purchase_limit', 'lv', 'Iegādes limitam jābūt veselam skaitlim no 1 līdz 1 000 000.'),
+  ('admin.forms.err_paid_plan_lifetime_purchase_limit', 'en', 'Purchase limit must be a whole number from 1 to 1,000,000.'),
+  ('admin.forms.err_paid_plan_lifetime_purchase_limit', 'ru', 'Лимит покупок должен быть целым числом от 1 до 1 000 000.'),
+  ('landing.pricing.lifetime_label', 'lv', 'Lifetime'),
+  ('landing.pricing.lifetime_label', 'en', 'Lifetime'),
+  ('landing.pricing.lifetime_label', 'ru', 'Lifetime'),
+  ('landing.pricing.lifetime_badge', 'lv', 'Vienreizēji'),
+  ('landing.pricing.lifetime_badge', 'en', 'One-time'),
+  ('landing.pricing.lifetime_badge', 'ru', 'Разово'),
+  ('landing.pricing.lifetime_tagline', 'lv', 'Neierobežota Pro lietošana bez abonementa'),
+  ('landing.pricing.lifetime_tagline', 'en', 'Unlimited Pro with a one-time payment'),
+  ('landing.pricing.lifetime_tagline', 'ru', 'Безлимитный Pro за разовый платёж'),
+  ('landing.pricing.lifetime_countdown_label', 'lv', 'Atlikušais laiks'),
+  ('landing.pricing.lifetime_countdown_label', 'en', 'Time left'),
+  ('landing.pricing.lifetime_countdown_label', 'ru', 'Осталось времени'),
+  ('landing.pricing.lifetime_countdown_days', 'lv', 'd'),
+  ('landing.pricing.lifetime_countdown_days', 'en', 'd'),
+  ('landing.pricing.lifetime_countdown_days', 'ru', 'д'),
+  ('landing.pricing.lifetime_countdown_hours', 'lv', 'h'),
+  ('landing.pricing.lifetime_countdown_hours', 'en', 'h'),
+  ('landing.pricing.lifetime_countdown_hours', 'ru', 'ч'),
+  ('landing.pricing.lifetime_countdown_minutes', 'lv', 'min'),
+  ('landing.pricing.lifetime_countdown_minutes', 'en', 'm'),
+  ('landing.pricing.lifetime_countdown_minutes', 'ru', 'мин'),
+  ('landing.pricing.lifetime_countdown_seconds', 'lv', 's'),
+  ('landing.pricing.lifetime_countdown_seconds', 'en', 's'),
+  ('landing.pricing.lifetime_countdown_seconds', 'ru', 'с'),
+  ('landing.pricing.lifetime_purchases_remaining', 'lv', 'Atlikušas {count} vietas'),
+  ('landing.pricing.lifetime_purchases_remaining', 'en', '{count} spots left'),
+  ('landing.pricing.lifetime_purchases_remaining', 'ru', 'Осталось {count} мест')
+ON CONFLICT (translation_key, locale) DO UPDATE
+SET value = excluded.value, updated_at = now();
+
+-- Admin cron jobs: testa sūtījums tikai pogas nospiedējam
+INSERT INTO public.site_translations (translation_key, locale, value)
+VALUES
+  ('admin.cron_jobs.lead', 'lv', 'Testa sūtījums uz tavu e-pastu (vai push uz tavām ierīcēm). Netiek sūtīts citiem lietotājiem.'),
+  ('admin.cron_jobs.lead', 'en', 'Test send to your email (or push to your devices). Other users are not included.'),
+  ('admin.cron_jobs.lead', 'ru', 'Тест на ваш e-mail (или push). Другие пользователи не затрагиваются.'),
+  ('admin.cron_jobs.force_hint', 'lv', 'Testa režīms: viens īsts paziņojums tev. Neieraksta deduplikācijas žurnālā; var atkārtot.'),
+  ('admin.cron_jobs.force_hint', 'en', 'Test mode: one real notification to you. Skips dedup log; repeatable.'),
+  ('admin.cron_jobs.force_hint', 'ru', 'Тест: одно уведомление вам. Без записи dedup.'),
+  ('admin.cron_jobs.run', 'lv', 'Testa sūtījums'),
+  ('admin.cron_jobs.run', 'en', 'Send test'),
+  ('admin.cron_jobs.run', 'ru', 'Тест'),
+  ('admin.cron_jobs.running', 'lv', 'Sūta…'),
+  ('admin.cron_jobs.running', 'en', 'Sending…'),
+  ('admin.cron_jobs.running', 'ru', 'Отправка…'),
+  ('admin.cron_jobs.toast_ok', 'lv', 'Testa sūtījums nosūtīts: {sent}'),
+  ('admin.cron_jobs.toast_ok', 'en', 'Test sent: {sent}'),
+  ('admin.cron_jobs.toast_ok', 'ru', 'Тест отправлен: {sent}'),
+  ('admin.cron_jobs.job_due_today_desc', 'lv', 'Šablons ar taviem datiem vai paraugu.'),
+  ('admin.cron_jobs.job_due_today_desc', 'en', 'Template with your data or sample.'),
+  ('admin.cron_jobs.job_due_today_desc', 'ru', 'Шаблон с вашими данными.'),
+  ('admin.cron_jobs.job_weekly_desc', 'lv', 'Kopsavilkums uz tavu e-pastu.'),
+  ('admin.cron_jobs.job_weekly_desc', 'en', 'Summary to your email.'),
+  ('admin.cron_jobs.job_weekly_desc', 'ru', 'Сводка на ваш e-mail.'),
+  ('admin.cron_jobs.job_trial_desc', 'lv', 'Paraugs: 3 dienas līdz beigām.'),
+  ('admin.cron_jobs.job_trial_desc', 'en', 'Sample: 3 days left.'),
+  ('admin.cron_jobs.job_trial_desc', 'ru', 'Пример: 3 дня до конца.'),
+  ('admin.cron_jobs.job_win_back_7d_desc', 'lv', 'Win-back 7 d. paraugs.'),
+  ('admin.cron_jobs.job_win_back_7d_desc', 'en', 'Win-back 7d sample.'),
+  ('admin.cron_jobs.job_win_back_7d_desc', 'ru', 'Пример win-back 7 дн.'),
+  ('admin.cron_jobs.job_win_back_30d_desc', 'lv', 'Win-back 30 d. paraugs.'),
+  ('admin.cron_jobs.job_win_back_30d_desc', 'en', 'Win-back 30d sample.'),
+  ('admin.cron_jobs.job_win_back_30d_desc', 'ru', 'Пример win-back 30 дн.'),
+  ('admin.cron_jobs.job_push_desc', 'lv', 'Push uz tavām PWA ierīcēm.'),
+  ('admin.cron_jobs.job_push_desc', 'en', 'Push to your PWA devices.'),
+  ('admin.cron_jobs.job_push_desc', 'ru', 'Push на ваши PWA-устройства.')
+ON CONFLICT (translation_key, locale) DO UPDATE
+SET value = excluded.value, updated_at = now();
+
+INSERT INTO public.site_translations (translation_key, locale, value)
+VALUES
+  ('subscribe.price.lifetime_interval', 'lv', 'vienreizēji (maksājumu process drīzumā)'),
+  ('subscribe.price.lifetime_interval', 'en', 'one-time (checkout coming soon)'),
+  ('subscribe.price.lifetime_interval', 'ru', 'разово (оплата скоро)')
+ON CONFLICT (translation_key, locale) DO UPDATE
+SET value = excluded.value, updated_at = now();

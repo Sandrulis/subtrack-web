@@ -3,6 +3,7 @@ import {
   applyPaymentPlaceholders,
   applySystemNameToCopy,
   applyTrialPlaceholders,
+  applyWinBackPlaceholders,
   applyWeeklySubjectPlaceholders,
   getDefaultEmailCopy,
 } from "./default-templates";
@@ -48,6 +49,7 @@ export function resolveEmailCopy(
   },
   weeklyCtx?: { weekRangeLabel: string },
   trialCtx?: { trialDaysRemaining: number; trialEndDateFormatted: string },
+  winBackCtx?: { inactiveDays: number; lastSeenFormatted: string },
 ): EmailTemplateCopy {
   const merged = mergeEmailTemplateCopy(templateId, locale, store);
   const name = systemName.trim();
@@ -63,6 +65,12 @@ export function resolveEmailCopy(
   }
   if (templateId === "trial_ending" && trialCtx) {
     return applyTrialPlaceholders(merged, { systemName: name, ...trialCtx });
+  }
+  if (
+    (templateId === "win_back_7d" || templateId === "win_back_30d") &&
+    winBackCtx
+  ) {
+    return applyWinBackPlaceholders(merged, { systemName: name, ...winBackCtx });
   }
   return applySystemNameToCopy(merged, name);
 }

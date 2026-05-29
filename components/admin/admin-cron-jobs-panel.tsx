@@ -25,6 +25,14 @@ const JOB_LABEL_KEYS: Record<
     title: "admin.cron_jobs.job_trial",
     desc: "admin.cron_jobs.job_trial_desc",
   },
+  "win-back-7d-emails": {
+    title: "admin.cron_jobs.job_win_back_7d",
+    desc: "admin.cron_jobs.job_win_back_7d_desc",
+  },
+  "win-back-30d-emails": {
+    title: "admin.cron_jobs.job_win_back_30d",
+    desc: "admin.cron_jobs.job_win_back_30d_desc",
+  },
   "payment-push-notifications": {
     title: "admin.cron_jobs.job_push",
     desc: "admin.cron_jobs.job_push_desc",

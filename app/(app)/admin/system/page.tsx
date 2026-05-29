@@ -10,6 +10,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 import { DEFAULT_SYSTEM_NAME } from "@/lib/pwa/defaults";
 import { normalizePaidPlanRow } from "@/lib/system-settings-public";
+import { normalizePaidPlanLifetimeAdminRow } from "@/lib/paid-plan-lifetime";
 import { normalizeProTrialConfig } from "@/lib/auth/pro-trial-access";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -24,7 +25,7 @@ export default async function AdminSystemPage() {
   const { data, error } = await supabase
     .from("system_settings")
     .select(
-      "system_name, logo_revision, support_contact_email, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, pro_trial_enabled, pro_trial_days",
+      "system_name, logo_revision, support_contact_email, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, paid_plan_lifetime_enabled, paid_plan_lifetime_price_eur, paid_plan_lifetime_ends_at, paid_plan_lifetime_purchase_limit, paid_plan_lifetime_purchase_count, pro_trial_enabled, pro_trial_days",
     )
     .eq("id", 1)
     .maybeSingle();
@@ -37,6 +38,7 @@ export default async function AdminSystemPage() {
       : DEFAULT_SYSTEM_NAME;
 
   const initialPaidPlan = normalizePaidPlanRow(data);
+  const initialPaidPlanLifetime = normalizePaidPlanLifetimeAdminRow(data);
   const initialProTrial = normalizeProTrialConfig(data);
 
   const initialSupportContactEmail =
@@ -61,6 +63,7 @@ export default async function AdminSystemPage() {
         initialDefaults={initialDefaults}
         initialPaidPlan={initialPaidPlan}
         initialProTrial={initialProTrial}
+        initialPaidPlanLifetime={initialPaidPlanLifetime}
       />
     </div>
   );

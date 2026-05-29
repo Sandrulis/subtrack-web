@@ -162,6 +162,30 @@ export function mergeDisplayPreferences(
   };
 }
 
+/** `system_settings.default_display_preferences` virs koda noklusējuma. */
+export function resolveSystemDisplayPreferences(
+  systemDefaultsRaw: unknown,
+  codeDefaults: DisplayPreferences = DISPLAY_PREFERENCES_DEFAULTS,
+): DisplayPreferences {
+  return mergeDisplayPreferences(
+    sanitizeDisplayPreferencesPartial(systemDefaultsRaw),
+    codeDefaults,
+  );
+}
+
+/**
+ * E-pastiem un UI: lietotāja lauki pārklāj sistēmas noklusējumu;
+ * tukšs/trūkstošs lietotāja ieraksts = tikai sistēmas (vai koda) defaults.
+ */
+export function mergeDisplayPreferencesForUser(
+  userRaw: unknown,
+  systemDefaultsRaw: unknown,
+  codeDefaults: DisplayPreferences = DISPLAY_PREFERENCES_DEFAULTS,
+): DisplayPreferences {
+  const systemBase = resolveSystemDisplayPreferences(systemDefaultsRaw, codeDefaults);
+  return mergeDisplayPreferences(sanitizeDisplayPreferencesPartial(userRaw), systemBase);
+}
+
 /**
  * Kombinē: noklusējumi <- DB partial <- localStorage partial (atklātie LS lauki uzvar).
  * Ja DB satur vismaz vienu derīgu lauku, tas dod pamatu; tad LS pārklāj tikai savus laukus

@@ -2637,7 +2637,8 @@ button.dash-exit {
     }
 
     .legal-page .landing-footer--with-legal,
-    .auth-page .landing-footer--with-legal {
+    .auth-page .landing-footer--with-legal,
+    .app-layout > .landing-footer--with-legal {
         display: block;
         padding-bottom: calc(20px + 96px + env(safe-area-inset-bottom, 0px));
         font-size: 12px;

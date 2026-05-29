@@ -1,3 +1,8 @@
+import type { DisplayPreferences } from "@/lib/user-display-preferences";
+import {
+  EMAIL_DESIGN_PREVIEW_ISO,
+  formatEmailDesignPreviewDate,
+} from "./email-design-preview-dates";
 import {
   normalizeEmailLocale,
   type EmailPreviewLocale,
@@ -12,17 +17,7 @@ const SAMPLE_PAYMENT = {
   overdueDays: 8,
 };
 
-const PREVIEW_DUE_ISO = "2026-05-10";
-
-const DUE_DATE_BCP47: Record<EmailPreviewLocale, string> = {
-  en: "en-GB",
-  fr: "fr-FR",
-  de: "de-DE",
-  es: "es-ES",
-  pt: "pt-PT",
-  lv: "lv-LV",
-  ru: "ru-RU",
-};
+const PREVIEW_DUE_ISO = EMAIL_DESIGN_PREVIEW_ISO.dueToday;
 
 export function buildPreviewRenderContext(
   templateId: EmailTemplateId,
@@ -35,7 +30,9 @@ export function buildPreviewRenderContext(
       ? "warning"
       : templateId === "trial_ending"
           ? "warning"
-          : templateId === "reset_password"
+          : templateId === "win_back_7d" || templateId === "win_back_30d"
+            ? "primary"
+            : templateId === "reset_password"
             ? "warning"
             : "primary";
 
@@ -49,6 +46,8 @@ export function buildPreviewRenderContext(
     payment_due_today: `${baseUrl}/dashboard`,
     weekly_summary: `${baseUrl}/dashboard`,
     trial_ending: `${baseUrl}/subscribe`,
+    win_back_7d: `${baseUrl}/dashboard`,
+    win_back_30d: `${baseUrl}/dashboard`,
   };
 
   return {
@@ -60,21 +59,43 @@ export function buildPreviewRenderContext(
   };
 }
 
-export function overduePreviewContext(locale: string) {
+export function overduePreviewContext(
+  locale: string,
+  systemDefaults?: Partial<DisplayPreferences> | null,
+) {
   const loc = normalizeEmailLocale(locale);
-  const bcp47 = DUE_DATE_BCP47[loc];
-  let dueDateFormatted = PREVIEW_DUE_ISO;
-  try {
-    dueDateFormatted = new Intl.DateTimeFormat(bcp47, {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date(`${PREVIEW_DUE_ISO}T12:00:00Z`));
-  } catch {
-    dueDateFormatted = PREVIEW_DUE_ISO;
-  }
   return {
     ...SAMPLE_PAYMENT,
-    dueDateFormatted,
+    dueDateFormatted: formatEmailDesignPreviewDate(PREVIEW_DUE_ISO, loc, systemDefaults),
+  };
+}
+
+export function trialEndingPreviewContext(
+  locale: EmailPreviewLocale,
+  systemDefaults?: Partial<DisplayPreferences> | null,
+) {
+  return {
+    trialDaysRemaining: 3,
+    trialEndDateFormatted: formatEmailDesignPreviewDate(
+      EMAIL_DESIGN_PREVIEW_ISO.trialEnd,
+      locale,
+      systemDefaults,
+    ),
+  };
+}
+
+export function winBackPreviewContext(
+  templateId: "win_back_7d" | "win_back_30d",
+  locale: EmailPreviewLocale,
+  systemDefaults?: Partial<DisplayPreferences> | null,
+) {
+  const inactiveDays = templateId === "win_back_7d" ? 7 : 30;
+  const iso =
+    templateId === "win_back_7d"
+      ? EMAIL_DESIGN_PREVIEW_ISO.winBackLastSeen7d
+      : EMAIL_DESIGN_PREVIEW_ISO.winBackLastSeen30d;
+  return {
+    inactiveDays,
+    lastSeenFormatted: formatEmailDesignPreviewDate(iso, locale, systemDefaults),
   };
 }

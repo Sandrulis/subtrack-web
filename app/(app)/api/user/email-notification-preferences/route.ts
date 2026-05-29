@@ -10,6 +10,7 @@ type Body = {
   dueToday?: unknown;
   weekly?: unknown;
   trialEnd?: unknown;
+  winBack?: unknown;
 };
 
 function pickBool(v: unknown, fallback: boolean): boolean {
@@ -44,6 +45,7 @@ export async function PATCH(request: Request) {
     dueToday: pickBool(body.dueToday, current.dueToday),
     weekly: pickBool(body.weekly, current.weekly),
     trialEnd: pickBool(body.trialEnd, current.trialEnd),
+    winBack: pickBool(body.winBack, current.winBack),
   };
 
   const { error } = await supabase

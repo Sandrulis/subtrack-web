@@ -8,6 +8,7 @@ import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import { buildPaidPlanAnnualPitchCopy } from "@/lib/paid-plan-annual";
+import { LandingPricingLifetimeUrgency } from "@/components/landing-pricing-lifetime-urgency";
 import { createBillingAmountFormatter } from "@/lib/billing/format-billing-amount";
 import type { BillingCurrency } from "@/lib/billing/billing-currency";
 import { useMemo } from "react";
@@ -23,12 +24,19 @@ export function SubscribeProView({
   priceEur,
   freeTierLimit,
   annualPriceEur = null,
+  lifetime = null,
   billingCurrency = "EUR",
 }: {
   userDisplay?: NavUserDisplay | null;
   priceEur: number;
   freeTierLimit: number;
   annualPriceEur?: number | null;
+  lifetime?: {
+    priceEur: number;
+    endsAt: string | null;
+    remainingMs: number | null;
+    purchasesRemaining: number | null;
+  } | null;
   billingCurrency?: BillingCurrency;
 }) {
   const { t, locale } = useSubtrackIntl();
@@ -44,11 +52,16 @@ export function SubscribeProView({
   const annualPitch = useMemo(
     () =>
       buildPaidPlanAnnualPitchCopy(priceEur, annualPriceEur, fmtPrice, t, {
-        line: "subscribe.price.annual_line",
-        discount: "subscribe.price.annual_discount",
-        equiv: "subscribe.price.annual_equiv",
+        line: "landing.pricing.annual_line",
+        discount: "landing.pricing.annual_discount",
+        equiv: "landing.pricing.annual_equiv",
       }),
     [annualPriceEur, fmtPrice, priceEur, t],
+  );
+
+  const lifetimePriceFmt = useMemo(
+    () => (lifetime ? fmtPrice(lifetime.priceEur) : ""),
+    [fmtPrice, lifetime],
   );
 
   const benefitIds = ["unlimited", "calendar", "analytics"] as const;
@@ -91,18 +104,77 @@ export function SubscribeProView({
           </div>
         </section>
 
-        <div className="subscribe-pro-price-card">
-          <p className="subscribe-pro-price-label">{t("subscribe.price.title")}</p>
-          <p className="subscribe-pro-price-value">{priceFmt}</p>
-          <p className="subscribe-pro-price-interval">{t("subscribe.price.interval")}</p>
+        <div className="subscribe-pro-plans-stack">
           {annualPitch ? (
-            <p className="subscribe-pro-price-annual">
-              <span className="subscribe-pro-price-annual-line">
-                {annualPitch.line}
-                {annualPitch.discountSuffix ?? ""}
-              </span>
-              <span className="subscribe-pro-price-annual-equiv">{annualPitch.equiv}</span>
-            </p>
+            <div className="subscribe-pro-pricing-highlight">
+              <div className="subscribe-pro-pricing-monthly-pill">
+                <span className="subscribe-pro-pricing-monthly-value">{priceFmt}</span>
+                <span className="subscribe-pro-pricing-monthly-period">
+                  {t("landing.pricing.monthly_suffix")}
+                </span>
+              </div>
+              <div className="subscribe-pro-pricing-annual-card">
+                <div className="subscribe-pro-pricing-annual-row">
+                  <span className="subscribe-pro-pricing-annual-label">
+                    {t("landing.pricing.annual_label")}
+                  </span>
+                  <span className="subscribe-pro-pricing-annual-amount">
+                    {annualPitch.annualFormatted}
+                  </span>
+                  {annualPitch.discountPercent != null ? (
+                    <span className="subscribe-pro-pricing-annual-badge">
+                      {t("landing.pricing.annual_badge_off").replace(
+                        /\{discount\}/g,
+                        String(annualPitch.discountPercent),
+                      )}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="subscribe-pro-pricing-annual-equiv">{annualPitch.equiv}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="subscribe-pro-price-card">
+              <p className="subscribe-pro-price-label">{t("subscribe.price.title")}</p>
+              <p className="subscribe-pro-price-value">{priceFmt}</p>
+              <p className="subscribe-pro-price-interval">{t("subscribe.price.interval")}</p>
+            </div>
+          )}
+
+          {lifetime ? (
+            <div className="subscribe-pro-lifetime-card">
+              <div className="subscribe-pro-lifetime-body">
+                <div className="subscribe-pro-lifetime-main">
+                  <div className="subscribe-pro-lifetime-row">
+                    <span className="subscribe-pro-lifetime-label">
+                      {t("landing.pricing.lifetime_label")}
+                    </span>
+                    <span className="subscribe-pro-lifetime-amount">{lifetimePriceFmt}</span>
+                    <span className="subscribe-pro-lifetime-badge">
+                      {t("landing.pricing.lifetime_badge")}
+                    </span>
+                  </div>
+                  <p className="subscribe-pro-lifetime-tagline">
+                    {t("landing.pricing.lifetime_tagline")}
+                  </p>
+                  <p className="subscribe-pro-lifetime-interval">
+                    {t("subscribe.price.lifetime_interval")}
+                  </p>
+                </div>
+                <LandingPricingLifetimeUrgency
+                  scope="subscribe"
+                  endsAt={lifetime.endsAt}
+                  initialRemainingMs={lifetime.remainingMs}
+                  purchasesRemaining={lifetime.purchasesRemaining}
+                  countdownLabel={t("landing.pricing.lifetime_countdown_label")}
+                  daysLabel={t("landing.pricing.lifetime_countdown_days")}
+                  hoursLabel={t("landing.pricing.lifetime_countdown_hours")}
+                  minutesLabel={t("landing.pricing.lifetime_countdown_minutes")}
+                  secondsLabel={t("landing.pricing.lifetime_countdown_seconds")}
+                  purchasesLabel={t("landing.pricing.lifetime_purchases_remaining")}
+                />
+              </div>
+            </div>
           ) : null}
         </div>
 

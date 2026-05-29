@@ -19,7 +19,7 @@ import {
 
 const AUTOSAVE_DEBOUNCE_MS = 450;
 
-type NotifKind = "due_today" | "weekly" | "trial_end";
+type NotifKind = "due_today" | "weekly" | "trial_end" | "win_back";
 
 function EmailNotificationSwitch({
   checked,
@@ -52,6 +52,7 @@ const NOTIF_ICONS: Record<NotifKind, string> = {
   due_today: "fa-calendar-day",
   weekly: "fa-envelope-open-text",
   trial_end: "fa-hourglass-half",
+  win_back: "fa-door-open",
 };
 
 function EmailNotificationToggleRow({
@@ -127,6 +128,7 @@ export function EmailNotificationsView({
           dueToday: snapshot.dueToday,
           weekly: snapshot.weekly,
           trialEnd: snapshot.trialEnd,
+          winBack: snapshot.winBack,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as {
@@ -227,6 +229,14 @@ export function EmailNotificationsView({
                   onChange={(next) => update({ trialEnd: next })}
                 />
               ) : null}
+              <EmailNotificationToggleRow
+                kind="win_back"
+                title={t("email.notifications.toggle_win_back")}
+                hint={t("email.notifications.hint_win_back")}
+                checked={prefs.winBack}
+                busy={busy}
+                onChange={(next) => update({ winBack: next })}
+              />
             </ul>
           </section>
 

@@ -1885,6 +1885,197 @@ body.landing-page .landing-cta {
     color: var(--text-muted);
 }
 
+.landing-pricing-lifetime-card {
+    grid-column: 1 / -1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 14px 18px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 55%, #f5f3ff 100%);
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    box-shadow: 0 8px 24px rgba(67, 56, 202, 0.1);
+    box-sizing: border-box;
+}
+
+.landing-pricing-lifetime-body {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+}
+
+.landing-pricing-lifetime-main {
+    min-width: 0;
+    padding-right: 0;
+}
+
+.landing-pricing-lifetime-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+}
+
+.landing-pricing-lifetime-price-group {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px;
+    min-width: 0;
+}
+
+.landing-pricing-lifetime-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #4338ca;
+}
+
+.landing-pricing-lifetime-amount {
+    font-size: clamp(22px, 4vw, 28px);
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+.landing-pricing-lifetime-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+    box-shadow: 0 2px 8px rgba(67, 56, 202, 0.28);
+    white-space: nowrap;
+}
+
+.landing-pricing-lifetime-tagline {
+    margin: 8px 0 0;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.landing-pricing-lifetime-urgency {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    gap: 0;
+}
+
+.landing-pricing-lifetime-countdown-box {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(99, 102, 241, 0.22);
+}
+
+.landing-pricing-lifetime-urgency-label {
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #4338ca;
+}
+
+.landing-pricing-lifetime-countdown-units {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 10px;
+    width: auto;
+}
+
+.landing-pricing-lifetime-unit {
+    display: inline-flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: center;
+    min-width: 2.5rem;
+    gap: 2px;
+}
+
+.landing-pricing-lifetime-unit-value {
+    font-size: clamp(22px, 3.2vw, 28px);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    line-height: 1;
+}
+
+.landing-pricing-lifetime-unit-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6366f1;
+}
+
+.landing-pricing-lifetime-purchases {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 20px auto 0;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #4338ca;
+    background: rgba(255, 255, 255, 0.65);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    white-space: nowrap;
+}
+
+@media (min-width: 641px) {
+    .landing-pricing-lifetime-main:has(+ .landing-pricing-lifetime-urgency .landing-pricing-lifetime-purchases),
+    .landing-pricing-lifetime-main:has(~ .landing-pricing-lifetime-urgency .landing-pricing-lifetime-purchases) {
+        padding-right: min(42%, 11rem);
+    }
+
+    .landing-pricing-lifetime-purchases {
+        position: absolute;
+        top: 14px;
+        right: 18px;
+        z-index: 1;
+        margin: 0;
+    }
+
+    .landing-pricing-lifetime-countdown-box {
+        width: max-content;
+        max-width: 100%;
+        min-width: min(100%, 17.5rem);
+    }
+
+    .landing-pricing-lifetime-countdown-units {
+        gap: 12px;
+    }
+}
+
+.landing-pricing-lifetime-purchases-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22);
+    flex-shrink: 0;
+}
+
 .landing-pricing-blurb {
     margin: 0 0 22px;
     font-size: 15px;
@@ -1945,7 +2136,8 @@ body.landing-page .landing-cta {
     }
 
     .landing-pricing-monthly-pill,
-    .landing-pricing-annual-card {
+    .landing-pricing-annual-card,
+    .landing-pricing-lifetime-card {
         width: 100%;
         max-width: none;
         min-height: 0;
@@ -1959,6 +2151,36 @@ body.landing-page .landing-cta {
 
     .landing-pricing-annual-card {
         padding: 12px 14px;
+    }
+
+    .landing-pricing-lifetime-card {
+        padding: 14px 16px;
+    }
+
+    .landing-pricing-lifetime-body {
+        gap: 10px;
+    }
+
+    .landing-pricing-lifetime-purchases {
+        margin: 20px auto 0;
+        font-size: 12px;
+        padding: 5px 10px;
+    }
+
+    .landing-pricing-lifetime-unit-value {
+        font-size: 22px;
+    }
+
+    .landing-pricing-lifetime-row {
+        gap: 6px 10px;
+    }
+
+    .landing-pricing-lifetime-amount {
+        font-size: 22px;
+    }
+
+    .landing-pricing-lifetime-tagline {
+        font-size: 13px;
     }
 
     .landing-pricing-annual-row {
@@ -3002,10 +3224,26 @@ body.landing-page .landing-cta {
 .dashboard-overview-stats-row > .stat-card {
     height: 100%;
     gap: 0;
+    min-width: 0;
+    padding: 18px 16px;
+    box-sizing: border-box;
 }
 
 .dashboard-overview-stats-row--has-budget {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dashboard-overview-stats-row > .stat-card .stat-label {
+    font-size: 11px;
+    letter-spacing: 0.55px;
+    line-height: 1.35;
+}
+
+.dashboard-overview-stats-row > .stat-card .stat-value {
+    font-size: clamp(1.125rem, 1.6vw + 0.65rem, 1.625rem);
+    letter-spacing: -0.4px;
+    line-height: 1.15;
+    max-width: 100%;
 }
 
 .dashboard-overview-stats-row > .stat-card .stat-card-main {
@@ -3014,12 +3252,24 @@ body.landing-page .landing-cta {
     flex-direction: column;
     justify-content: flex-end;
     min-height: 58px;
+    min-width: 0;
+    width: 100%;
     margin-top: 6px;
 }
 
 .dashboard-overview-stats-row > .stat-card .stat-card-foot {
     flex-shrink: 0;
     margin-top: 6px;
+}
+
+.dashboard-overview-stats-row > .stat-card.stat-card--total .stat-card-main .stat-value-row {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+}
+
+.dashboard-overview-stats-row > .stat-card .stat-budget-total {
+    font-size: 12px;
 }
 
 .stat-card--budget {
@@ -7119,7 +7369,8 @@ button.dash-exit {
     }
 
     .legal-page .landing-footer--with-legal,
-    .auth-page .landing-footer--with-legal {
+    .auth-page .landing-footer--with-legal,
+    .app-layout > .landing-footer--with-legal {
         display: block;
         padding-bottom: calc(20px + 96px + env(safe-area-inset-bottom, 0px));
         font-size: 12px;

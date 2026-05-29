@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { authorizeCron } from "@/lib/security/cron-auth";
 import {
+  adminTestTrialDaysRemaining,
+  adminTestTrialEndDateFormatted,
+  cronIncludesUser,
+  getCronTestUserId,
+  isCronAdminTestRun,
+} from "@/lib/cron/cron-admin-test";
+import {
+  formatCronEmailDate,
   loadEmailCronContext,
   parseUserLocaleAndTz,
   todayIsoUtc,
@@ -13,13 +21,6 @@ import {
   isProTrialActive,
   normalizeProTrialConfig,
 } from "@/lib/auth/pro-trial-access";
-import {
-  DISPLAY_PREFERENCES_DEFAULTS,
-  formatDateForDisplayPreferences,
-  mergeDisplayPreferences,
-  sanitizeDisplayPreferencesPartial,
-} from "@/lib/user-display-preferences";
-import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import {
   isTransactionalEmailConfigured,
   sendTrialEndingEmail,
@@ -51,8 +52,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, message: ctx.error }, { status: ctx.status });
   }
 
-  const { supabase, siteUrl, systemName, templatesStore } = ctx;
+  const { supabase, siteUrl, systemName, templatesStore, systemDisplayPreferences } = ctx;
   const sentUtcDay = todayIsoUtc();
+  const testUserId = getCronTestUserId(request);
+  const isTest = isCronAdminTestRun(request);
 
   const { data: settings } = await supabase
     .from("system_settings")
@@ -63,7 +66,7 @@ export async function GET(request: Request) {
   const trialConfig = normalizeProTrialConfig(settings);
   const paidPlanEnabled = settings?.paid_plan_enabled === true;
 
-  if (!trialConfig.enabled || !paidPlanEnabled) {
+  if (!isTest && (!trialConfig.enabled || !paidPlanEnabled)) {
     return NextResponse.json({
       success: true,
       sent: 0,
@@ -72,11 +75,17 @@ export async function GET(request: Request) {
     });
   }
 
-  const { data: users, error: usersErr } = await supabase
+  let usersQuery = supabase
     .from("users")
     .select(
       "id, email, display_preferences, email_notification_preferences, paid_plan_active, pro_vip, pro_trial_used, pro_trial_started_at",
     );
+
+  if (testUserId) {
+    usersQuery = usersQuery.eq("id", testUserId);
+  }
+
+  const { data: users, error: usersErr } = await usersQuery;
 
   if (usersErr) {
     return NextResponse.json({ success: false, message: usersErr.message }, { status: 500 });
@@ -87,12 +96,16 @@ export async function GET(request: Request) {
   const errors: string[] = [];
 
   for (const row of users ?? []) {
+    if (!cronIncludesUser(row.id, testUserId)) {
+      skipped += 1;
+      continue;
+    }
     const email = row.email?.trim();
     if (!email) {
       skipped += 1;
       continue;
     }
-    if (!userWantsEmail(row.email_notification_preferences, "trialEnd")) {
+    if (!isTest && !userWantsEmail(row.email_notification_preferences, "trialEnd")) {
       skipped += 1;
       continue;
     }
@@ -104,62 +117,77 @@ export async function GET(request: Request) {
       proTrialStartedAt: row.pro_trial_started_at ?? null,
     };
 
-    if (!isProTrialActive(userFields, trialConfig, { paidPlanEnabled })) {
-      skipped += 1;
-      continue;
+    let daysRemaining = adminTestTrialDaysRemaining();
+    let reminderType: "trial_end_3d" | "trial_end_1d" | "trial_end_0d" | null = "trial_end_3d";
+
+    if (!isTest) {
+      if (!isProTrialActive(userFields, trialConfig, { paidPlanEnabled })) {
+        skipped += 1;
+        continue;
+      }
+
+      if (!userFields.proTrialStartedAt) {
+        skipped += 1;
+        continue;
+      }
+
+      const started = new Date(userFields.proTrialStartedAt);
+      const totalMs = trialConfig.days * MS_PER_DAY;
+      const remainingMs = Math.max(0, started.getTime() + totalMs - Date.now());
+      daysRemaining = Math.max(0, Math.ceil(remainingMs / MS_PER_DAY));
+
+      reminderType = trialReminderType(daysRemaining);
+      if (!reminderType) {
+        skipped += 1;
+        continue;
+      }
+
+      const { timezone } = parseUserLocaleAndTz(
+        row.display_preferences,
+        systemDisplayPreferences,
+      );
+      const force = isCronForceRun(request);
+      const local = getUserLocalParts(timezone);
+      if (!force && local.hour !== 9) {
+        skipped += 1;
+        continue;
+      }
+
+      const { data: already } = await supabase
+        .from("email_reminder_log")
+        .select("id")
+        .eq("user_id", row.id)
+        .eq("reminder_type", reminderType)
+        .eq("sent_on", sentUtcDay)
+        .maybeSingle();
+
+      if (already) {
+        skipped += 1;
+        continue;
+      }
     }
 
-    if (!userFields.proTrialStartedAt) {
-      skipped += 1;
-      continue;
-    }
-
-    const started = new Date(userFields.proTrialStartedAt);
-    const totalMs = trialConfig.days * MS_PER_DAY;
-    const remainingMs = Math.max(0, started.getTime() + totalMs - Date.now());
-    const daysRemaining = Math.max(0, Math.ceil(remainingMs / MS_PER_DAY));
-
-    const reminderType = trialReminderType(daysRemaining);
-    if (!reminderType) {
-      skipped += 1;
-      continue;
-    }
-
-    const { timezone } = parseUserLocaleAndTz(row.display_preferences);
-    const force = isCronForceRun(request);
-    const local = getUserLocalParts(timezone);
-    if (!force && local.hour !== 9) {
-      skipped += 1;
-      continue;
-    }
-
-    const { data: already } = await supabase
-      .from("email_reminder_log")
-      .select("id")
-      .eq("user_id", row.id)
-      .eq("reminder_type", reminderType)
-      .eq("sent_on", sentUtcDay)
-      .maybeSingle();
-
-    if (already) {
-      skipped += 1;
-      continue;
-    }
-
-    const { locale } = parseUserLocaleAndTz(row.display_preferences);
-    const prefs = mergeDisplayPreferences(
-      sanitizeDisplayPreferencesPartial(row.display_preferences),
-      DISPLAY_PREFERENCES_DEFAULTS,
+    const { locale } = parseUserLocaleAndTz(
+      row.display_preferences,
+      systemDisplayPreferences,
     );
-    const endInstant = getProTrialEndInstant(userFields.proTrialStartedAt, trialConfig.days);
-    const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
-    const trialEndDateFormatted = endInstant
-      ? formatDateForDisplayPreferences(
-          new Date(endInstant.getTime() - 1),
-          prefs,
-          intlLocale,
-        )
-      : "";
+    const trialEndDateFormatted = isTest
+      ? adminTestTrialEndDateFormatted(row.display_preferences, systemDisplayPreferences)
+      : userFields.proTrialStartedAt
+        ? (() => {
+            const endInstant = getProTrialEndInstant(
+              userFields.proTrialStartedAt,
+              trialConfig.days,
+            );
+            return endInstant
+              ? formatCronEmailDate(
+                  new Date(endInstant.getTime() - 1),
+                  row.display_preferences,
+                  systemDisplayPreferences,
+                )
+              : "";
+          })()
+        : "";
 
     const mail = await sendTrialEndingEmail({
       to: email,
@@ -177,21 +205,26 @@ export async function GET(request: Request) {
       continue;
     }
 
-    const { error: logErr } = await supabase.from("email_reminder_log").insert({
-      user_id: row.id,
-      subscription_id: null,
-      reminder_type: reminderType,
-      sent_on: sentUtcDay,
-    });
+    if (!isTest && reminderType) {
+      const { error: logErr } = await supabase.from("email_reminder_log").insert({
+        user_id: row.id,
+        subscription_id: null,
+        reminder_type: reminderType,
+        sent_on: sentUtcDay,
+      });
 
-    if (logErr) errors.push(`${email}: nosūtīts, žurnāls – ${logErr.message}`);
-    else sent += 1;
+      if (logErr) errors.push(`${email}: nosūtīts, žurnāls – ${logErr.message}`);
+      else sent += 1;
+    } else {
+      sent += 1;
+    }
   }
 
   return NextResponse.json({
     success: errors.length === 0,
     sent,
     skipped,
+    testMode: isTest,
     errors: errors.slice(0, 20),
   });
 }

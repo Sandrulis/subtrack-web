@@ -2,12 +2,14 @@ export type EmailNotificationPreferences = {
   dueToday: boolean;
   weekly: boolean;
   trialEnd: boolean;
+  winBack: boolean;
 };
 
 export const EMAIL_NOTIFICATION_DEFAULTS: EmailNotificationPreferences = {
   dueToday: true,
   weekly: true,
   trialEnd: true,
+  winBack: true,
 };
 
 function pickBool(v: unknown, fallback: boolean): boolean {
@@ -26,6 +28,7 @@ export function readEmailNotificationPreferences(
     dueToday: pickBool(o.due_today, EMAIL_NOTIFICATION_DEFAULTS.dueToday),
     weekly: pickBool(o.weekly, EMAIL_NOTIFICATION_DEFAULTS.weekly),
     trialEnd: pickBool(o.trial_end, EMAIL_NOTIFICATION_DEFAULTS.trialEnd),
+    winBack: pickBool(o.win_back, EMAIL_NOTIFICATION_DEFAULTS.winBack),
   };
 }
 
@@ -36,5 +39,6 @@ export function toEmailNotificationPreferencesJson(
     due_today: prefs.dueToday,
     weekly: prefs.weekly,
     trial_end: prefs.trialEnd,
+    win_back: prefs.winBack,
   };
 }

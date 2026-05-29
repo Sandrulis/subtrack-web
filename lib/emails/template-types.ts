@@ -8,6 +8,8 @@ export const EMAIL_TEMPLATE_IDS = [
   "payment_due_today",
   "weekly_summary",
   "trial_ending",
+  "win_back_7d",
+  "win_back_30d",
 ] as const;
 
 /** Cron / Resend šabloni (nav Supabase Auth). */
@@ -15,6 +17,8 @@ export const EMAIL_CRON_TEMPLATE_IDS = [
   "payment_due_today",
   "weekly_summary",
   "trial_ending",
+  "win_back_7d",
+  "win_back_30d",
 ] as const;
 
 export type EmailCronTemplateId = (typeof EMAIL_CRON_TEMPLATE_IDS)[number];
@@ -71,6 +75,9 @@ export type EmailRenderContext = {
   /** Izmēģinājuma periods */
   trialDaysRemaining?: number;
   trialEndDateFormatted?: string;
+  /** Win-back (neaktīvs lietotājs) */
+  inactiveDays?: number;
+  lastSeenFormatted?: string;
   /** Papildu HTML (nedēļas kopsavilkums) */
   extraSectionsHtml?: string;
   /** Zem kājenes (piem. atteikšanās) */
@@ -98,4 +105,6 @@ export const SUPABASE_AUTH_TEMPLATE_MAP: Record<
   payment_due_today: null,
   weekly_summary: null,
   trial_ending: null,
+  win_back_7d: null,
+  win_back_30d: null,
 };

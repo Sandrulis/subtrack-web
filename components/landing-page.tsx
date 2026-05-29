@@ -4,6 +4,8 @@ import { isIntegrationEnabled } from "@/lib/integrations/integration-enabled";
 import { fetchAllowedSubscriptionCategoryKeys } from "@/lib/subscriptions/subscription-categories-server";
 import { getLandingUiPhrases } from "@/lib/landing/get-landing-ui-phrases";
 import { buildPaidPlanAnnualPitchCopy } from "@/lib/paid-plan-annual";
+import { paidPlanShowsLifetime } from "@/lib/paid-plan-lifetime";
+import { LandingPricingLifetimeUrgency } from "@/components/landing-pricing-lifetime-urgency";
 import { createBillingAmountFormatter } from "@/lib/billing/format-billing-amount";
 import { resolveGuestBillingCurrency } from "@/lib/billing/resolve-billing-currency";
 import type { BillingCurrency } from "@/lib/billing/billing-currency";
@@ -413,6 +415,12 @@ export async function LandingPageContent() {
     blurb: string;
     monthlyFmt: string;
     annual: ReturnType<typeof buildPaidPlanAnnualPitchCopy>;
+    lifetime: {
+      priceFmt: string;
+      endsAt: string | null;
+      remainingMs: number | null;
+      purchasesRemaining: number | null;
+    } | null;
   } | null = null;
   if (paidPlan?.enabled) {
     const fmtPrice = createBillingAmountFormatter(intlLocale, guestBillingCurrency);
@@ -434,7 +442,16 @@ export async function LandingPageContent() {
             },
           )
         : null;
-    paidPitch = { blurb, monthlyFmt, annual };
+    const lifetime =
+      paidPlanShowsLifetime(paidPlan.lifetime) && paidPlan.lifetime.priceEur != null
+        ? {
+            priceFmt: fmtPrice(paidPlan.lifetime.priceEur),
+            endsAt: paidPlan.lifetime.endsAt,
+            remainingMs: paidPlan.lifetime.remainingMs,
+            purchasesRemaining: paidPlan.lifetime.purchasesRemaining,
+          }
+        : null;
+    paidPitch = { blurb, monthlyFmt, annual, lifetime };
   }
 
   return (
@@ -530,6 +547,41 @@ export async function LandingPageContent() {
                       ) : null}
                     </div>
                     <p className="landing-pricing-annual-equiv">{paidPitch.annual.equiv}</p>
+                  </div>
+                ) : null}
+                {paidPitch.lifetime ? (
+                  <div className="landing-pricing-lifetime-card">
+                    <div className="landing-pricing-lifetime-body">
+                      <div className="landing-pricing-lifetime-main">
+                        <div className="landing-pricing-lifetime-row">
+                          <span className="landing-pricing-lifetime-label">
+                            {t("landing.pricing.lifetime_label")}
+                          </span>
+                          <span className="landing-pricing-lifetime-price-group">
+                            <span className="landing-pricing-lifetime-amount">
+                              {paidPitch.lifetime.priceFmt}
+                            </span>
+                            <span className="landing-pricing-lifetime-badge">
+                              {t("landing.pricing.lifetime_badge")}
+                            </span>
+                          </span>
+                        </div>
+                        <p className="landing-pricing-lifetime-tagline">
+                          {t("landing.pricing.lifetime_tagline")}
+                        </p>
+                      </div>
+                      <LandingPricingLifetimeUrgency
+                        endsAt={paidPitch.lifetime.endsAt}
+                        initialRemainingMs={paidPitch.lifetime.remainingMs}
+                        purchasesRemaining={paidPitch.lifetime.purchasesRemaining}
+                        countdownLabel={t("landing.pricing.lifetime_countdown_label")}
+                        daysLabel={t("landing.pricing.lifetime_countdown_days")}
+                        hoursLabel={t("landing.pricing.lifetime_countdown_hours")}
+                        minutesLabel={t("landing.pricing.lifetime_countdown_minutes")}
+                        secondsLabel={t("landing.pricing.lifetime_countdown_seconds")}
+                        purchasesLabel={t("landing.pricing.lifetime_purchases_remaining")}
+                      />
+                    </div>
                   </div>
                 ) : null}
               </div>

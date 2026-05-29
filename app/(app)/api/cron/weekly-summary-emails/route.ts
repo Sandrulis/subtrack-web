@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { authorizeCron } from "@/lib/security/cron-auth";
 import {
+  buildAdminTestWeeklyPayload,
+  cronIncludesUser,
+  getCronTestUserId,
+  isCronAdminTestRun,
+} from "@/lib/cron/cron-admin-test";
+import {
   loadEmailCronContext,
   parseUserLocaleAndTz,
   todayIsoUtc,
@@ -36,12 +42,21 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, message: ctx.error }, { status: ctx.status });
   }
 
-  const { supabase, siteUrl, systemName, currency, templatesStore } = ctx;
+  const { supabase, siteUrl, systemName, currency, templatesStore, systemDisplayPreferences } =
+    ctx;
   const sentUtcDay = todayIsoUtc();
+  const testUserId = getCronTestUserId(request);
+  const isTest = isCronAdminTestRun(request);
 
-  const { data: users, error: usersErr } = await supabase
+  let usersQuery = supabase
     .from("users")
     .select("id, email, display_preferences, email_notification_preferences");
+
+  if (testUserId) {
+    usersQuery = usersQuery.eq("id", testUserId);
+  }
+
+  const { data: users, error: usersErr } = await usersQuery;
 
   if (usersErr) {
     return NextResponse.json({ success: false, message: usersErr.message }, { status: 500 });
@@ -52,18 +67,25 @@ export async function GET(request: Request) {
   const errors: string[] = [];
 
   for (const user of users ?? []) {
+    if (!cronIncludesUser(user.id, testUserId)) {
+      skipped += 1;
+      continue;
+    }
     const email = user.email?.trim();
     if (!email) {
       skipped += 1;
       continue;
     }
-    if (!userWantsEmail(user.email_notification_preferences, "weekly")) {
+    if (!isTest && !userWantsEmail(user.email_notification_preferences, "weekly")) {
       skipped += 1;
       continue;
     }
 
-    const { locale, timezone, weekStart } = parseUserLocaleAndTz(user.display_preferences);
-    const force = isCronForceRun(request);
+    const { locale, timezone, weekStart } = parseUserLocaleAndTz(
+      user.display_preferences,
+      systemDisplayPreferences,
+    );
+    const force = isCronForceRun(request) || isTest;
     if (!force && !isWeeklySummarySendWindow(timezone)) {
       skipped += 1;
       continue;
@@ -71,17 +93,19 @@ export async function GET(request: Request) {
 
     const todayIso = todayIsoInTimezone(timezone);
 
-    const { data: already } = await supabase
-      .from("email_reminder_log")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("reminder_type", "weekly_summary")
-      .eq("sent_on", sentUtcDay)
-      .maybeSingle();
+    if (!isTest) {
+      const { data: already } = await supabase
+        .from("email_reminder_log")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("reminder_type", "weekly_summary")
+        .eq("sent_on", sentUtcDay)
+        .maybeSingle();
 
-    if (already) {
-      skipped += 1;
-      continue;
+      if (already) {
+        skipped += 1;
+        continue;
+      }
     }
 
     const { data: subs, error: subsErr } = await supabase
@@ -94,26 +118,36 @@ export async function GET(request: Request) {
       continue;
     }
 
-    const payload = buildWeeklySummaryPayload(
-      (subs ?? []).map((s) => ({
-        id: s.id,
-        name: s.name,
-        amount: typeof s.amount === "number" ? s.amount : parseFloat(String(s.amount)),
-        next_payment_date: s.next_payment_date,
-        term_end: s.term_end,
-      })),
-      todayIso,
-      currency,
-      locale,
-      weekStart,
-    );
+    const mappedSubs = (subs ?? []).map((s) => ({
+      id: s.id,
+      name: s.name,
+      amount: typeof s.amount === "number" ? s.amount : parseFloat(String(s.amount)),
+      next_payment_date: s.next_payment_date,
+      term_end: s.term_end,
+    }));
+
+    const payload = isTest
+      ? buildAdminTestWeeklyPayload({
+          subs: mappedSubs,
+          todayIso,
+          currency,
+          locale,
+          weekStart,
+        })
+      : buildWeeklySummaryPayload(
+          mappedSubs,
+          todayIso,
+          currency,
+          locale,
+          weekStart,
+        );
 
     const hasContent =
       payload.overdue.length > 0 ||
       payload.dueThisWeek.length > 0 ||
       payload.upcomingCount > 0;
 
-    if (!hasContent) {
+    if (!isTest && !hasContent) {
       skipped += 1;
       continue;
     }
@@ -137,21 +171,26 @@ export async function GET(request: Request) {
       continue;
     }
 
-    const { error: logErr } = await supabase.from("email_reminder_log").insert({
-      user_id: user.id,
-      subscription_id: null,
-      reminder_type: "weekly_summary",
-      sent_on: sentUtcDay,
-    });
+    if (!isTest) {
+      const { error: logErr } = await supabase.from("email_reminder_log").insert({
+        user_id: user.id,
+        subscription_id: null,
+        reminder_type: "weekly_summary",
+        sent_on: sentUtcDay,
+      });
 
-    if (logErr) errors.push(`${email}: nosūtīts, žurnāls – ${logErr.message}`);
-    else sent += 1;
+      if (logErr) errors.push(`${email}: nosūtīts, žurnāls – ${logErr.message}`);
+      else sent += 1;
+    } else {
+      sent += 1;
+    }
   }
 
   return NextResponse.json({
     success: errors.length === 0,
     sent,
     skipped,
+    testMode: isTest,
     errors: errors.slice(0, 20),
   });
 }

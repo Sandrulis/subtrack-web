@@ -19,13 +19,18 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function AdminEmailDesignPage() {
   const supabase = await createServerSupabaseClient();
-  const [{ data, error }, { data: langRows }] = await Promise.all([
+  const [{ data, error }, { data: langRows }, { data: settingsRow }] = await Promise.all([
     supabase
       .from("system_settings_email_templates")
       .select("email_templates")
       .eq("id", 1)
       .maybeSingle(),
     supabase.from("languages").select("code, label").order("sort_order", { ascending: true }),
+    supabase
+      .from("system_settings")
+      .select("default_display_preferences")
+      .eq("id", 1)
+      .maybeSingle(),
   ]);
 
   const localeOptions =
@@ -55,6 +60,7 @@ export default async function AdminEmailDesignPage() {
         siteUrl={siteUrl}
         resendConfigured={isTransactionalEmailConfigured()}
         localeOptions={localeOptions}
+        systemDisplayPreferences={settingsRow?.default_display_preferences ?? null}
       />
     </div>
   );

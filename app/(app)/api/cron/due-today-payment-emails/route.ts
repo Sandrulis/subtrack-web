@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { authorizeCron } from "@/lib/security/cron-auth";
 import {
+  buildAdminTestDueTodayRow,
+  cronIncludesUser,
+  getCronTestUserId,
+  isCronAdminTestRun,
+} from "@/lib/cron/cron-admin-test";
+import {
   loadEmailCronContext,
   parseUserLocaleAndTz,
   todayIsoUtc,
@@ -31,8 +37,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, message: ctx.error }, { status: ctx.status });
   }
 
-  const { supabase, siteUrl, systemName, currency, templatesStore } = ctx;
+  const { supabase, siteUrl, systemName, currency, templatesStore, systemDisplayPreferences } =
+    ctx;
   const sentUtcDay = todayIsoUtc();
+  const testUserId = getCronTestUserId(request);
+  const isTest = isCronAdminTestRun(request);
 
   const { data: subs, error: subsErr } = await supabase
     .from("subscriptions")
@@ -42,7 +51,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, message: subsErr.message }, { status: 500 });
   }
 
-  const userIds = [...new Set((subs ?? []).map((s) => s.user_id))];
+  const filteredSubs = (subs ?? []).filter((s) =>
+    cronIncludesUser(String(s.user_id), testUserId),
+  );
+
+  let userIds = [...new Set(filteredSubs.map((s) => s.user_id))];
+  if (isTest && testUserId && !userIds.includes(testUserId)) {
+    userIds = [testUserId];
+  }
   const usersById = new Map<
     string,
     {
@@ -70,7 +86,26 @@ export async function GET(request: Request) {
     }
   }
 
-  const joined = (subs ?? []).map((s) => ({
+  if (isTest && testUserId && !usersById.has(testUserId)) {
+    const { data: testUser, error: testUserErr } = await supabase
+      .from("users")
+      .select("id, email, display_preferences, email_notification_preferences")
+      .eq("id", testUserId)
+      .maybeSingle();
+
+    if (testUserErr) {
+      return NextResponse.json({ success: false, message: testUserErr.message }, { status: 500 });
+    }
+    if (testUser) {
+      usersById.set(testUser.id, {
+        email: testUser.email,
+        display_preferences: testUser.display_preferences,
+        email_notification_preferences: testUser.email_notification_preferences,
+      });
+    }
+  }
+
+  const joined = filteredSubs.map((s) => ({
     ...s,
     users: usersById.get(s.user_id) ?? null,
   }));
@@ -80,9 +115,17 @@ export async function GET(request: Request) {
   for (const uid of userIds) {
     const user = usersById.get(uid);
     if (!user?.email?.trim()) continue;
-    if (!userWantsEmail(user.email_notification_preferences, "dueToday")) continue;
+    if (
+      !isTest &&
+      !userWantsEmail(user.email_notification_preferences, "dueToday")
+    ) {
+      continue;
+    }
 
-    const { timezone } = parseUserLocaleAndTz(user.display_preferences);
+    const { timezone } = parseUserLocaleAndTz(
+      user.display_preferences,
+      systemDisplayPreferences,
+    );
     const todayIso = todayIsoInTimezone(timezone);
     const userSubs = joined.filter((s) => s.user_id === uid);
     const rows = mapDueTodayRows(
@@ -96,7 +139,25 @@ export async function GET(request: Request) {
       todayIso,
       currency,
     );
-    candidates.push(...rows);
+    if (rows.length > 0) {
+      candidates.push(...rows);
+    } else if (isTest) {
+      candidates.push(
+        buildAdminTestDueTodayRow({
+          userId: uid,
+          email: user.email.trim(),
+          todayIso,
+          currency,
+          displayPreferences: user.display_preferences,
+          systemDisplayPreferences,
+          subs: userSubs.map((s) => ({
+            id: s.id,
+            name: s.name,
+            amount: s.amount,
+          })),
+        }),
+      );
+    }
   }
 
   if (candidates.length === 0) {
@@ -104,21 +165,27 @@ export async function GET(request: Request) {
       success: true,
       sent: 0,
       skipped: 0,
-      message: "Nav šodienas maksājumu ar ieslēgtiem paziņojumiem.",
+      testMode: isTest,
+      message: isTest
+        ? "Testa lietotājam nav e-pasta vai konta."
+        : "Nav šodienas maksājumu ar ieslēgtiem paziņojumiem.",
     });
   }
 
   const subIds = candidates.map((c) => c.subscriptionId);
-  const { data: sentToday } = await supabase
-    .from("email_reminder_log")
-    .select("subscription_id")
-    .eq("reminder_type", "due_today")
-    .eq("sent_on", sentUtcDay)
-    .in("subscription_id", subIds);
+  const alreadySent = new Set<string>();
+  if (!isTest) {
+    const { data: sentToday } = await supabase
+      .from("email_reminder_log")
+      .select("subscription_id")
+      .eq("reminder_type", "due_today")
+      .eq("sent_on", sentUtcDay)
+      .in("subscription_id", subIds);
 
-  const alreadySent = new Set(
-    (sentToday ?? []).map((r) => String(r.subscription_id)),
-  );
+    for (const r of sentToday ?? []) {
+      alreadySent.add(String(r.subscription_id));
+    }
+  }
 
   let sent = 0;
   let skipped = 0;
@@ -134,26 +201,33 @@ export async function GET(request: Request) {
       systemName,
       siteUrl,
       templatesStore,
+      systemDisplayPreferences,
+      userDisplayPreferences: usersById.get(row.userId)?.display_preferences,
     });
     if (!mail.ok) {
       if (mail.reason === "not_configured") skipped += 1;
       else errors.push(`${row.email}: ${mail.message}`);
       continue;
     }
-    const { error: logErr } = await supabase.from("email_reminder_log").insert({
-      user_id: row.userId,
-      subscription_id: row.subscriptionId,
-      reminder_type: "due_today",
-      sent_on: sentUtcDay,
-    });
-    if (logErr) errors.push(`${row.email}: nosūtīts, žurnāls – ${logErr.message}`);
-    else sent += 1;
+    if (!isTest) {
+      const { error: logErr } = await supabase.from("email_reminder_log").insert({
+        user_id: row.userId,
+        subscription_id: row.subscriptionId,
+        reminder_type: "due_today",
+        sent_on: sentUtcDay,
+      });
+      if (logErr) errors.push(`${row.email}: nosūtīts, žurnāls – ${logErr.message}`);
+      else sent += 1;
+    } else {
+      sent += 1;
+    }
   }
 
   return NextResponse.json({
     success: errors.length === 0,
     sent,
     skipped,
+    testMode: isTest,
     errors: errors.slice(0, 20),
   });
 }
