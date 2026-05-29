@@ -22,6 +22,8 @@ export type SubtrackIntegrationFlags = {
 
 type SubtrackIntlCtx = {
   locale: string;
+  /** Vismaz viens publicēts bloga ieraksts (footer saitei). */
+  hasPublishedBlogPosts: boolean;
   /** `public.system_settings.system_name` (bez vietturiem; zīmolam un vietturu aizpildei tulkošanā). */
   systemSiteName: string;
   /** Augšupielādēts logo; `null` = ģenerētā ikona `/icon`. */
@@ -45,6 +47,7 @@ const PAID_PLAN_CTX_DEFAULT: SubtrackPublicPaidPlan = {
 
 const SubtrackIntlReactContext = createContext<SubtrackIntlCtx>({
   locale: "lv",
+  hasPublishedBlogPosts: false,
   systemSiteName: DEFAULT_SYSTEM_NAME,
   brandLogo: null,
   paidPlan: PAID_PLAN_CTX_DEFAULT,
@@ -56,6 +59,7 @@ const SubtrackIntlReactContext = createContext<SubtrackIntlCtx>({
 
 export function SubtrackIntlProvider({
   locale,
+  hasPublishedBlogPosts = false,
   systemSiteName,
   brandLogo: brandLogoProp,
   paidPlan,
@@ -66,6 +70,7 @@ export function SubtrackIntlProvider({
   children,
 }: {
   locale: string;
+  hasPublishedBlogPosts?: boolean;
   systemSiteName: string;
   brandLogo?: PublicBrandLogoAssets | null;
   paidPlan?: SubtrackPublicPaidPlan | null;
@@ -102,6 +107,7 @@ export function SubtrackIntlProvider({
   const value = useMemo(
     () => ({
       locale: lc,
+      hasPublishedBlogPosts,
       systemSiteName: brand,
       brandLogo,
       paidPlan: plan,
@@ -110,7 +116,7 @@ export function SubtrackIntlProvider({
       languageOptions: langs,
       t,
     }),
-    [brand, brandLogo, integrations, lc, langs, plan, pwa, t],
+    [brand, brandLogo, hasPublishedBlogPosts, integrations, lc, langs, plan, pwa, t],
   );
 
   return (

@@ -1146,6 +1146,19 @@
     opacity: 0.92;
 }
 
+.sub-dynamic-carry-badge {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    font-size: 12px;
+    line-height: 1;
+    color: #6b5b95;
+}
+
+.sub-dynamic-carry-badge .fa-paperclip {
+    opacity: 0.92;
+}
+
 .sub-note-inline {
     font-size: 12px;
     font-weight: 500;

@@ -389,7 +389,7 @@ export function DashboardFsView({
           </AppPageContentGate>
         </main>
 
-        <SiteLandingFooter />
+        <SiteLandingFooter showAuthedActionLinks={Boolean(userDisplay) && !demoMode} />
       </div>
 
       <div

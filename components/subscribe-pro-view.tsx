@@ -121,7 +121,7 @@ export function SubscribeProView({
           </div>
         </section>
       </main>
-      <SiteLandingFooter />
+      <SiteLandingFooter showAuthedActionLinks={Boolean(userDisplay)} />
     </div>
   );
 }

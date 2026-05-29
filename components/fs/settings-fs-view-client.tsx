@@ -199,8 +199,8 @@ export function SettingsFsViewClient({
   return (
     <>
       <NavDash active="" userDisplay={userDisplay} />
-      <div className="auth-page-inner">
-        <AppPageContentGate ready={hydrated}>
+      <AppPageContentGate ready={hydrated}>
+        <div className="auth-page-inner">
         <div className="auth-card auth-card--settings auth-card--form">
           <div className="auth-card-icon">
             <i className="fa-solid fa-sliders fa-xl" aria-hidden="true" />
@@ -427,10 +427,10 @@ export function SettingsFsViewClient({
             <Link href="/dashboard">{t("settings.link_dashboard")}</Link>
           </p>
         </div>
-        </AppPageContentGate>
-      </div>
+        </div>
+      </AppPageContentGate>
 
-      <SiteLandingFooter />
+      <SiteLandingFooter showAuthedActionLinks={Boolean(userDisplay)} />
 
       <div className="toast-container toast-container--auth-pages" id="toast-container" />
     </>

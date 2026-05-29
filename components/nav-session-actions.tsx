@@ -14,7 +14,7 @@ type NavSessionActionsProps = {
 };
 
 /**
- * Paneļa un ielogotās sākumlapas augšējās labās darbības: zvans, profils, iziet.
+ * Paneļa un ielogotās sākumlapas augšējās labās darbības: valoda, zvans, profils, iziet.
  */
 export function NavSessionActions({
   userDisplay,

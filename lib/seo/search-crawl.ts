@@ -38,4 +38,5 @@ export const SEARCH_CRAWL_SITEMAP_ENTRIES: SearchCrawlSitemapEntry[] = [
   { path: "/privacy", changeFrequency: "monthly", priority: 0.3 },
   { path: "/terms", changeFrequency: "monthly", priority: 0.3 },
   { path: "/cookies", changeFrequency: "monthly", priority: 0.3 },
+  { path: "/blog", changeFrequency: "weekly", priority: 0.6 },
 ];

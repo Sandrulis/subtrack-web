@@ -20,6 +20,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 export type AdminSystemPanelProps = {
   loadError: string | null;
   initialSystemName: string;
+  initialSupportContactEmail: string;
   initialLogoRevision: number;
   initialDefaults: DisplayPreferences;
   initialPaidPlan: {
@@ -68,6 +69,7 @@ function PaidPlanSwitch({
 
 function buildFormData(
   systemName: string,
+  supportContactEmail: string,
   prefs: DisplayPreferences,
   paid: {
     enabled: boolean;
@@ -84,6 +86,7 @@ function buildFormData(
   }
   const fd = new FormData();
   fd.set("system_name", name);
+  fd.set("support_contact_email", supportContactEmail.trim());
   fd.set("currency", prefs.currency);
   fd.set("date_order", prefs.date_order);
   fd.set("date_sep", prefs.date_sep);
@@ -108,7 +111,7 @@ function buildFormData(
 
 function fdSignature(fd: FormData): string {
   return (
-    `${String(fd.get("system_name"))}\0${String(fd.get("currency"))}` +
+    `${String(fd.get("system_name"))}\0${String(fd.get("support_contact_email"))}\0${String(fd.get("currency"))}` +
     `\0${String(fd.get("date_order"))}\0${String(fd.get("date_sep"))}` +
     `\0${String(fd.get("time_format"))}\0${String(fd.get("time_sep"))}` +
     `\0${String(fd.get("timezone"))}\0${String(fd.get("week_start"))}` +
@@ -123,6 +126,7 @@ function fdSignature(fd: FormData): string {
 export function AdminSystemPanel({
   loadError,
   initialSystemName,
+  initialSupportContactEmail,
   initialLogoRevision,
   initialDefaults,
   initialPaidPlan,
@@ -130,6 +134,9 @@ export function AdminSystemPanel({
 }: AdminSystemPanelProps) {
   const { t, locale } = useSubtrackIntl();
   const [systemName, setSystemName] = useState(initialSystemName);
+  const [supportContactEmail, setSupportContactEmail] = useState(
+    initialSupportContactEmail,
+  );
   const [prefs, setPrefs] = useState<DisplayPreferences>(() => ({
     ...initialDefaults,
   }));
@@ -162,12 +169,14 @@ export function AdminSystemPanel({
 
   const snapshotRef = useRef({
     systemName: initialSystemName,
+    supportContactEmail: initialSupportContactEmail,
     prefs: initialDefaults,
     paid: initialPaidPlan,
     trial: initialProTrial,
   });
   snapshotRef.current = {
     systemName,
+    supportContactEmail,
     prefs,
     paid: {
       enabled: paidPlanEnabled,
@@ -228,8 +237,14 @@ export function AdminSystemPanel({
 
   async function persistFlushSilent(): Promise<void> {
     if (!hydratedRef.current || loadErrRef.current) return;
-    const { systemName: sn, prefs: p, paid: pd, trial: tr } = snapshotRef.current;
-    const fd = buildFormData(sn, p, pd, tr);
+    const {
+      systemName: sn,
+      supportContactEmail: sce,
+      prefs: p,
+      paid: pd,
+      trial: tr,
+    } = snapshotRef.current;
+    const fd = buildFormData(sn, sce, p, pd, tr);
     if (!fd) return;
     const sig = fdSignature(fd);
     if (sig === persistedSigRef.current) return;
@@ -243,8 +258,14 @@ export function AdminSystemPanel({
 
   async function persistDebouncedUi(): Promise<void> {
     if (loadErrRef.current) return;
-    const { systemName: sn, prefs: p, paid: pd, trial: tr } = snapshotRef.current;
-    const fd = buildFormData(sn, p, pd, tr);
+    const {
+      systemName: sn,
+      supportContactEmail: sce,
+      prefs: p,
+      paid: pd,
+      trial: tr,
+    } = snapshotRef.current;
+    const fd = buildFormData(sn, sce, p, pd, tr);
     if (!fd) {
       pushDomToast(t("admin.forms.err_system_name_required"), "error");
       return;
@@ -291,13 +312,20 @@ export function AdminSystemPanel({
       hydratedRef.current = true;
       const fd = buildFormData(
         initialSystemName,
+        initialSupportContactEmail,
         initialDefaults,
         initialPaidPlan,
         initialProTrial,
       );
       if (fd) persistedSigRef.current = fdSignature(fd);
     });
-  }, [initialDefaults, initialSystemName, initialPaidPlan, initialProTrial]);
+  }, [
+    initialDefaults,
+    initialSupportContactEmail,
+    initialSystemName,
+    initialPaidPlan,
+    initialProTrial,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -357,6 +385,30 @@ export function AdminSystemPanel({
             initialLogoRevision={initialLogoRevision}
             disabled={loadError !== null}
           />
+
+          <p className="form-section-label" style={{ marginTop: "20px" }}>
+            {t("admin.forms.section_support")}
+          </p>
+          <div className="form-group">
+            <label htmlFor="sys_support_email">
+              {t("admin.forms.label_support_contact_email")}
+            </label>
+            <input
+              id="sys_support_email"
+              type="email"
+              name="support_contact_email"
+              autoComplete="email"
+              inputMode="email"
+              placeholder={t("admin.forms.placeholder_support_contact_email")}
+              value={supportContactEmail}
+              disabled={loadError !== null}
+              onChange={(e) => {
+                setSupportContactEmail(e.target.value);
+                scheduleAutosave();
+              }}
+            />
+            <p className="form-hint">{t("admin.forms.hint_support_contact_email")}</p>
+          </div>
 
           <p className="form-section-label" style={{ marginTop: "20px" }}>
             {t("admin.forms.section_paid_plan")}

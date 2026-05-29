@@ -13,6 +13,21 @@ export function AdminIntegrationsIntro() {
   );
 }
 
+export function AdminBlogIntro({ titleActions }: { titleActions?: ReactNode }) {
+  const { t } = useSubtrackIntl();
+  return (
+    <div className="admin-page-head">
+      <div className="admin-page-title-row">
+        <h1 className="admin-page-title">{t("admin.blog.heading")}</h1>
+        {titleActions ? (
+          <div className="admin-page-title-actions">{titleActions}</div>
+        ) : null}
+      </div>
+      <p className="admin-page-lead">{t("admin.blog.lead")}</p>
+    </div>
+  );
+}
+
 export function AdminCategoriesIntro() {
   const { t } = useSubtrackIntl();
   return (

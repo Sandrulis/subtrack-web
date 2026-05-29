@@ -183,8 +183,8 @@ export function EmailNotificationsView({
   return (
     <>
       <NavDash userDisplay={userDisplay} />
-      <div className="auth-page-inner auth-page-inner--email-notif">
-        <AppPageContentGate ready={contentReady}>
+      <AppPageContentGate ready={contentReady}>
+        <div className="auth-page-inner auth-page-inner--email-notif">
         <div className="auth-card auth-card--settings auth-card--email-notif">
           <header className="email-notif-header">
             <div className="email-notif-header-icon" aria-hidden="true">
@@ -246,10 +246,10 @@ export function EmailNotificationsView({
             </Link>
           </nav>
         </div>
-        </AppPageContentGate>
-      </div>
+        </div>
+      </AppPageContentGate>
 
-      <SiteLandingFooter />
+      <SiteLandingFooter showAuthedActionLinks={Boolean(userDisplay)} />
       <div className="toast-container toast-container--auth-pages" id="toast-container" />
     </>
   );

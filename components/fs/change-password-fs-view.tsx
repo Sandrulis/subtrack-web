@@ -66,7 +66,7 @@ export function ChangePasswordFsView({
     <>
       <NavDash active="" userDisplay={userDisplay} />
       {inner}
-      <SiteLandingFooter />
+      <SiteLandingFooter showAuthedActionLinks={Boolean(userDisplay)} />
       <div className="toast-container toast-container--auth-pages">
         <FlashParamToast error={flashError} message={flashMessage} />
       </div>

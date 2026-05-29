@@ -24,7 +24,7 @@ export default async function AdminSystemPage() {
   const { data, error } = await supabase
     .from("system_settings")
     .select(
-      "system_name, logo_revision, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, pro_trial_enabled, pro_trial_days",
+      "system_name, logo_revision, support_contact_email, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, pro_trial_enabled, pro_trial_days",
     )
     .eq("id", 1)
     .maybeSingle();
@@ -39,6 +39,11 @@ export default async function AdminSystemPage() {
   const initialPaidPlan = normalizePaidPlanRow(data);
   const initialProTrial = normalizeProTrialConfig(data);
 
+  const initialSupportContactEmail =
+    typeof data?.support_contact_email === "string"
+      ? data.support_contact_email.trim()
+      : "";
+
   const logoRevisionRaw = data?.logo_revision;
   const initialLogoRevision =
     typeof logoRevisionRaw === "number"
@@ -51,6 +56,7 @@ export default async function AdminSystemPage() {
       <AdminSystemPanel
         loadError={error?.message ?? null}
         initialSystemName={initialSystemName}
+        initialSupportContactEmail={initialSupportContactEmail}
         initialLogoRevision={initialLogoRevision}
         initialDefaults={initialDefaults}
         initialPaidPlan={initialPaidPlan}

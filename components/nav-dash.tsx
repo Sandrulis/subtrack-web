@@ -33,6 +33,7 @@ export function NavDash({
   const analyticsHref = demoMode ? "/demo/analytics" : "/analytics";
   const dashboardHref = demoMode ? "/demo/dashboard" : "/dashboard";
   const showAnalyticsNav = true;
+
   return (
     <>
     <AuthedNotifyBootstrap

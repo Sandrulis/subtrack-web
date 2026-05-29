@@ -1164,6 +1164,15 @@ function buildItem(s) {
               '"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span>'
             : '';
 
+    var dynamicCarryBadge =
+        s.dynamicAmount === true && s.dynamicCarryPrevious === true
+            ? '<span class="sub-dynamic-carry-badge" data-tooltip="' +
+              escAttr(FsT('fs.dashboard.label_dynamic_carry_previous')) +
+              '" aria-label="' +
+              escAttr(FsT('fs.dashboard.label_dynamic_carry_previous')) +
+              '"><i class="fa-solid fa-paperclip" aria-hidden="true"></i></span>'
+            : '';
+
     var isShared = subtrackSubscriptionIsShared(s);
     var sharedBadge = '';
     var itemStyle = '';
@@ -1237,6 +1246,7 @@ function buildItem(s) {
                     '</span>' +
                     sharedBadge +
                     dynamicAmountBadge +
+                    dynamicCarryBadge +
                     (s.note ? '<span class="sub-note-inline">' + escHtml(s.note) + '</span>' : '') +
                     '<span class="sub-category-pill">' + escHtml(categoryLabel(s.category)) + '</span>' +
                     '</div>' +

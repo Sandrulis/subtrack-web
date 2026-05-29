@@ -8,6 +8,15 @@ export const LEGAL_FALLBACK_PHRASES = {
     pt: "Informações legais",
     ru: "Юридическая информация",
   },
+  "legal.footer.blog": {
+    lv: "Blogs",
+    en: "Blog",
+    fr: "Blog",
+    de: "Blog",
+    es: "Blog",
+    pt: "Blog",
+    ru: "Блог",
+  },
   "legal.footer.terms": {
     lv: "Noteikumi",
     en: "Terms",

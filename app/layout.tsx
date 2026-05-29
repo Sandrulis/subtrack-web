@@ -21,6 +21,7 @@ import { getPublicSiteTranslationsMerged } from "@/lib/site-translations-public"
 import { getPublicSystemSettings } from "@/lib/system-settings-public";
 import { getPublicSiteOrigin } from "@/lib/site-url";
 import { isIntegrationEnabled } from "@/lib/integrations/integration-enabled";
+import { hasPublishedBlogPosts } from "@/lib/blog/blog-public";
 import { resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
 import {
   buildSiteShareOpenGraphTwitterEn,
@@ -90,10 +91,11 @@ export default async function RootLayout({
   const catalog = await getLanguagesCatalog();
   const { locale: uiLocaleCode, isAuthenticated } = await resolveRequestUiLocales();
   const lang = localeCodeToHtmlLang(uiLocaleCode);
-  const [dbMap, publicSettings, familySharingEnabled] = await Promise.all([
+  const [dbMap, publicSettings, familySharingEnabled, blogPostsPublished] = await Promise.all([
     getPublicSiteTranslationsMerged(uiLocaleCode, catalog.defaultCode),
     getPublicSystemSettings(),
     isAuthenticated ? isIntegrationEnabled("family_sharing") : Promise.resolve(false),
+    hasPublishedBlogPosts(),
   ]);
   const systemSiteName = publicSettings.systemName;
   const brandLogo = publicSettings.brandLogo;
@@ -120,6 +122,7 @@ export default async function RootLayout({
         />
         <SubtrackIntlProvider
           locale={uiLocaleCode}
+          hasPublishedBlogPosts={blogPostsPublished}
           systemSiteName={systemSiteName}
           brandLogo={brandLogo}
           paidPlan={publicSettings.paidPlan}

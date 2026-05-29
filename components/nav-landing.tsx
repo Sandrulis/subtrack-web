@@ -23,6 +23,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
   const pathname = usePathname() ?? "";
   const showAuthedAnalytics = Boolean(userDisplay);
   const authedAnalyticsPathActive = pathname.startsWith("/analytics");
+
   return (
     <>
     <AuthedNotifyBootstrap enabled={Boolean(userDisplay)} />

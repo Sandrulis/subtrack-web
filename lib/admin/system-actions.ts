@@ -43,6 +43,16 @@ function validateSystemName(raw: string): string | null {
   return null;
 }
 
+function validateSupportContactEmail(raw: string): string | null {
+  const t = raw.trim();
+  if (!t) return null;
+  if (t.length > 254) return "Atbalsta e-pasts drīkst būt līdz 254 rakstzīmēm.";
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(t)) {
+    return "Norādi derīgu atbalsta e-pasta adresi vai atstāj lauku tukšu.";
+  }
+  return null;
+}
+
 function buildPrefsFromForm(formData: FormData): Partial<DisplayPreferences> {
   const raw = {
     currency: readFormString(formData, "currency"),
@@ -71,6 +81,10 @@ export async function saveSystemSettingsAction(
   const system_name = readFormString(formData, "system_name");
   const nameErr = validateSystemName(system_name);
   if (nameErr) return { ok: false, message: nameErr };
+
+  const support_contact_email = readFormString(formData, "support_contact_email");
+  const supportEmailErr = validateSupportContactEmail(support_contact_email);
+  if (supportEmailErr) return { ok: false, message: supportEmailErr };
 
   const partial = buildPrefsFromForm(formData);
   const tzFromForm = readFormString(formData, "timezone");
@@ -151,6 +165,7 @@ export async function saveSystemSettingsAction(
     .from("system_settings")
     .update({
       system_name,
+      support_contact_email: support_contact_email || null,
       default_display_preferences: partial,
       paid_plan_enabled,
       paid_plan_annual_enabled,
@@ -176,6 +191,9 @@ export async function saveSystemSettingsAction(
     } else if (/paid_plan/i.test(msg) && /column/i.test(msg)) {
       msg =
         "Migrācija `database/supabase/027_paid_plan.sql` vēl nav palaista (trēkst kolonnas).";
+    } else if (/support_contact_email/i.test(msg) && /column/i.test(msg)) {
+      msg =
+        "Migrācija `database/supabase/149_system_settings_support_contact_email.sql` vēl nav palaista.";
     } else if (/relation .* does not exist/i.test(msg) || /schema cache/i.test(msg)) {
       msg = "Migrācija `database/supabase/012_system_settings.sql` vēl nav palaista.";
     }

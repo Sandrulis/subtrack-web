@@ -29,6 +29,7 @@ async function sendViaResend(input: {
   to: string;
   subject: string;
   html: string;
+  replyTo?: string;
 }): Promise<SendEmailResult> {
   const cfg = getResendConfig();
   if (!cfg) {
@@ -39,18 +40,24 @@ async function sendViaResend(input: {
     };
   }
 
+  const payload: Record<string, unknown> = {
+    from: cfg.from,
+    to: [input.to],
+    subject: input.subject,
+    html: input.html,
+  };
+  const replyTo = input.replyTo?.trim();
+  if (replyTo) {
+    payload.reply_to = replyTo;
+  }
+
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${cfg.apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      from: cfg.from,
-      to: [input.to],
-      subject: input.subject,
-      html: input.html,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
@@ -235,4 +242,14 @@ export async function sendTrialEndingEmail(input: {
 
 export function isTransactionalEmailConfigured(): boolean {
   return getResendConfig() !== null;
+}
+
+/** Vienkāršs HTML e-pasts (piem. atbalsta pieprasījums) ar opciju reply-to. */
+export async function sendRawTransactionalEmail(input: {
+  to: string;
+  subject: string;
+  html: string;
+  replyTo?: string;
+}): Promise<SendEmailResult> {
+  return sendViaResend(input);
 }

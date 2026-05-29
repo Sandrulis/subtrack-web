@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
+import { AuthedFooterActionLinks } from "@/components/authed/authed-footer-action-links";
+import { AuthedNavOverlaysProvider } from "@/components/authed/authed-nav-overlays-provider";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { NavDash } from "@/components/nav-dash";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
@@ -19,6 +21,7 @@ export type AdminNavActive =
   | "cron_jobs"
   | "pwa"
   | "todos"
+  | "blog"
   | "";
 
 function navActiveFromPath(pathname: string): AdminNavActive {
@@ -38,6 +41,7 @@ function navActiveFromPath(pathname: string): AdminNavActive {
   if (pathname.startsWith("/admin/cron-jobs")) return "cron_jobs";
   if (pathname.startsWith("/admin/pwa")) return "pwa";
   if (pathname.startsWith("/admin/todos")) return "todos";
+  if (pathname.startsWith("/admin/blog")) return "blog";
   return "";
 }
 
@@ -59,7 +63,8 @@ const navItems: {
     | "admin.nav.email_design"
     | "admin.nav.cron_jobs"
     | "admin.nav.pwa"
-    | "admin.nav.todos";
+    | "admin.nav.todos"
+    | "admin.nav.blog";
 }[] = [
   { href: "/admin/users", key: "users", labelKey: "admin.nav.users" },
   {
@@ -95,6 +100,7 @@ const navItems: {
     labelKey: "admin.nav.cron_jobs",
   },
   { href: "/admin/todos", key: "todos", labelKey: "admin.nav.todos" },
+  { href: "/admin/blog", key: "blog", labelKey: "admin.nav.blog" },
 ];
 
 export function AdminShell({
@@ -157,6 +163,9 @@ export function AdminShell({
         <div className="admin-main">{children}</div>
       </div>
       <footer className="landing-footer landing-footer--with-legal admin-footer">
+        <AuthedNavOverlaysProvider>
+          <AuthedFooterActionLinks />
+        </AuthedNavOverlaysProvider>
         <LegalFooterLinks />
         <p>
           &copy; {year} {systemSiteName}. {t("admin.footer.rights_reserved")}
