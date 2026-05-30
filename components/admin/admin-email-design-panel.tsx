@@ -18,6 +18,10 @@ import type { DisplayPreferences } from "@/lib/user-display-preferences";
 import { renderEmailHtml } from "@/lib/emails/render-email-html";
 import { buildSupabasePasteBundle } from "@/lib/emails/supabase-export";
 import {
+  buildAdminTestDueTodayDigestPayload,
+  buildDueTodayDigestSectionsHtml,
+} from "@/lib/emails/due-today-digest-email";
+import {
   buildWeeklySummaryPayload,
   buildWeeklySummarySectionsHtml,
   formatWeekRangeLabel,
@@ -145,7 +149,12 @@ export function AdminEmailDesignPanel({
 
   const previewCopy = useMemo(() => {
     const overdue = isPaymentTemplate
-      ? overduePreviewContext(locale, systemPrefs)
+      ? {
+          ...overduePreviewContext(locale, systemPrefs),
+          paymentSummary: "Netflix",
+          paymentCount: 3,
+          totalFormatted: "€53.48",
+        }
       : undefined;
     const weekRange =
       templateId === "weekly_summary"
@@ -185,6 +194,8 @@ export function AdminEmailDesignPanel({
       ctx.amountFormatted = overdue.amountFormatted;
       ctx.dueDateFormatted = overdue.dueDateFormatted;
       ctx.overdueDays = overdue.overdueDays;
+      const digestPayload = buildAdminTestDueTodayDigestPayload(locale, "EUR");
+      ctx.extraSectionsHtml = buildDueTodayDigestSectionsHtml(digestPayload, locale);
     }
     if (templateId === "weekly_summary") {
       const today = EMAIL_DESIGN_PREVIEW_ISO.weeklyToday;

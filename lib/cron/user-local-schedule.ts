@@ -61,3 +61,12 @@ export function isWeeklySummarySendWindow(
   const p = getUserLocalParts(timezone, ref);
   return p.weekday === 1 && p.hour === 9;
 }
+
+/** Katru dienu, lokālais laiks 08:00–08:59 (cron ieteicams ik stundu). */
+export function isDueTodaySendWindow(
+  timezone: string,
+  ref = new Date(),
+): boolean {
+  const p = getUserLocalParts(timezone, ref);
+  return p.hour === 8;
+}

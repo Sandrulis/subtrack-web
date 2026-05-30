@@ -6,7 +6,7 @@ import {
   logEmailReminderAndCountSent,
 } from "@/lib/cron/email-reminder-send";
 import {
-  buildAdminTestDueTodayRow,
+  buildAdminTestDueTodayRows,
   cronIncludesUser,
   getCronTestUserId,
   isCronAdminTestRun,
@@ -17,15 +17,24 @@ import {
   todayIsoUtc,
   userWantsEmail,
 } from "@/lib/cron/email-cron-common";
+import { isCronForceRun } from "@/lib/cron/cron-force-query";
+import { isDueTodaySendWindow } from "@/lib/cron/user-local-schedule";
 import { todayIsoInTimezone } from "@/lib/subscriptions/due-active";
 import { mapDueTodayRows } from "@/lib/subscriptions/due-today-for-email";
 import {
   isTransactionalEmailConfigured,
-  sendPaymentDueTodayEmail,
+  sendPaymentDueTodayDigestEmail,
 } from "@/lib/emails/send-transactional";
 import type { OverdueSubscriptionRow } from "@/lib/subscriptions/overdue-for-email";
 
 export const GET = createAuthorizedCronGetRoute("due-today-payment-emails", handleGet);
+
+type UserDueTodayBatch = {
+  userId: string;
+  email: string;
+  displayPreferences: unknown;
+  rows: OverdueSubscriptionRow[];
+};
 
 async function handleGet(request: Request) {
   if (!isTransactionalEmailConfigured()) {
@@ -45,6 +54,7 @@ async function handleGet(request: Request) {
   const sentUtcDay = todayIsoUtc();
   const testUserId = getCronTestUserId(request);
   const isTest = isCronAdminTestRun(request);
+  const force = isCronForceRun(request) || isTest;
 
   const { data: subs, error: subsErr } = await supabase
     .from("subscriptions")
@@ -113,7 +123,7 @@ async function handleGet(request: Request) {
     users: usersById.get(s.user_id) ?? null,
   }));
 
-  const candidates: OverdueSubscriptionRow[] = [];
+  const batches: UserDueTodayBatch[] = [];
 
   for (const uid of userIds) {
     const user = usersById.get(uid);
@@ -129,6 +139,9 @@ async function handleGet(request: Request) {
       user.display_preferences,
       systemDisplayPreferences,
     );
+    if (!force && !isDueTodaySendWindow(timezone)) {
+      continue;
+    }
     const todayIso = todayIsoInTimezone(timezone);
     const userSubs = joined.filter((s) => s.user_id === uid);
     const rows = mapDueTodayRows(
@@ -142,11 +155,20 @@ async function handleGet(request: Request) {
       todayIso,
       currency,
     );
+
     if (rows.length > 0) {
-      candidates.push(...rows);
+      batches.push({
+        userId: uid,
+        email: user.email.trim(),
+        displayPreferences: user.display_preferences,
+        rows,
+      });
     } else if (isTest) {
-      candidates.push(
-        buildAdminTestDueTodayRow({
+      batches.push({
+        userId: uid,
+        email: user.email.trim(),
+        displayPreferences: user.display_preferences,
+        rows: buildAdminTestDueTodayRows({
           userId: uid,
           email: user.email.trim(),
           todayIso,
@@ -159,11 +181,11 @@ async function handleGet(request: Request) {
             amount: s.amount,
           })),
         }),
-      );
+      });
     }
   }
 
-  if (candidates.length === 0) {
+  if (batches.length === 0) {
     return NextResponse.json({
       success: true,
       sent: 0,
@@ -175,46 +197,75 @@ async function handleGet(request: Request) {
     });
   }
 
-  const subIds = candidates.map((c) => c.subscriptionId);
-  const alreadySent = new Set<string>();
-  if (!isTest) {
-    const { data: sentToday } = await supabase
-      .from("email_reminder_log")
-      .select("subscription_id")
-      .eq("reminder_type", "due_today")
-      .eq("sent_on", sentUtcDay)
-      .in("subscription_id", subIds);
+  const digestAlreadySent = new Set<string>();
+  const subAlreadySent = new Set<string>();
 
-    for (const r of sentToday ?? []) {
-      alreadySent.add(String(r.subscription_id));
+  if (!isTest) {
+    const userIdsToCheck = batches.map((b) => b.userId);
+    const subIds = batches.flatMap((b) => b.rows.map((r) => r.subscriptionId));
+
+    const [{ data: digestSentToday }, { data: subSentToday }] = await Promise.all([
+      supabase
+        .from("email_reminder_log")
+        .select("user_id")
+        .eq("reminder_type", "due_today")
+        .eq("sent_on", sentUtcDay)
+        .is("subscription_id", null)
+        .in("user_id", userIdsToCheck),
+      subIds.length > 0
+        ? supabase
+            .from("email_reminder_log")
+            .select("subscription_id")
+            .eq("reminder_type", "due_today")
+            .eq("sent_on", sentUtcDay)
+            .in("subscription_id", subIds)
+        : Promise.resolve({ data: [] as { subscription_id: string }[] }),
+    ]);
+
+    for (const r of digestSentToday ?? []) {
+      digestAlreadySent.add(String(r.user_id));
+    }
+    for (const r of subSentToday ?? []) {
+      subAlreadySent.add(String(r.subscription_id));
     }
   }
 
   const counters = { sent: 0, skipped: 0, errors: [] as string[] };
 
-  for (const row of candidates) {    if (alreadySent.has(row.subscriptionId)) {
+  for (const batch of batches) {
+    if (digestAlreadySent.has(batch.userId)) {
       counters.skipped += 1;
       continue;
     }
-    const mail = await sendPaymentDueTodayEmail({
-      row,
+
+    const pendingRows = isTest
+      ? batch.rows
+      : batch.rows.filter((row) => !subAlreadySent.has(row.subscriptionId));
+
+    if (pendingRows.length === 0) {
+      counters.skipped += 1;
+      continue;
+    }
+
+    const mail = await sendPaymentDueTodayDigestEmail({
+      rows: pendingRows,
       systemName,
       siteUrl,
       templatesStore,
       systemDisplayPreferences,
-      userDisplayPreferences: usersById.get(row.userId)?.display_preferences,
+      userDisplayPreferences: batch.displayPreferences,
     });
-    const outcome = applyCronMailSendResult(mail, row.email, counters);
+    const outcome = applyCronMailSendResult(mail, batch.email, counters);
     if (outcome !== "sent_pending_log") continue;
 
     await logEmailReminderAndCountSent({
       supabase,
       isTest,
       sentUtcDay,
-      userId: row.userId,
-      subscriptionId: row.subscriptionId,
+      userId: batch.userId,
+      subscriptionId: null,
       reminderType: "due_today",
-      email: row.email,
+      email: batch.email,
       counters,
     });
   }

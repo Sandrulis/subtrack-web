@@ -4070,6 +4070,21 @@ body.landing-page .landing-cta {
     margin-top: 14px;
 }
 
+/* Panelis ≤960px: abonementu saraksts zem kalendāra – lazy paint (Speed Index) */
+@media (max-width: 960px) {
+    .section-header.section-header--subscriptions-list,
+    .section-header.section-header--subscriptions-list ~ .dashboard-category-bar,
+    .section-header.section-header--subscriptions-list ~ .sub-list,
+    .section-header.section-header--subscriptions-list ~ .empty-state {
+        content-visibility: auto;
+        contain-intrinsic-size: auto 280px;
+    }
+
+    .section-header.section-header--subscriptions-list {
+        contain-intrinsic-size: auto 52px;
+    }
+}
+
 /* Kategoriju sadalījums virs abonementu saraksta */
 .dashboard-category-bar {
     margin-bottom: 4px;

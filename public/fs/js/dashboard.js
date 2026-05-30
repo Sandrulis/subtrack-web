@@ -231,6 +231,14 @@ function fsBootDashboard() {
         subtrackReloadSubscriptionsFromBootstrap();
         subtrackRefreshFamilySharedCache();
     }
+    try {
+        continueDashboardBoot();
+    } catch (e) {
+        /* ignore */
+    }
+    if (typeof subtrackNotifyPageContentReady === 'function') {
+        subtrackNotifyPageContentReady();
+    }
     Promise.all([
         subtrackSyncSubscriptionsFromApi(),
         subtrackSyncFamilySharingBootstrapFromApi(),
@@ -239,12 +247,7 @@ function fsBootDashboard() {
             continueDashboardBoot();
         })
         .catch(function () {
-            continueDashboardBoot();
-        })
-        .finally(function () {
-            if (typeof subtrackNotifyPageContentReady === 'function') {
-                subtrackNotifyPageContentReady();
-            }
+            /* paliek SSR bootstrap render */
         });
 }
 

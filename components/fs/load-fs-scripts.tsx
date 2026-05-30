@@ -39,7 +39,7 @@ export function hydrateFsI18nFromTemplate(): void {
 
 const scriptInflight = new Map<string, Promise<void>>();
 
-/** Abonementu bootstrap (`#subtrack-subs-bootstrap-json` kā `<template>`) + palīgfunkcijas + augšējās joslas paziņojumi (ielādējas secīgi). */
+/** Abonementu bootstrap + palīgfunkcijas + augšējās joslas paziņojumi. */
 export const AUTHED_NOTIFY_SCRIPTS = [
   "/fs/js/display-preferences-format.js",
   "/fs/js/subscriptions-data.js",
@@ -47,11 +47,43 @@ export const AUTHED_NOTIFY_SCRIPTS = [
   "/fs/js/dash-alerts.js",
 ] as const;
 
+/**
+ * Ielādē FS skriptus pa atkarību līmeņiem; katrā līmenī – paralēli (`async`).
+ * 1) prefs + subscriptions-data; 2) helpers; 3) dash-alerts.
+ */
+async function loadScriptsInTiers(
+  tiers: readonly (readonly string[])[],
+): Promise<void> {
+  for (const tier of tiers) {
+    await Promise.all(tier.map((src) => loadScriptOnce(src)));
+  }
+}
+
 export async function ensureAuthedNotifyScriptsLoaded(): Promise<void> {
   hydrateFsI18nFromTemplate();
-  for (const src of AUTHED_NOTIFY_SCRIPTS) {
-    await loadScriptOnce(src);
-  }
+  await loadScriptsInTiers([
+    [
+      "/fs/js/display-preferences-format.js",
+      "/fs/js/subscriptions-data.js",
+    ],
+    ["/fs/js/subscriptions-helpers.js"],
+    ["/fs/js/dash-alerts.js"],
+  ]);
+}
+
+/** `/dashboard` – kopīgie notify skripti + modāļa guards un dashboard.js paralēli. */
+export async function loadDashboardPageScripts(): Promise<void> {
+  await ensureAuthedNotifyScriptsLoaded();
+  await Promise.all([
+    loadScriptOnce("/fs/js/modal-overlay-guard.js"),
+    loadScriptOnce("/fs/js/dashboard.js"),
+  ]);
+}
+
+/** `/analytics` – kopīgie notify skripti + analytics.js. */
+export async function loadAnalyticsPageScripts(): Promise<void> {
+  await ensureAuthedNotifyScriptsLoaded();
+  await loadScriptOnce("/fs/js/analytics.js");
 }
 
 export function loadScriptOnce(src: string): Promise<void> {
@@ -67,7 +99,7 @@ export function loadScriptOnce(src: string): Promise<void> {
   const promise = new Promise<void>((resolve, reject) => {
     const s = document.createElement("script");
     s.src = src;
-    s.async = false;
+    s.async = true;
     s.onload = () => {
       scriptInflight.delete(abs);
       resolve();

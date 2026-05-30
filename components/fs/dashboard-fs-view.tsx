@@ -3,10 +3,7 @@
 import { useEffect } from "react";
 import { NavDash } from "@/components/nav-dash";
 import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
-import {
-  ensureAuthedNotifyScriptsLoaded,
-  loadScriptOnce,
-} from "@/components/fs/load-fs-scripts";
+import { loadDashboardPageScripts } from "@/components/fs/load-fs-scripts";
 import { FsDemoDashboardWindowFlag } from "@/components/fs/fs-demo-window-flags";
 import type { NavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
@@ -81,11 +78,7 @@ export function DashboardFsView({
     let cancelled = false;
     (async () => {
       try {
-        await ensureAuthedNotifyScriptsLoaded();
-        if (cancelled) return;
-        await loadScriptOnce("/fs/js/modal-overlay-guard.js");
-        if (cancelled) return;
-        await loadScriptOnce("/fs/js/dashboard.js");
+        await loadDashboardPageScripts();
         if (cancelled) return;
         window.fsBootDashboard?.();
       } catch {

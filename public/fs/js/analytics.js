@@ -265,17 +265,20 @@ function fsBootAnalytics() {
     if (!skip && typeof subtrackReloadSubscriptionsFromBootstrap === 'function') {
         subtrackReloadSubscriptionsFromBootstrap();
     }
+    try {
+        renderAnalytics();
+    } catch (e) {
+        /* ignore */
+    }
+    if (typeof subtrackNotifyPageContentReady === 'function') {
+        subtrackNotifyPageContentReady();
+    }
     subtrackSyncSubscriptionsFromApi()
         .then(function () {
             renderAnalytics();
         })
         .catch(function () {
-            if (typeof renderAnalytics === 'function') renderAnalytics();
-        })
-        .finally(function () {
-            if (typeof subtrackNotifyPageContentReady === 'function') {
-                subtrackNotifyPageContentReady();
-            }
+            /* paliek SSR bootstrap render */
         });
 }
 

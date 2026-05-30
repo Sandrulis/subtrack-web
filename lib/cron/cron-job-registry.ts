@@ -17,9 +17,10 @@ export function cronJobApiPath(job: CronJobId): string {
   return `/api/cron/${job}`;
 }
 
-/** Nedēļas / trial cron laika logi tiek apieti ar `force=1`. */
+/** Nedēļas / trial / šodienas cron laika logi tiek apieti ar `force=1`. */
 export function cronJobSupportsForceSchedule(job: CronJobId): boolean {
   return (
+    job === "due-today-payment-emails" ||
     job === "weekly-summary-emails" ||
     job === "trial-ending-emails" ||
     job === "win-back-7d-emails" ||

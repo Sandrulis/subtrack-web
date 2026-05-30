@@ -12,14 +12,16 @@ export type WinBackTemplateId = "win_back_7d" | "win_back_30d";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
 import { buildPreviewRenderContext } from "./preview-context";
 import {
+  buildDueTodayDigestPayload,
+  buildDueTodayDigestSectionsHtml,
+  buildDueTodayPaymentSummaryLabel,
+} from "./due-today-digest-email";
+import {
   buildWeeklySummarySectionsHtml,
   buildWeeklyUnsubscribeFooterHtml,
   type WeeklySummaryPayload,
 } from "./weekly-summary-email";
-import {
-  formatAmountForEmail,
-  type OverdueSubscriptionRow,
-} from "@/lib/subscriptions/overdue-for-email";
+import type { OverdueSubscriptionRow } from "@/lib/subscriptions/overdue-for-email";
 
 export type SendEmailResult =
   | { ok: true; id?: string }
@@ -149,44 +151,60 @@ export async function sendResetPasswordEmail(input: {
   });
 }
 
-export async function sendPaymentDueTodayEmail(input: {
-  row: OverdueSubscriptionRow;
+export async function sendPaymentDueTodayDigestEmail(input: {
+  rows: OverdueSubscriptionRow[];
   systemName: string;
   siteUrl: string;
   templatesStore: EmailTemplatesStore;
   systemDisplayPreferences: DisplayPreferences;
   userDisplayPreferences?: unknown;
 }): Promise<SendEmailResult> {
-  const { row, systemName, siteUrl, templatesStore, systemDisplayPreferences, userDisplayPreferences } =
-    input;
-  const amountFormatted = formatAmountForEmail(row.amount, row.currency, row.locale);
+  const {
+    rows,
+    systemName,
+    siteUrl,
+    templatesStore,
+    systemDisplayPreferences,
+    userDisplayPreferences,
+  } = input;
+  if (rows.length === 0) {
+    return { ok: false, reason: "provider_error", message: "No due-today rows" };
+  }
+
+  const first = rows[0]!;
+  const payload = buildDueTodayDigestPayload(rows);
+  const paymentSummary = buildDueTodayPaymentSummaryLabel(rows, first.locale);
   const dueDateFormatted = formatCronEmailDate(
-    new Date(`${row.nextPaymentDate}T12:00:00Z`),
+    new Date(`${first.nextPaymentDate}T12:00:00Z`),
     userDisplayPreferences,
     systemDisplayPreferences,
   );
 
   const copy = resolveEmailCopy(
     "payment_due_today",
-    row.locale,
+    first.locale,
     templatesStore,
     systemName,
     {
-      paymentName: row.paymentName,
-      amountFormatted,
+      paymentName: first.paymentName,
+      paymentSummary,
+      amountFormatted: payload.items[0]?.amountFormatted ?? "",
       dueDateFormatted,
       overdueDays: 0,
+      paymentCount: payload.paymentCount,
+      totalFormatted: payload.totalFormatted,
     },
   );
 
   const ctx = buildPreviewRenderContext("payment_due_today", systemName, siteUrl);
-  ctx.paymentName = row.paymentName;
-  ctx.amountFormatted = amountFormatted;
+  ctx.paymentName = first.paymentName;
+  ctx.amountFormatted = payload.totalFormatted;
   ctx.dueDateFormatted = dueDateFormatted;
   ctx.overdueDays = 0;
+  ctx.extraSectionsHtml = buildDueTodayDigestSectionsHtml(payload, first.locale);
 
   const html = renderEmailHtml(copy, ctx);
-  return sendViaResend({ to: row.email, subject: copy.subject, html });
+  return sendViaResend({ to: first.email, subject: copy.subject, html });
 }
 
 export async function sendWeeklySummaryEmail(input: {

@@ -43,9 +43,12 @@ export function resolveEmailCopy(
   systemName: string,
   overdueCtx?: {
     paymentName: string;
+    paymentSummary?: string;
     amountFormatted: string;
     dueDateFormatted: string;
     overdueDays: number;
+    paymentCount?: number;
+    totalFormatted?: string;
   },
   weeklyCtx?: { weekRangeLabel: string },
   trialCtx?: { trialDaysRemaining: number; trialEndDateFormatted: string },

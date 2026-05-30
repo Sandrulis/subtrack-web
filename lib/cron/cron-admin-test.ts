@@ -27,6 +27,48 @@ export function cronIncludesUser(userId: string, testUserId: string | null): boo
   return !testUserId || userId === testUserId;
 }
 
+export function buildAdminTestDueTodayRows(input: {
+  userId: string;
+  email: string;
+  todayIso: string;
+  currency: string;
+  displayPreferences: unknown;
+  systemDisplayPreferences: DisplayPreferences;
+  subs: Array<{ id: string; name: string; amount: number | string }>;
+}): OverdueSubscriptionRow[] {
+  const { locale } = parseUserLocaleAndTz(
+    input.displayPreferences,
+    input.systemDisplayPreferences,
+  );
+
+  const source =
+    input.subs.length > 0
+      ? input.subs
+      : [
+          { id: "admin-test-1", name: "Netflix (tests)", amount: 12.99 },
+          { id: "admin-test-2", name: "Spotify (tests)", amount: 9.99 },
+        ];
+
+  return source.map((sub, index) => {
+    const rawAmount =
+      typeof sub.amount === "number" ? sub.amount : parseFloat(String(sub.amount));
+    const amount = Number.isFinite(rawAmount) ? rawAmount : 9.99;
+
+    return {
+      subscriptionId: sub.id || `admin-test-${index + 1}`,
+      userId: input.userId,
+      email: input.email,
+      paymentName: sub.name?.trim() || "Netflix (tests)",
+      amount,
+      currency: input.currency,
+      nextPaymentDate: input.todayIso,
+      overdueDays: 0,
+      locale,
+    };
+  });
+}
+
+/** @deprecated use buildAdminTestDueTodayRows */
 export function buildAdminTestDueTodayRow(input: {
   userId: string;
   email: string;
@@ -36,29 +78,7 @@ export function buildAdminTestDueTodayRow(input: {
   systemDisplayPreferences: DisplayPreferences;
   subs: Array<{ id: string; name: string; amount: number | string }>;
 }): OverdueSubscriptionRow {
-  const { locale } = parseUserLocaleAndTz(
-    input.displayPreferences,
-    input.systemDisplayPreferences,
-  );
-  const sub = input.subs[0];
-  const rawAmount = sub
-    ? typeof sub.amount === "number"
-      ? sub.amount
-      : parseFloat(String(sub.amount))
-    : 9.99;
-  const amount = Number.isFinite(rawAmount) ? rawAmount : 9.99;
-
-  return {
-    subscriptionId: sub?.id ?? "admin-test",
-    userId: input.userId,
-    email: input.email,
-    paymentName: sub?.name?.trim() || "Netflix (tests)",
-    amount,
-    currency: input.currency,
-    nextPaymentDate: input.todayIso,
-    overdueDays: 0,
-    locale,
-  };
+  return buildAdminTestDueTodayRows(input)[0]!;
 }
 
 export function buildAdminTestWeeklyPayload(input: {

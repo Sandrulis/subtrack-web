@@ -3,10 +3,7 @@
 import { useEffect } from "react";
 import { NavDash } from "@/components/nav-dash";
 import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
-import {
-  ensureAuthedNotifyScriptsLoaded,
-  loadScriptOnce,
-} from "@/components/fs/load-fs-scripts";
+import { loadAnalyticsPageScripts } from "@/components/fs/load-fs-scripts";
 import type { NavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import type { SubscriptionClient } from "@/lib/subscriptions/subscription-client";
@@ -23,8 +20,6 @@ import {
   dispatchSubtrackPageContentReady,
   useFsPageContentReady,
 } from "@/components/app/app-page-content-gate";
-
-const ANALYTICS_TAIL_SCRIPTS = ["/fs/js/analytics.js"] as const;
 
 export function AnalyticsFsView({
   brand = null,
@@ -46,12 +41,7 @@ export function AnalyticsFsView({
     let cancelled = false;
     (async () => {
       try {
-        await ensureAuthedNotifyScriptsLoaded();
-        if (cancelled) return;
-        for (const src of ANALYTICS_TAIL_SCRIPTS) {
-          if (cancelled) break;
-          await loadScriptOnce(src);
-        }
+        await loadAnalyticsPageScripts();
         if (cancelled) return;
         window.fsBootAnalytics?.();
       } catch {

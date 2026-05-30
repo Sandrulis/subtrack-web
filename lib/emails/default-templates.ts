@@ -370,60 +370,60 @@ const defaults: Record<EmailTemplateId, LocaleMap> = {
   },
   payment_due_today: {
     en: c(
-      "Due today: {PAYMENT_NAME} – {SYSTEM_NAME}",
-      "A payment is due today – open your dashboard.",
+      "Due today: {PAYMENT_SUMMARY} – {SYSTEM_NAME}",
+      "Payments due today ({DUE_DATE}) – open your dashboard.",
       "Payment due today",
-      'Your payment "{PAYMENT_NAME}" ({AMOUNT}) is due today ({DUE_DATE}). Open your dashboard to mark it paid or reschedule.',
+      "The following payments are due today ({DUE_DATE}). Open your dashboard to mark them paid or reschedule.",
       "Open dashboard",
-      "You received this because you enabled due-today reminders in {SYSTEM_NAME}. At most one email per payment per day.",
+      "You received this because you enabled due-today reminders in {SYSTEM_NAME}. At most one digest email per day.",
     ),
     fr: c(
-      "Échéance aujourd'hui : {PAYMENT_NAME} – {SYSTEM_NAME}",
-      "Un paiement est dû aujourd'hui – ouvrez votre tableau de bord.",
-      "Paiement dû aujourd'hui",
-      "Votre paiement « {PAYMENT_NAME} » ({AMOUNT}) est dû aujourd'hui ({DUE_DATE}). Ouvrez le tableau de bord pour le marquer payé ou le replanifier.",
+      "Échéance aujourd'hui : {PAYMENT_SUMMARY} – {SYSTEM_NAME}",
+      "Paiements dus aujourd'hui ({DUE_DATE}) – ouvrez votre tableau de bord.",
+      "Paiements dus aujourd'hui",
+      "Les paiements suivants sont dus aujourd'hui ({DUE_DATE}). Ouvrez le tableau de bord pour les marquer payés ou les replanifier.",
       "Ouvrir le tableau de bord",
-      "Vous recevez ce rappel car vous avez activé les rappels du jour dans {SYSTEM_NAME}. Au plus un e-mail par jour et par paiement.",
+      "Vous recevez ce rappel car vous avez activé les rappels du jour dans {SYSTEM_NAME}. Au plus un e-mail récapitulatif par jour.",
     ),
     de: c(
-      "Heute fällig: {PAYMENT_NAME} – {SYSTEM_NAME}",
-      "Eine Zahlung ist heute fällig – Dashboard öffnen.",
-      "Zahlung heute fällig",
-      "Ihre Zahlung „{PAYMENT_NAME}“ ({AMOUNT}) ist heute ({DUE_DATE}) fällig. Öffnen Sie das Dashboard, um sie als bezahlt zu markieren oder zu verschieben.",
+      "Heute fällig: {PAYMENT_SUMMARY} – {SYSTEM_NAME}",
+      "Heute fällige Zahlungen ({DUE_DATE}) – Dashboard öffnen.",
+      "Heute fällige Zahlungen",
+      "Die folgenden Zahlungen sind heute ({DUE_DATE}) fällig. Öffnen Sie das Dashboard, um sie als bezahlt zu markieren oder zu verschieben.",
       "Dashboard öffnen",
-      "Sie erhalten diese Erinnerung, weil Sie Tages-Erinnerungen in {SYSTEM_NAME} aktiviert haben. Höchstens eine E-Mail pro Zahlung und Tag.",
+      "Sie erhalten diese Erinnerung, weil Sie Tages-Erinnerungen in {SYSTEM_NAME} aktiviert haben. Höchstens eine Sammel-E-Mail pro Tag.",
     ),
     es: c(
-      "Vence hoy: {PAYMENT_NAME} – {SYSTEM_NAME}",
-      "Un pago vence hoy – abre tu panel.",
-      "Pago vence hoy",
-      "Tu pago «{PAYMENT_NAME}» ({AMOUNT}) vence hoy ({DUE_DATE}). Abre el panel para marcarlo como pagado o reprogramarlo.",
+      "Vence hoy: {PAYMENT_SUMMARY} – {SYSTEM_NAME}",
+      "Pagos que vencen hoy ({DUE_DATE}) – abre tu panel.",
+      "Pagos que vencen hoy",
+      "Los siguientes pagos vencen hoy ({DUE_DATE}). Abre el panel para marcarlos como pagados o reprogramarlos.",
       "Abrir panel",
-      "Recibes este aviso porque activaste recordatorios del día en {SYSTEM_NAME}. Como máximo un correo al día por pago.",
+      "Recibes este aviso porque activaste recordatorios del día en {SYSTEM_NAME}. Como máximo un correo resumen al día.",
     ),
     pt: c(
-      "Vence hoje: {PAYMENT_NAME} – {SYSTEM_NAME}",
-      "Um pagamento vence hoje – abra o painel.",
-      "Pagamento vence hoje",
-      "O seu pagamento «{PAYMENT_NAME}» ({AMOUNT}) vence hoje ({DUE_DATE}). Abra o painel para marcar como pago ou reagendar.",
+      "Vence hoje: {PAYMENT_SUMMARY} – {SYSTEM_NAME}",
+      "Pagamentos que vencem hoje ({DUE_DATE}) – abra o painel.",
+      "Pagamentos que vencem hoje",
+      "Os pagamentos seguintes vencem hoje ({DUE_DATE}). Abra o painel para marcar como pagos ou reagendar.",
       "Abrir painel",
-      "Recebeu este aviso porque ativou lembretes do dia em {SYSTEM_NAME}. No máximo um email por dia por pagamento.",
+      "Recebeu este aviso porque ativou lembretes do dia em {SYSTEM_NAME}. No máximo um email resumo por dia.",
     ),
     lv: c(
-      "Šodien jāmaksā: {PAYMENT_NAME} – {SYSTEM_NAME}",
-      "Maksājums jāveic šodien – atver paneli.",
-      "Maksājums jāveic šodien",
-      "Tavs maksājums „{PAYMENT_NAME}” ({AMOUNT}) jāveic šodien ({DUE_DATE}). Atver paneli, lai atzīmētu samaksātu vai pārplānotu.",
+      "Šodien jāmaksā: {PAYMENT_SUMMARY} – {SYSTEM_NAME}",
+      "Šodienas maksājumi ({DUE_DATE}) – atver paneli.",
+      "Šodien jāmaksā",
+      "Šodien ({DUE_DATE}) jāveic šie maksājumi. Atver paneli, lai atzīmētu samaksātu vai pārplānotu.",
       "Atvērt paneli",
-      "Tu saņēmi šo atgādinājumu, jo esi ieslēdzis šodienas maksājumu paziņojumus {SYSTEM_NAME}. Vairāk nekā vienu reizi dienā par vienu maksājumu netiek sūtīts.",
+      "Tu saņēmi šo atgādinājumu, jo esi ieslēdzis šodienas maksājumu paziņojumus {SYSTEM_NAME}. Vairāk nekā vienu kopsavilkuma e-pastu dienā netiek sūtīts.",
     ),
     ru: c(
-      "Срок сегодня: {PAYMENT_NAME} – {SYSTEM_NAME}",
-      "Платёж должен быть оплачен сегодня – откройте панель.",
-      "Платёж сегодня",
-      "Платёж «{PAYMENT_NAME}» ({AMOUNT}) должен быть оплачен сегодня ({DUE_DATE}). Откройте панель, чтобы отметить оплату или перенести.",
+      "Срок сегодня: {PAYMENT_SUMMARY} – {SYSTEM_NAME}",
+      "Платежи на сегодня ({DUE_DATE}) – откройте панель.",
+      "Платежи на сегодня",
+      "Следующие платежи должны быть оплачены сегодня ({DUE_DATE}). Откройте панель, чтобы отметить оплату или перенести.",
       "Открыть панель",
-      "Вы получили это, потому что включили напоминания о платежах на сегодня в {SYSTEM_NAME}. Не более одного письма в день на один платёж.",
+      "Вы получили это, потому что включили напоминания о платежах на сегодня в {SYSTEM_NAME}. Не более одного сводного письма в день.",
     ),
   },
   weekly_summary: {
@@ -703,16 +703,23 @@ export function applyPaymentPlaceholders(
   ctx: {
     systemName: string;
     paymentName: string;
+    paymentSummary?: string;
     amountFormatted: string;
     dueDateFormatted: string;
     overdueDays?: number;
+    paymentCount?: number;
+    totalFormatted?: string;
   },
 ): EmailTemplateCopy {
+  const paymentSummary = ctx.paymentSummary?.trim() || ctx.paymentName;
   const rep = (s: string) =>
     s
       .replaceAll("{SYSTEM_NAME}", ctx.systemName)
       .replaceAll("{PAYMENT_NAME}", ctx.paymentName)
+      .replaceAll("{PAYMENT_SUMMARY}", paymentSummary)
       .replaceAll("{AMOUNT}", ctx.amountFormatted)
+      .replaceAll("{TOTAL_AMOUNT}", ctx.totalFormatted ?? ctx.amountFormatted)
+      .replaceAll("{PAYMENT_COUNT}", String(ctx.paymentCount ?? 1))
       .replaceAll("{DUE_DATE}", ctx.dueDateFormatted)
       .replaceAll("{OVERDUE_DAYS}", String(ctx.overdueDays ?? 0));
   return {
