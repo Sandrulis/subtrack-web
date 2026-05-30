@@ -7,17 +7,7 @@ import {
   formatDueDateForEmail,
   type OverdueSubscriptionRow,
 } from "@/lib/subscriptions/overdue-for-email";
-import { normalizeEmailLocale, type EmailPreviewLocale } from "@/lib/emails/template-types";
-
-function parseInterfaceLocale(displayPreferences: unknown): EmailPreviewLocale {
-  if (!displayPreferences || typeof displayPreferences !== "object") {
-    return "lv";
-  }
-  const code = String(
-    (displayPreferences as Record<string, unknown>).interface_language_code ?? "",
-  );
-  return normalizeEmailLocale(code);
-}
+import { parseInterfaceLocale } from "@/lib/subscriptions/parse-interface-locale";
 
 type RawSubRow = {
   id: string;

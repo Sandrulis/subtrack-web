@@ -1,6 +1,7 @@
 "use server";
 
 import { loadAuthContext } from "@/lib/auth/load-auth-context";
+import { parseStarRating } from "@/lib/feedback/parse-star-rating";
 import type { FeedbackRow } from "@/lib/feedback/types";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
@@ -16,15 +17,6 @@ export type FetchOwnFeedbackResult =
 
 const BODY_MIN = 10;
 const BODY_MAX = 1200;
-
-function parseStarRating(raw: unknown): number {
-  const n =
-    typeof raw === "number"
-      ? Math.trunc(raw)
-      : Number.parseInt(String(raw ?? "0"), 10);
-  if (!Number.isFinite(n)) return 0;
-  return Math.min(5, Math.max(0, n));
-}
 
 function mapRow(
   raw: {

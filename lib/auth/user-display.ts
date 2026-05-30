@@ -25,6 +25,11 @@ import {
   isHttpsAvatarUrl,
 } from "@/lib/auth/oauth-avatar-url";
 import { syncOAuthAvatarToPublicUser } from "@/lib/auth/sync-oauth-avatar";
+import {
+  buildSessionBillingSummary,
+  type SessionBillingSummary,
+} from "@/lib/billing/session-billing-summary";
+import type { DisplayPreferences } from "@/lib/user-display-preferences";
 
 /** Paneļa augšējās joslas lietotāja attēlošana (serveris → props). */
 export type NavUserDisplay = {
@@ -46,6 +51,10 @@ export type NavUserDisplay = {
   proTrialActive?: boolean;
   /** Tikai kad `proTrialActive` */
   proTrialProgress?: ProTrialProgress | null;
+  /** Pro abonementa modālim (izvēlne); null, ja maksas plāns izslēgts */
+  billingSummary?: SessionBillingSummary | null;
+  /** Datumu formatēšanai modāļos */
+  displayPreferences?: DisplayPreferences;
 };
 
 function firstGrapheme(s: string): string {
@@ -188,7 +197,7 @@ async function getSessionUserDisplayImpl(): Promise<NavUserDisplay | null> {
   let { data: row, error: rowErr } = await supabase
     .from("users")
       .select(
-        "name, surname, is_admin, paid_plan_active, pro_vip, pro_trial_used, pro_trial_started_at, display_preferences, avatar_url",
+        "name, surname, is_admin, paid_plan_active, pro_vip, pro_trial_used, pro_trial_started_at, paid_plan_type, paid_plan_period_end_at, paid_plan_auto_renew, stripe_customer_id, display_preferences, avatar_url",
       )
     .eq("id", user.id)
     .maybeSingle();
@@ -218,7 +227,7 @@ async function getSessionUserDisplayImpl(): Promise<NavUserDisplay | null> {
       const refetch = await supabase
         .from("users")
       .select(
-        "name, surname, is_admin, paid_plan_active, pro_vip, pro_trial_used, pro_trial_started_at, display_preferences, avatar_url",
+        "name, surname, is_admin, paid_plan_active, pro_vip, pro_trial_used, pro_trial_started_at, paid_plan_type, paid_plan_period_end_at, paid_plan_auto_renew, stripe_customer_id, display_preferences, avatar_url",
       )
         .eq("id", user.id)
         .maybeSingle();
@@ -298,9 +307,20 @@ async function getSessionUserDisplayImpl(): Promise<NavUserDisplay | null> {
     proTrialProgress,
   };
 
+  const billingSummary =
+    sysPaidPlanEnabled && !rowErr && row
+      ? buildSessionBillingSummary(sysPaidPlanEnabled, row, trialConfig)
+      : null;
+
+  const profileExtras = {
+    ...trialExtras,
+    billingSummary,
+    displayPreferences: displayPrefs,
+  };
+
   if (!trimmedName && !trimmedSurname) {
     const fromMeta = profileFromAuthMetadata(user);
-    return { ...fromMeta, avatarUrl, isAdmin, paidPlanActive, proVip, ...trialExtras };
+    return { ...fromMeta, avatarUrl, isAdmin, paidPlanActive, proVip, ...profileExtras };
   }
 
   return {
@@ -309,7 +329,7 @@ async function getSessionUserDisplayImpl(): Promise<NavUserDisplay | null> {
     isAdmin,
     paidPlanActive,
     proVip,
-    ...trialExtras,
+    ...profileExtras,
   };
 }
 

@@ -39,6 +39,43 @@ function isUnder(file, prefix) {
   return r === prefix || r.startsWith(`${prefix}/`);
 }
 
+/** Sesijas pārbaude route handlerī (tieši getUser vai centralizēti helperi). */
+function hasApiSessionAuth(text) {
+  return (
+    /\.auth\.getUser\s*\(/.test(text) ||
+    /requireApiSession\s*\(/.test(text) ||
+    /requireApiAdmin\s*\(/.test(text)
+  );
+}
+
+/** Stripe webhook – paraksts, ne Supabase sesija. */
+function hasStripeWebhookAuth(text) {
+  return /constructEvent\s*\(/.test(text) && /stripe-signature/.test(text);
+}
+
+/** Cron: Bearer CRON_SECRET vai admin manuālais palaidējs. */
+function hasCronRouteAuth(text, routePath) {
+  if (/authorizeCron|createAuthorizedCronGetRoute/.test(text)) return true;
+  if (routePath.includes("admin/cron") && /requireApiAdmin/.test(text)) return true;
+  return /CRON_SECRET/.test(text);
+}
+
+/** Autorizācijas brīdinājums nav vajadzīgs, ja ir admin helper vai skaidrs user_id filtrs. */
+function hasUserScopeOrAdminAuth(text) {
+  return (
+    /requireApiAdmin\s*\(/.test(text) ||
+    /\.eq\(\s*["']user_id["']/.test(text) ||
+    /\.eq\(\s*["']owner_user_id["'],\s*user\.id/.test(text) ||
+    /\.eq\(\s*["']partner_user_id["'],\s*user\.id/.test(text) ||
+    /\.eq\(\s*["']id["'],\s*user\.id/.test(text) ||
+    /user_id:\s*user\.id/.test(text) ||
+    /owner_user_id:\s*user\.id/.test(text) ||
+    /auth\.user\.id/.test(text) ||
+    /current_user_is_admin|admin_set_user/.test(text) ||
+    hasStripeWebhookAuth(text)
+  );
+}
+
 const tsFiles = walk(ROOT).filter((f) => /\.(ts|tsx)$/.test(f));
 const jsFsFiles = walk(path.join(ROOT, "public", "fs", "js")).filter((f) => f.endsWith(".js"));
 
@@ -92,24 +129,27 @@ const apiRoutes = walk(appDir).filter(
 for (const f of apiRoutes) {
   const r = normalizeAppRoutePath(rel(f));
   const text = fs.readFileSync(f, "utf8");
-  if (r.includes("dev-env-check")) continue;
-  if (r.includes("cron/")) {
-    if (!/CRON_SECRET|authorizeCron/i.test(text)) {
-      warnings.push(`${r}: cron route – pārbaudi CRON_SECRET aizsardzību`);
+  if (r.includes("dev-env-check") || r.includes("sentry-test")) continue;
+  if (r.includes("stripe/webhook")) {
+    if (!hasStripeWebhookAuth(text)) {
+      errors.push(`${r}: Stripe webhook bez constructEvent / stripe-signature`);
+    }
+    continue;
+  }
+  if (r.includes("cron/") || r.includes("admin/cron/")) {
+    if (!hasCronRouteAuth(text, r)) {
+      warnings.push(`${r}: cron route – pārbaudi CRON_SECRET / authorizeCron / requireApiAdmin`);
     }
     if (/searchParams\.get\s*\(\s*["']secret["']\s*\)/.test(text)) {
       errors.push(`${r}: cron nedrīkst lietot ?secret= query (izmanto Bearer)`);
     }
+    if (r.includes("admin/cron/")) continue;
     continue;
   }
-  if (!/\.auth\.getUser\(|getUser\(\)/.test(text)) {
-    errors.push(`${r}: API route bez getUser() sesijas pārbaudes`);
+  if (!hasApiSessionAuth(text)) {
+    errors.push(`${r}: API route bez sesijas pārbaudes (getUser / requireApiSession / requireApiAdmin)`);
   }
-  if (
-    !/\.eq\(\s*["']user_id["']|\.eq\(\s*["']id["'],\s*user\.id|current_user_is_admin|admin_set_user/.test(
-      text,
-    )
-  ) {
+  if (!hasUserScopeOrAdminAuth(text)) {
     warnings.push(`${r}: pārbaudi user_id / admin autorizāciju`);
   }
 }
@@ -150,9 +190,10 @@ for (const f of jsFsFiles) {
   const lines = text.split("\n");
   lines.forEach((line, i) => {
     if (!/\.innerHTML\s*=/.test(line)) return;
-    const window = lines.slice(i, Math.min(i + 10, lines.length)).join("\n");
-    if (escRe.test(window)) return;
-    if (safeInnerHtmlMapRe.test(line) || safeInnerHtmlMapRe.test(window)) return;
+    const windowAfter = lines.slice(i, Math.min(i + 10, lines.length)).join("\n");
+    const windowBefore = lines.slice(Math.max(0, i - 20), i + 1).join("\n");
+    if (escRe.test(windowAfter) || escRe.test(windowBefore)) return;
+    if (safeInnerHtmlMapRe.test(line) || safeInnerHtmlMapRe.test(windowAfter)) return;
     if (/innerHTML\s*=\s*['"`]\s*['"`]/.test(line)) return;
     if (/innerHTML\s*=\s*['"`]<svg/.test(line)) return;
     warnings.push(

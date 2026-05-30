@@ -18,7 +18,11 @@ const PROTECTED_PREFIXES = [
 const GUEST_ONLY_PATHS = ["/login", "/signup", "/forgot-password"] as const;
 
 /** API bez sesijas (cron, dev probe). */
-const API_PUBLIC_PREFIXES = ["/api/cron/", "/api/dev-env-check"] as const;
+const API_PUBLIC_PREFIXES = [
+  "/api/cron/",
+  "/api/dev-env-check",
+  "/api/stripe/webhook",
+] as const;
 
 function isApiPath(path: string): boolean {
   return path === "/api" || path.startsWith("/api/");

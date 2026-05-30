@@ -12,6 +12,8 @@
     "lint": "eslint",
     "audit": "npm audit --audit-level=high",
     "security:migration-checklist": "node scripts/security-migration-checklist.mjs",
+    "security:deploy-checklist": "node scripts/security-deploy-checklist.mjs",
+    "security:verify-migrations": "node scripts/security-verify-migrations.mjs",
     "security:regression-check": "node scripts/security-regression-check.mjs",
     "security:smoke-users-rls": "node scripts/security-smoke-users-rls.mjs",
     "security:smoke-system-settings": "node scripts/security-smoke-system-settings.mjs",
@@ -19,6 +21,7 @@
     "security:check": "npm run security:regression-check && npm run audit && npm run security:smoke"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.55.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
     "@upstash/ratelimit": "^2.0.8",
@@ -27,6 +30,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "sharp": "^0.34.5",
+    "stripe": "^22.2.0",
     "web-push": "^3.6.7"
   },
   "devDependencies": {

@@ -62,6 +62,10 @@ export default async function SettingsPage() {
     <div className="auth-page">
       <FsNotifyI18nBootstrap />
       <SettingsFsView
+        brand={{
+          label: publicSys.systemName,
+          logoTopbar: publicSys.brandLogo?.topbar ?? null,
+        }}
         userDisplay={userDisplay}
         dbPreferencesRaw={dbPreferencesRaw}
         languageOptions={languageOptions}

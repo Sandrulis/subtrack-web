@@ -17,6 +17,6 @@ export const config = {
      * Neesam maskā: _next/static, _next/image, favicon, /fs/ (public/fs),
      * lai JS/CSS no public neiet cauri Supabase proxy slānim.
      */
-    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|fs/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!monitoring|_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|fs/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

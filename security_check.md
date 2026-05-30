@@ -1,8 +1,21 @@
 # Drošības pārskats - repazy (subtrack-web)
 
-Datums: 2026-05-22 (MEDIUM/LOW labojumi + L1/L2).
+Datums: **2026-05-30** | Pārskatīts: **2026-05-30**
 
-**Pēdējā sesija:** M1–M3, L1–L5 (skat. sadaļu **2026-05-22 izmaiņas**).
+---
+
+## Vērtējums (1–10) – īsumā
+
+| | Atzīme |
+|---|-------:|
+| **Repozitorijs (kods + CI)** | **9,0** |
+| **Produkcija (pilna DB + smoke)** | **9,1** |
+| **+ cron Bearer + Upstash** | **9,3** |
+| **Vidēji** | **~9,0** (repo) / **~9,1** (ar deploy disciplīnu) |
+
+Detalizētas tabulas un pa kategorijām → sadaļa **[Vērtējums – detalizēti](#vērtējums--detalizēti)** zemāk.
+
+**Satura rādītājs:** [Vērtējums detalizēti](#vērtējums--detalizēti) · [Veicamie soļi](#veicamie-soļi) · [Atskaite](#atskaite-2026-05-30) · [Komandas](#komandas)
 
 ---
 
@@ -10,132 +23,141 @@ Datums: 2026-05-22 (MEDIUM/LOW labojumi + L1/L2).
 
 | Joma | Piezīme |
 |------|--------|
-| Maršruti / admin | `proxy.ts`, `requireAdminUser`, RLS **015** / **078** |
-| API | Sesija handleros + middleware **401** bez sesijas (`/api/*`, izņ. cron, dev-env-check) |
-| Rate limit | Auth + **`/api/*`**; opcija **Upstash** (`UPSTASH_REDIS_REST_*`) |
-| Cron | Tikai **`Authorization: Bearer <CRON_SECRET>`** (`lib/security/cron-auth.ts`) |
-| Family sharing | RLS lasīšana (bez service_role platumā); PATCH: sesija pirms service_role |
-| Automatizācija | `npm run security:regression-check`, `npm run security:check` |
+| Maršruti / admin | `proxy.ts`, `requireAdminUser`, RLS **015** / **078** / **159** |
+| API | `requireApiSession` / `requireApiAdmin` + middleware **401** |
+| Rate limit | Auth + **`/api/billing`**, **`/api/user`**, catch-all **`/api`**; opcija **Upstash** |
+| Cron | Tikai **`Authorization: Bearer <CRON_SECRET>`** |
+| Stripe | Webhook paraksts; billing RLS **159** |
+| Automatizācija | `security:regression-check`, `verify-migrations`, `deploy-checklist`, `security:check` |
 
 ---
 
-## Vērtējums (1-10)
+## Vērtējums – detalizēti
 
-Pārskatīts: **2026-05-22** pēc M1–M3 / L1–L5. Statiskā regresija: **OK** (`npm run security:regression-check`). `npm audit --audit-level=high`: **0** high.
+Statiskā regresija: **OK**. `npm audit --audit-level=high`: **0** high.
 
 ### Kopējais rādītājs
 
 | Konteksts | Atzīme | Komentārs |
 |-----------|-------:|-----------|
-| **Repozitorijs (kods + CI/L2)** | **8,9** | Middleware API 401, cron Bearer, family RLS read, rate limit API, signup `unavailable` |
-| **Produkcija: SQL 078–080, 092/093, 107–113 + smoke** | **9,1** | RLS + smoke apstiprina privileģiju kolonnas un e-pasta šablonus |
-| **+ Vercel cron Bearer + Upstash ENV** | **9,3** | Globāls rate limit; cron secrets ārpus URL logiem |
-| **Bez migrācijas 078 / bez smoke** | **8,6** | Kods labāks, bet DB var atpalikt no repo |
+| **Repozitorijs (kods + CI/L2)** | **9,0** | Regresija, billing RL, verify-migrations |
+| **Produkcija: SQL 078–080, 092/093, 107–116, 158–162 + smoke** | **9,1** | **159** Stripe RLS; **161** privātais aizdevums |
+| **+ cron-job.org Bearer + Upstash ENV** | **9,3** | Globāls rate limit; cron secrets ārpus URL logiem |
+| **Bez migrācijas 159 / bez smoke** | **8,5** | Klients var mainīt `paid_plan_*` bez **159** |
 
 ### Pa kategorijām (1–10)
 
 | Kategorija | Atzīme | Stiprā puse | Atvērums pret 10 |
 |------------|-------:|-------------|------------------|
-| **Autentifikācija / sesija** | 9,0 | Supabase Auth, cookie refresh, guest/protected maršruti | Nav 2FA / device binding |
-| **Autorizācija (RLS + API)** | 9,2 | `users` privileged lauki (**015**, **107**), subs `user_id`, admin RPC **080** | `service_role` PATCH/lookup – uzticas app slānim |
-| **API un maršruti** | 9,0 | `getUser()` + middleware **401** uz `/api/*` | Jauni route jāpārbauda manuāli (L2) |
-| **Admin / service_role** | 8,8 | Tikai serverī; VIP tikai pēc `current_user_is_admin` | Profili family: `service_role` pēc ID saraksta |
-| **Ģimenes dalīšana** | 8,9 | RLS **093** lasīšana; enumerācija POST samazināta | PATCH fallback ar service_role (trigger apiet `auth.uid()`) |
-| **Rate limiting** | 8,5 | Auth + API ceļi; Server Action signup check | Bez Upstash – limits **uz instanci** (Vercel) |
-| **XSS / frontends** | 8,7 | React bootstrap `JSON.stringify` + `\u003c`; FS `escHtml` | Daļa `innerHTML` prototipa JS (mitigēts, ne aizstāts) |
-| **Noslēpumi / ENV** | 9,0 | Nav `NEXT_PUBLIC_*` service role; cron bez query secret | `CRON_SECRET` / service role jāglabā Vercel |
-| **Atkarības (npm)** | 9,5 | 0 high audit | Regulārs Dependabot process |
-| **Operācijas / observability** | 8,0 | Smoke + migration checklist | Nav centralizēta audit log / SIEM |
+| **Autentifikācija / sesija** | 9,0 | Supabase Auth, guest/protected maršruti | Nav 2FA |
+| **Autorizācija (RLS + API)** | 9,3 | **159** billing WITH CHECK; IDOR aizsardzība | service_role FS |
+| **API un maršruti** | 9,0 | Middleware 401 + `requireApiSession` | Jauni route – L2 |
+| **Admin / service_role** | 8,8 | Tikai serverī; delete guards | Family lookup |
+| **Ģimenes dalīšana** | 8,9 | RLS **093**; enumerācija samazināta | PATCH service_role fallback |
+| **Rate limiting** | 8,7 | Auth + `/api/*` (iesk. billing) | Bez Upstash – uz instanci |
+| **XSS / frontends** | 8,7 | escHtml, JSON `\u003c` | CSP bez script-src |
+| **Noslēpumi / ENV** | 9,0 | Nav public service role | Vercel ENV |
+| **Atkarības (npm)** | 9,5 | 0 high audit | Dependabot |
+| **Operācijas / observability** | 8,5 | deploy-checklist, smoke CI | Leaked password – Dashboard |
 
-**Vidēji (svara skatījumā): ~9,0** repozitorijā; **~9,1** ar pilnu DB un deploy disciplīnu.
-
-**Pret 10:** stingrs **CSP** (`script-src`), **globāls** rate limit bez Upstash, signup e-pasta **timing** (RPC joprojām iespējams ar zemu intensitāti), centralizēta FS renderēšana bez `innerHTML`, ārējs pentests.
+**Pret 10:** stingrs CSP (`script-src`), globāls RL bez Upstash, signup timing, FS bez innerHTML, pentests, Leaked password Dashboard.
 
 ---
 
-## HIGH / MEDIUM
+## Veicamie soļi
 
-| Grupa | Status |
-|-------|--------|
-| H1–H3, M1–M3, M-NEW-1 | **Repo DONE**; DB: **078** + smoke |
+### Repo / kods – DONE
 
-### 2026-05-22 izmaiņas (MEDIUM / LOW)
+| # | Kas | Komanda / fails |
+|---|-----|-----------------|
+| 1 | Regresijas skripts | `scripts/security-regression-check.mjs` |
+| 2 | Rate limit `/api/billing`, `/api/user`, `/api` | `lib/security/auth-rate-limit.ts` |
+| 5 | Deploy checklist | `npm run security:deploy-checklist` |
 
-| ID | Kas izdarīts | Faili |
-|----|----------------|-------|
-| **M1** | Ģimenes saites un kopīgie abonementi: **tikai sesijas RLS** (bez service_role lasīt visu `family_sharing_links`) | `lib/family-sharing/family-sharing-server.ts` |
-| **M1** | Profili service_role tikai **counterparty ID** no RLS redzamām saitēm | `family-sharing-server.ts` |
-| **M2** | Family PATCH: **vispirms `supabase` (RLS)**, tad service_role fallback | `app/(app)/api/family-sharing/[id]/route.ts` |
-| **M3** | `/api/*` rate limit proxy; **`rateLimitAllow`** + opc. **Upstash** | `lib/security/rate-limit-allow.ts`, `auth-rate-limit.ts`, `proxy.ts` |
-| **L1** | `GET /api/subscriptions` → **401** bez sesijas | `app/(app)/api/subscriptions/route.ts` |
-| **L2** | Cron: **tikai Bearer**, bez `?secret=` | `lib/security/cron-auth.ts`, cron routes |
-| **L3** | Signup e-pasta pārbaude: `unavailable` (ne „brīvs e-pasts”) pie rate limit/kļūdas | `lib/auth/actions.ts`, `signup-form.tsx`, **115** SQL |
-| **L4** | Regresijas skripts: droši `.map(build*)` innerHTML | `scripts/security-regression-check.mjs` |
-| **L5** | Middleware: **401 JSON** uz `/api/*` bez sesijas | `lib/supabase/middleware.ts` |
-| **Advisor** | Pro trial RPC: **EXECUTE → service_role** + `p_user_id` (**116**) | `116_security_advisor_pro_trial_rpc.sql`, `grant-pro-trial-session.ts` |
+### DB – pārbaudīt / palaist
+
+| # | Migrācija | Verify | Darbība |
+|---|-----------|--------|---------|
+| 3a | **159** Stripe billing | **OK** | Nav vajadzīgs |
+| 3b | **161** privātais aizdevums | **OK** | Nav vajadzīgs |
+| 3c | **158** Advisor | Nav auto | SQL Editor |
+| 3d | **160** Stripe tulkojumi | Nav auto | SQL Editor |
+| 3e | **162** `private_loan` | Nav auto | SQL Editor |
+
+### Manuāli – TODO
+
+| # | Soļis | Kur |
+|---|--------|-----|
+| 4 | Leaked password protection | Supabase → Authentication → Email |
+| 6 | Vercel ENV, cron Bearer, Upstash (opc.) | Skat. `npm run security:deploy-checklist` |
 
 ---
 
-## LOW (L1 / L2 automatizācija)
+## Atskaite (2026-05-30)
 
-| # | Pasākums | Status |
-|---|----------|--------|
-| **L1** | `npm audit --audit-level=high`, Dependabot, CI schedule | **DONE** |
-| **L2** | Regresijas checklist, statiska pārbaude | **DONE** |
-| **L2 FS** | `innerHTML` – map uz `build*` ar `escHtml` builderos | **DONE** (regresija + manuāli pēc izmaiņām) |
+### Automātiskās pārbaudes
 
-### L2 checklist (jauna funkcija)
+| Komanda | Rezultāts |
+|---------|-----------|
+| `npm run security:regression-check` | **OK** |
+| `npm audit --audit-level=high` | **0** high |
+| `npm run security:verify-migrations` | **OK** (159, 161) |
+| `npm run security:smoke` | Izlaists lokāli (bez `SECURITY_SMOKE_*`) |
 
-1. RLS **`WITH CHECK`** privileged kolonnām (kā **015**, **107**)
-2. Server Actions: **`requireAdminUser`**
-3. API: **`getUser()`** + **`user_id`** / admin RPC
-4. E-pasta šabloni: **`system_settings_email_templates`**
-5. Palaid: **`npm run security:check`**
-6. Jaunam `/api/*` – arī middleware 401 (L5)
+Palaid no: `cd C:\Users\Dators\subtrack-web`
 
-### Family sharing – pārbaude 2026-05-21 (atjaun. 2026-05-22)
+### Slāņi – īsi
 
-| L2 punkts | Status | Piezīme |
-|-----------|--------|---------|
-| 1. RLS `WITH CHECK` | **OK** | **092** + trigger |
-| 3. API sesija | **OK** | + middleware 401 |
-| 6. `service_role` | **OK** | Šaurāks: PATCH fallback, profili pēc ID, lookup e-pasts POST |
-| 7. Enumerācija | **OK** | POST invite failed |
-| 8. FS XSS | **OK** | `escHtml` notify/dashboard |
+Middleware **401** · Auth/signup **OK** · API `requireApiSession` **OK** · RLS **159/161 OK** · Stripe webhook **OK** · Admin/service_role **OK** · Family sharing **OK** · Rate limit **OK** · XSS **OK ar rezervi** · Secrets **OK**
 
-**SQL:** `084` → `093`; Pro trial `107`–`116` (**116** – RPC tikai `service_role`).
+### Atklātie punkti
 
-### Supabase Security Advisor (manuāli)
+| ID | Apraksts | Status |
+|----|----------|--------|
+| R1 | Smoke lokāli izlaists | CI ar secrets |
+| M1 | 158/160/162 bez auto-verify | SQL Editor |
+| L1 | Leaked password | **TODO** Dashboard |
+| L2 | Upstash opcija | ENV |
+| L3 | CSP bez script-src | Apzināts |
 
-| Brīdinājums | Risinājums |
-|-------------|------------|
-| `grant_pro_trial_if_eligible` / `repair_pro_trial_started_at` – signed-in EXECUTE DEFINER | **`116_*`**: `EXECUTE` tikai **`service_role`**, parametrs `p_user_id`; serveris (`grant-pro-trial-session.ts`) |
-| **Leaked password protection disabled** | Dashboard → **Authentication** → **Attack protection** (vai Email provider) → ieslēgt **Leaked password protection** (Have I Been Pwned). Nav SQL. |
+---
+
+## Leaked password protection
+
+1. [Supabase Dashboard](https://supabase.com/dashboard) → projekts
+2. **Authentication** → **Providers** → **Email**
+3. Ieslēdz **Prevent use of leaked passwords**
+4. Saglabā
 
 ---
 
 ## Komandas
 
 ```bash
+cd C:\Users\Dators\subtrack-web
+
 npm run security:regression-check
-npm run audit
-npm run security:smoke
+npm run security:verify-migrations
+npm run security:deploy-checklist
 npm run security:check
 ```
 
-**Cron (Vercel):** `Authorization: Bearer $CRON_SECRET` – **ne** `?secret=` URL.
-
-**Upstash (opcija, M3 globāli):** `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` – `lib/security/rate-limit-allow.ts`.
+**Cron:** `Authorization: Bearer $CRON_SECRET` (ne `?secret=`).
 
 ---
 
 ## Pēc `git pull`
 
-1. SQL **078** (ja vajag), **115**, **116** (Pro trial RPC + Advisor)
-2. `npm install` (ja jaunās `@upstash/*` atkarības)
-3. `npm run security:check`
-4. Vercel cron: pārslēgt uz **Bearer** header
+1. SQL **158–162** → `npm run security:migration-checklist`
+2. `npm run security:verify-migrations`
+3. Leaked password (Dashboard)
+4. `npm run security:check`
 
 ---
 
-*Pārskats pēc Auth, Supabase, admin, PWA vai drošības izmaiņām.*
+## Vēsture
+
+- **2026-05-30:** regresija, billing RL, verify/deploy skripti, šis pārskats
+- **2026-05-22:** M1–M3 family/cron/rate limit, L5 middleware 401, **116** Pro trial RPC
+
+*Pārskats pēc Auth, Supabase, Stripe, admin vai drošības izmaiņām.*

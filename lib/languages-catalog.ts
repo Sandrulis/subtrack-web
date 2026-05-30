@@ -1,6 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
+import { createPublicAnonSupabaseClient } from "@/lib/supabase/public-anon-client";
 
 export type LanguageOption = {
   code: string;
@@ -24,11 +24,8 @@ const STATIC_FALLBACK: LanguagesCatalog = {
 };
 
 async function fetchLanguagesCatalog(): Promise<LanguagesCatalog> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return STATIC_FALLBACK;
-
-  const supabase = createClient(url, key);
+  const supabase = createPublicAnonSupabaseClient();
+  if (!supabase) return STATIC_FALLBACK;
   const { data, error } = await supabase
     .from("languages")
     .select("code, label, is_default, sort_order")

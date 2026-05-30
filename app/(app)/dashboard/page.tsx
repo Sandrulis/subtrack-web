@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { FsI18nBootstrap } from "@/components/fs/fs-i18n-bootstrap";
 import { FsDashboardBootstrapTemplates } from "@/components/fs/fs-dashboard-bootstrap-templates";
 import { DashboardFsView } from "@/components/fs/dashboard-fs-view";
+import { loadNavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
 import { getSessionUserDisplay } from "@/lib/auth/user-display";
 import { getSessionDisplayPreferencesRow } from "@/lib/auth/display-preferences-server";
 import { fetchDashboardSubscriptionsWithFamilyShare } from "@/lib/family-sharing/family-sharing-server";
@@ -30,13 +31,14 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DashboardPage() {
-  const [userDisplay, subsBundle, initialPaidCalendarDays, paidPlanLive, dbPreferencesRaw] =
+  const [userDisplay, subsBundle, initialPaidCalendarDays, paidPlanLive, dbPreferencesRaw, brand] =
     await Promise.all([
       getSessionUserDisplay(),
       fetchDashboardSubscriptionsWithFamilyShare(),
       fetchPaidCalendarDaysForSession(),
       fetchSystemPaidPlanLiveForDashboard(),
       getSessionDisplayPreferencesRow(),
+      loadNavBrandSnapshot(),
     ]);
   const categoryOptions = await fetchEnabledSubscriptionCategoryOptions(
     subsBundle.subscriptions.map((s) => s.category),
@@ -63,6 +65,7 @@ export default async function DashboardPage() {
         monthlyBudget={monthlyBudget}
       />
       <DashboardFsView
+        brand={brand}
         userDisplay={userDisplay}
         initialSubscriptions={initialSubscriptions}
         initialPaidCalendarDays={initialPaidCalendarDays}

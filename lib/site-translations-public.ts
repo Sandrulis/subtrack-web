@@ -1,5 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
+import { createPublicAnonSupabaseClient } from "@/lib/supabase/public-anon-client";
 
 export const SITE_TRANSLATIONS_PUBLIC_CACHE_TAG = "site-translations-public";
 
@@ -28,12 +28,13 @@ export function fallbackLocaleCascade(
 }
 
 async function fetchRowsForLocales(localeCodes: string[]): Promise<Row[]> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key || localeCodes.length === 0) {
+  if (localeCodes.length === 0) {
     return [];
   }
-  const supabase = createClient(url, key);
+  const supabase = createPublicAnonSupabaseClient();
+  if (!supabase) {
+    return [];
+  }
   const { data, error } = await supabase
     .from("site_translations")
     .select("translation_key, locale, value")

@@ -1,5 +1,7 @@
 /** Klienta (FS JS) forma – sakrīt ar `public/fs/js/dashboard.js` payload. */
 
+import type { LoanPaymentClient } from "./private-loan";
+
 export type SubscriptionDeviceClient = {
   id: number;
   name: string;
@@ -29,6 +31,10 @@ export type SubscriptionClient = {
   termStart: string;
   termEnd: string;
   devices: SubscriptionDeviceClient[];
+  isPrivateLoan?: boolean;
+  loanPrincipal?: number;
+  loanTotalRepay?: number;
+  loanPayments?: LoanPaymentClient[];
 };
 
 export type SubscriptionRow = {
@@ -49,4 +55,8 @@ export type SubscriptionRow = {
   is_dynamic_carry_previous?: boolean;
   due_amount_override?: number | string | null;
   due_amount_override_for?: string | null;
+  is_private_loan?: boolean;
+  loan_principal?: number | string | null;
+  loan_total_repay?: number | string | null;
+  loan_payments?: unknown;
 };

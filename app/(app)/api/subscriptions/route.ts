@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { apiJsonError } from "@/lib/api/json-response";
+import { parseJsonBody } from "@/lib/api/parse-json-body";
+import { requireApiSession } from "@/lib/api/require-api-session";
 import { fetchDashboardSubscriptionsWithFamilyShare } from "@/lib/family-sharing/family-sharing-server";
 import { fetchPaidCalendarDaysForSession } from "@/lib/subscriptions/fetch-paid-calendar-server";
 import { fetchAllowedSubscriptionCategoryKeys } from "@/lib/subscriptions/subscription-categories-server";
@@ -28,16 +30,8 @@ function parseFreeSubscriptionLimit(raw: unknown): number | null {
 }
 
 export async function GET() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json(
-      { success: false, message: "Unauthorized" },
-      { status: 401 },
-    );
-  }
+  const auth = await requireApiSession();
+  if (!auth.ok) return auth.response;
 
   try {
     const [bundle, paidCalendarDays] = await Promise.all([
@@ -49,46 +43,25 @@ export async function GET() {
       paidCalendarDays,
     });
   } catch {
-    return NextResponse.json(
-      { success: false, message: "Failed to load subscriptions" },
-      { status: 500 },
-    );
+    return apiJsonError(500, "Failed to load subscriptions");
   }
 }
 
 export async function POST(request: Request) {
-  let json: unknown;
-  try {
-    json = await request.json();
-  } catch {
-    return NextResponse.json(
-      { success: false, message: "Invalid JSON body" },
-      { status: 400 },
-    );
-  }
+  const parsedBody = await parseJsonBody(request, "Invalid JSON body");
+  if (!parsedBody.ok) return parsedBody.response;
 
-  const supabase = await createServerSupabaseClient();
+  const auth = await requireApiSession();
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
+
   const allowedCategories = await fetchAllowedSubscriptionCategoryKeys();
-
   const parsed = parseSubscriptionPayload(
-    json as Parameters<typeof parseSubscriptionPayload>[0],
+    parsedBody.body as Parameters<typeof parseSubscriptionPayload>[0],
     { allowedCategories },
   );
   if (!parsed.ok) {
-    return NextResponse.json(
-      { success: false, message: parsed.message },
-      { status: 400 },
-    );
-  }
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json(
-      { success: false, message: "Unauthorized" },
-      { status: 401 },
-    );
+    return apiJsonError(400, parsed.message);
   }
 
   const { data: sys, error: sysErr } = await supabase
@@ -120,22 +93,13 @@ export async function POST(request: Request) {
           .select("*", { count: "exact", head: true })
           .eq("user_id", user.id);
         if (cErr) {
-          return NextResponse.json(
-            {
-              success: false,
-              message: cErr.message || "Could not verify subscription limit.",
-            },
-            { status: 503 },
+          return apiJsonError(
+            503,
+            cErr.message || "Could not verify subscription limit.",
           );
         }
         if (count == null) {
-          return NextResponse.json(
-            {
-              success: false,
-              message: "Could not verify subscription limit.",
-            },
-            { status: 503 },
-          );
+          return apiJsonError(503, "Could not verify subscription limit.");
         }
         const n = count;
         if (n >= freeLimit) {
@@ -153,7 +117,7 @@ export async function POST(request: Request) {
           msg = msg
             .replace(/\{count\}/g, String(freeLimit))
             .replace(/\{price\}/g, priceFmt);
-          return NextResponse.json({ success: false, message: msg }, { status: 403 });
+          return apiJsonError(403, msg);
         }
       }
     }
@@ -171,13 +135,7 @@ export async function POST(request: Request) {
     .single();
 
   if (error || !data) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: error?.message ?? "Insert failed",
-      },
-      { status: 400 },
-    );
+    return apiJsonError(400, error?.message ?? "Insert failed");
   }
 
   return NextResponse.json({

@@ -2,6 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdminUser } from "@/lib/auth/require-admin";
+import { validUuid } from "@/lib/admin/form-helpers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export type LanguagesActionResult =
@@ -42,13 +43,6 @@ function validateSort(raw: unknown): number | string {
     return "Secībai jābūt veselam navnegatīvam skaitlim.";
   }
   return n;
-}
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function validUuid(raw: string): boolean {
-  return UUID_RE.test(raw.trim());
 }
 
 async function afterLanguagesMutation() {

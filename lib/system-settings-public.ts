@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import {
@@ -16,6 +15,7 @@ import {
   resolvePaidPlanLifetimePublic,
   type PaidPlanLifetimePublic,
 } from "@/lib/paid-plan-lifetime";
+import { createPublicAnonSupabaseClient } from "@/lib/supabase/public-anon-client";
 import {
   DISPLAY_PREFERENCES_DEFAULTS,
   mergeDisplayPreferences,
@@ -109,9 +109,8 @@ export function normalizePaidPlanRow(data: unknown): SubtrackPublicPaidPlan {
 }
 
 async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) {
+  const supabase = createPublicAnonSupabaseClient();
+  if (!supabase) {
     return {
       systemName: DEFAULT_SYSTEM_NAME,
       brandLogo: null,
@@ -121,7 +120,6 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
     };
   }
 
-  const supabase = createClient(url, key);
   const { data, error } = await supabase
     .from("system_settings")
     .select(
@@ -167,7 +165,7 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
  * Pēc `/admin/system` saglabāšanas: `revalidateTag("system-settings")`.
  */
 export async function getPublicSystemSettings(): Promise<PublicSystemSettings> {
-  return unstable_cache(fetchPublicSystemSettings, ["subtrack-system-settings-v8"], {
+  return unstable_cache(fetchPublicSystemSettings, ["subtrack-system-settings-v9"], {
     revalidate: 3600,
     tags: ["system-settings"],
   })();

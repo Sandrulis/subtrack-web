@@ -2,31 +2,24 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdminUser } from "@/lib/auth/require-admin";
+import {
+  normalizeAdminKey,
+  readFormString,
+  validUuid,
+  validateAdminLabel,
+} from "@/lib/admin/form-helpers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export type IntegrationsActionResult = { ok: true } | { ok: false; message: string };
 
 const INTEGRATION_KEY_PATTERN = /^[a-z][a-z0-9_]{1,63}$/;
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function readFormString(formData: FormData, key: string): string {
-  return String(formData.get(key) ?? "").trim();
-}
-
-function validUuid(raw: string): boolean {
-  return UUID_RE.test(raw.trim());
-}
 
 function normalizeKey(raw: string): string {
-  return raw.trim().toLowerCase();
+  return normalizeAdminKey(raw);
 }
 
 function validateLabel(raw: string): string | null {
-  const t = raw.trim();
-  if (!t) return "Norādi integrācijas nosaukumu.";
-  if (t.length > 160) return "Nosaukums drīkst būt līdz 160 rakstzīmēm.";
-  return null;
+  return validateAdminLabel(raw, "Norādi integrācijas nosaukumu.");
 }
 
 function validateKey(raw: string): string | null {

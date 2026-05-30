@@ -44,9 +44,15 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Sentry source map upload (wizard / build plugin)
+.env.sentry-build-plugin
+
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python scripts cache
+scripts/__pycache__/

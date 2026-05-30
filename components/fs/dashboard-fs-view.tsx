@@ -8,6 +8,7 @@ import {
   loadScriptOnce,
 } from "@/components/fs/load-fs-scripts";
 import { FsDemoDashboardWindowFlag } from "@/components/fs/fs-demo-window-flags";
+import type { NavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { FA_ICONS_ALL, FS_COLOR_DOTS } from "@/lib/fs-icons";
 import type { FamilySharingDashboardBootstrap } from "@/lib/family-sharing/family-sharing-types";
@@ -37,7 +38,9 @@ export function DashboardFsView({
   categoryOptions = [],
   monthlyBudget = null,
   demoMode = false,
+  brand = null,
 }: {
+  brand?: NavBrandSnapshot | null;
   userDisplay?: NavUserDisplay | null;
   initialSubscriptions: SubscriptionWithFamilyShare[];
   initialPaidCalendarDays?: Record<string, number>;
@@ -102,6 +105,7 @@ export function DashboardFsView({
           active="dashboard"
           userDisplay={userDisplay}
           demoMode={demoMode}
+          brand={brand}
         />
         {demoMode ? (
           <div className="subtrack-demo-banner" role="status">
@@ -449,6 +453,44 @@ export function DashboardFsView({
               </select>
             </div>
 
+            <div id="sub-private-loan-panel" className="sub-private-loan-panel hidden">
+              <p className="form-hint form-hint--tight">{t("fs.dashboard.advanced_hint_private_loan")}</p>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="sub-loan-principal">{t("fs.dashboard.loan_principal_label")}</label>
+                  <input
+                    type="text"
+                    id="sub-loan-principal"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    placeholder="500"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="sub-loan-total-repay">{t("fs.dashboard.loan_total_repay_label")}</label>
+                  <input
+                    type="text"
+                    id="sub-loan-total-repay"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    placeholder="550"
+                  />
+                </div>
+              </div>
+              <p className="form-section-label form-section-label--spaced">
+                {t("fs.dashboard.loan_next_payment_label")}
+              </p>
+              <div id="sub-loan-payments-container" className="sub-loan-payments-container" />
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm modal-device-add"
+                onClick={() => window.addLoanPaymentRow?.()}
+              >
+                <i className="fa-solid fa-plus" /> {t("fs.dashboard.loan_add_payment")}
+              </button>
+            </div>
+
+            <div id="sub-recurring-fields">
             <div className="form-row">
             <div className="form-group">
               <label htmlFor="sub-amount">
@@ -476,6 +518,7 @@ export function DashboardFsView({
             <div className="form-group">
               <label htmlFor="sub-date">{t("landing.mock.next_pay_label")}</label>
               <input type="date" id="sub-date" />
+            </div>
             </div>
 
             <div className="form-group">

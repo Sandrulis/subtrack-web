@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { authorizeCron } from "@/lib/security/cron-auth";
+import {
+  applyCronMailSendResult,
+  buildCronEmailStatsBody,
+  createAuthorizedCronGetRoute,
+  logEmailReminderAndCountSent,
+} from "@/lib/cron/email-reminder-send";
 import {
   buildAdminTestDueTodayRow,
   cronIncludesUser,
@@ -20,11 +25,9 @@ import {
 } from "@/lib/emails/send-transactional";
 import type { OverdueSubscriptionRow } from "@/lib/subscriptions/overdue-for-email";
 
-export async function GET(request: Request) {
-  if (!authorizeCron(request)) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-  }
+export const GET = createAuthorizedCronGetRoute("due-today-payment-emails", handleGet);
 
+async function handleGet(request: Request) {
   if (!isTransactionalEmailConfigured()) {
     return NextResponse.json({
       success: false,
@@ -187,13 +190,10 @@ export async function GET(request: Request) {
     }
   }
 
-  let sent = 0;
-  let skipped = 0;
-  const errors: string[] = [];
+  const counters = { sent: 0, skipped: 0, errors: [] as string[] };
 
-  for (const row of candidates) {
-    if (alreadySent.has(row.subscriptionId)) {
-      skipped += 1;
+  for (const row of candidates) {    if (alreadySent.has(row.subscriptionId)) {
+      counters.skipped += 1;
       continue;
     }
     const mail = await sendPaymentDueTodayEmail({
@@ -204,30 +204,27 @@ export async function GET(request: Request) {
       systemDisplayPreferences,
       userDisplayPreferences: usersById.get(row.userId)?.display_preferences,
     });
-    if (!mail.ok) {
-      if (mail.reason === "not_configured") skipped += 1;
-      else errors.push(`${row.email}: ${mail.message}`);
-      continue;
-    }
-    if (!isTest) {
-      const { error: logErr } = await supabase.from("email_reminder_log").insert({
-        user_id: row.userId,
-        subscription_id: row.subscriptionId,
-        reminder_type: "due_today",
-        sent_on: sentUtcDay,
-      });
-      if (logErr) errors.push(`${row.email}: nosūtīts, žurnāls – ${logErr.message}`);
-      else sent += 1;
-    } else {
-      sent += 1;
-    }
+    const outcome = applyCronMailSendResult(mail, row.email, counters);
+    if (outcome !== "sent_pending_log") continue;
+
+    await logEmailReminderAndCountSent({
+      supabase,
+      isTest,
+      sentUtcDay,
+      userId: row.userId,
+      subscriptionId: row.subscriptionId,
+      reminderType: "due_today",
+      email: row.email,
+      counters,
+    });
   }
 
-  return NextResponse.json({
-    success: errors.length === 0,
-    sent,
-    skipped,
-    testMode: isTest,
-    errors: errors.slice(0, 20),
-  });
+  return NextResponse.json(
+    buildCronEmailStatsBody({
+      errors: counters.errors,
+      sent: counters.sent,
+      skipped: counters.skipped,
+      isTest,
+    }),
+  );
 }

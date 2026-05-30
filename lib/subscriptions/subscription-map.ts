@@ -4,6 +4,16 @@ import type {
   SubscriptionRow,
 } from "./subscription-client";
 import { LEGACY_SUBSCRIPTION_CATEGORY_KEYS } from "./subscription-categories-server";
+import {
+  coerceLoanPaymentsFromDb,
+  isPrivateLoanCategoryKey,
+  normalizeLoanPaymentsForDb,
+  PRIVATE_LOAN_CATEGORY_KEY,
+  subscriptionIsPrivateLoan,
+  syncPrivateLoanDerivedFields,
+  syncPrivateLoanPaymentAmountForDue,
+  type LoanPaymentDb,
+} from "./private-loan";
 
 function coerceDevicesFromDb(raw: unknown): SubscriptionDeviceClient[] {
   if (!Array.isArray(raw)) return [];
@@ -40,6 +50,12 @@ function coerceDevicesFromDb(raw: unknown): SubscriptionDeviceClient[] {
   });
 }
 
+function parseOptionalAmount(raw: unknown): number | null {
+  if (raw === undefined || raw === null || raw === "") return null;
+  const n = parseFloat(String(raw).trim());
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
 export function mapSubscriptionRowToClient(row: SubscriptionRow): SubscriptionClient {
   const amt =
     typeof row.amount === "number"
@@ -68,6 +84,18 @@ export function mapSubscriptionRowToClient(row: SubscriptionRow): SubscriptionCl
     termStart: row.term_start ?? "",
     termEnd: row.term_end ?? "",
     devices: coerceDevicesFromDb(row.devices),
+    isPrivateLoan: subscriptionIsPrivateLoan(row),
+    loanPrincipal: (() => {
+      if (row.loan_principal == null || row.loan_principal === "") return 0;
+      const n = parseFloat(String(row.loan_principal));
+      return Number.isFinite(n) ? n : 0;
+    })(),
+    loanTotalRepay: (() => {
+      if (row.loan_total_repay == null || row.loan_total_repay === "") return 0;
+      const n = parseFloat(String(row.loan_total_repay));
+      return Number.isFinite(n) ? n : 0;
+    })(),
+    loanPayments: coerceLoanPaymentsFromDb(row.loan_payments),
   };
 }
 
@@ -86,7 +114,7 @@ function isAllowedCategory(key: string, allowed: Set<string>): boolean {
   return allowed.has(key);
 }
 
-const ALLOWED_PERIOD = new Set(["monthly", "yearly", "weekly"]);
+const ALLOWED_PERIOD = new Set(["monthly", "yearly", "weekly", "once"]);
 
 export type SubscriptionPayloadInput = {
   name?: unknown;
@@ -104,6 +132,10 @@ export type SubscriptionPayloadInput = {
   dynamicCarryPrevious?: unknown;
   dueAmountOverride?: unknown;
   dueDate?: unknown;
+  isPrivateLoan?: unknown;
+  loanPrincipal?: unknown;
+  loanTotalRepay?: unknown;
+  loanPayments?: unknown;
 };
 
 type SubscriptionDeviceDbRow = {
@@ -157,6 +189,90 @@ function deviceRowHasContent(d: SubscriptionDeviceDbRow): boolean {
   return !!(note || d.termStart || d.termEnd || amountSig || name);
 }
 
+function isPrivateLoanFlag(raw: unknown): boolean {
+  return raw === true || raw === "true";
+}
+
+function parsePrivateLoanBlock(
+  body: SubscriptionPayloadInput,
+  opts: { requireSchedule: boolean; category: string },
+):
+  | { ok: false; message: string }
+  | {
+      ok: true;
+      isPrivateLoan: boolean;
+      loanPrincipal: number | null;
+      loanTotalRepay: number | null;
+      loanPayments: LoanPaymentDb[];
+    } {
+  const isPrivateLoan =
+    isPrivateLoanFlag(body.isPrivateLoan) ||
+    isPrivateLoanCategoryKey(opts.category);
+  if (!isPrivateLoan) {
+    return {
+      ok: true,
+      isPrivateLoan: false,
+      loanPrincipal: null,
+      loanTotalRepay: null,
+      loanPayments: [],
+    };
+  }
+
+  const loanPrincipal = parseOptionalAmount(body.loanPrincipal);
+  if (loanPrincipal === null) {
+    return { ok: false, message: "loanPrincipal must be zero or a positive number" };
+  }
+
+  const loanTotalRepay = parseOptionalAmount(body.loanTotalRepay);
+  if (loanTotalRepay === null || loanTotalRepay <= 0) {
+    return { ok: false, message: "loanTotalRepay must be a positive number" };
+  }
+
+  const scheduleRes = normalizeLoanPaymentsForDb(body.loanPayments);
+  if (!scheduleRes.ok) {
+    return scheduleRes;
+  }
+
+  if (opts.requireSchedule && scheduleRes.payments.length === 0) {
+    return { ok: false, message: "Private loan requires at least one payment" };
+  }
+
+  return {
+    ok: true,
+    isPrivateLoan: true,
+    loanPrincipal,
+    loanTotalRepay,
+    loanPayments: scheduleRes.payments,
+  };
+}
+
+function applyPrivateLoanFieldsToRow(
+  row: Record<string, unknown>,
+  loan: Extract<ReturnType<typeof parsePrivateLoanBlock>, { ok: true }>,
+): void {
+  if (!loan.isPrivateLoan) {
+    row.is_private_loan = false;
+    row.loan_principal = null;
+    row.loan_total_repay = null;
+    row.loan_payments = [];
+    return;
+  }
+
+  row.is_private_loan = true;
+  row.loan_principal = loan.loanPrincipal;
+  row.loan_total_repay = loan.loanTotalRepay;
+  row.loan_payments = loan.loanPayments;
+  row.category = PRIVATE_LOAN_CATEGORY_KEY;
+  row.is_dynamic_amount = true;
+  row.is_dynamic_carry_previous = false;
+  row.due_amount_override = null;
+  row.due_amount_override_for = null;
+  row.term_start = null;
+  row.term_end = null;
+  row.devices = [];
+  syncPrivateLoanDerivedFields(row);
+}
+
 export function normalizeDevicesForSubscription(
   raw: unknown,
 ):
@@ -194,19 +310,30 @@ export function parseSubscriptionPayload(
   }
   const devicesNorm = devicesRes.devices;
 
-  const name = String(body.name ?? "").trim();
-  if (devicesNorm.length > 0 && !name) {
-    return {
-      ok: false,
-      message: "Name is required when add-ons are present",
-    };
-  }
-
   const categoryRaw = String(body.category ?? "subscription").trim();
   if (!isAllowedCategory(categoryRaw, allowedCategory)) {
     return { ok: false, message: "Invalid category" };
   }
   const category = categoryRaw;
+
+  const loanRes = parsePrivateLoanBlock(body, {
+    requireSchedule: true,
+    category,
+  });
+  if (!loanRes.ok) {
+    return loanRes;
+  }
+
+  const name = String(body.name ?? "").trim();
+  if (!name) {
+    return { ok: false, message: "Name is required" };
+  }
+  if (!loanRes.isPrivateLoan && devicesNorm.length > 0 && !name) {
+    return {
+      ok: false,
+      message: "Name is required when add-ons are present",
+    };
+  }
 
   const amountStr =
     body.amount === undefined || body.amount === null
@@ -224,9 +351,15 @@ export function parseSubscriptionPayload(
   if (!ALLOWED_PERIOD.has(periodRaw)) {
     return { ok: false, message: "Invalid period" };
   }
-  const period = periodRaw;
+  let period = periodRaw;
 
-  const date = String(body.date ?? "").trim();
+  let date = String(body.date ?? "").trim();
+  if (loanRes.isPrivateLoan) {
+    period = "once";
+    const firstUnpaid = loanRes.loanPayments.find((p) => !p.paidOn);
+    const anchor = firstUnpaid ?? loanRes.loanPayments[loanRes.loanPayments.length - 1];
+    date = anchor?.date ?? date;
+  }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return { ok: false, message: "next_payment_date (date) must be YYYY-MM-DD" };
   }
@@ -245,8 +378,8 @@ export function parseSubscriptionPayload(
       ? String(body.note).trim()
       : null;
 
-  const termStart = String(body.termStart ?? "").trim();
-  const termEnd = String(body.termEnd ?? "").trim();
+  const termStart = loanRes.isPrivateLoan ? "" : String(body.termStart ?? "").trim();
+  const termEnd = loanRes.isPrivateLoan ? "" : String(body.termEnd ?? "").trim();
   if (termStart && termEnd) {
     const ts = new Date(`${termStart}T00:00:00`);
     const te = new Date(`${termEnd}T00:00:00`);
@@ -255,7 +388,9 @@ export function parseSubscriptionPayload(
     }
   }
 
-  const dynamicAmount = body.dynamicAmount === true || body.dynamicAmount === "true";
+  const dynamicAmount =
+    !loanRes.isPrivateLoan &&
+    (body.dynamicAmount === true || body.dynamicAmount === "true");
   const dynamicCarryPrevious =
     dynamicAmount &&
     (body.dynamicCarryPrevious === true || body.dynamicCarryPrevious === "true");
@@ -273,8 +408,13 @@ export function parseSubscriptionPayload(
     note,
     term_start: termStart || null,
     term_end: termEnd || null,
-    devices: devicesNorm,
+    devices: loanRes.isPrivateLoan ? [] : devicesNorm,
   };
+
+  applyPrivateLoanFieldsToRow(row, loanRes);
+  if (loanRes.isPrivateLoan) {
+    syncPrivateLoanDerivedFields(row);
+  }
 
   return { ok: true, row };
 }
@@ -419,7 +559,10 @@ export function parseSubscriptionPatch(
   }
 
   if (body.dueAmountOverride !== undefined && existing) {
-    if (existing.is_dynamic_amount !== true) {
+    const allowsPeriodOverride =
+      existing.is_dynamic_amount === true ||
+      subscriptionIsPrivateLoan(existing);
+    if (!allowsPeriodOverride) {
       return {
         ok: false,
         message: "Period amount override only applies to dynamic payments",
@@ -457,11 +600,94 @@ export function parseSubscriptionPatch(
         row.due_amount_override = amountNum;
         row.due_amount_override_for = dueDate;
       }
+      if (subscriptionIsPrivateLoan(existing)) {
+        row.is_dynamic_amount = true;
+        const currentPayments = coerceLoanPaymentsFromDb(
+          existing.loan_payments,
+        ).map((p) => ({
+          id: p.id,
+          date: p.date,
+          amount: p.amount,
+          paidOn: p.paidOn || null,
+        }));
+        row.loan_payments = syncPrivateLoanPaymentAmountForDue(
+          currentPayments,
+          dueDate,
+          amountNum,
+        );
+        row.amount = amountNum;
+        syncPrivateLoanDerivedFields(row);
+      }
     }
   }
 
   if (Object.keys(row).length === 0) {
     return { ok: false, message: "No fields to update" };
+  }
+
+  const mergedCategory = String(
+    row.category ?? existing?.category ?? "",
+  ).trim();
+  const categoryBecamePrivateLoan =
+    body.category !== undefined && isPrivateLoanCategoryKey(mergedCategory);
+  const categoryLeftPrivateLoan =
+    body.category !== undefined &&
+    existing &&
+    subscriptionIsPrivateLoan(existing) &&
+    !isPrivateLoanCategoryKey(mergedCategory);
+
+  const touchesLoan =
+    body.isPrivateLoan !== undefined ||
+    body.loanPrincipal !== undefined ||
+    body.loanTotalRepay !== undefined ||
+    body.loanPayments !== undefined ||
+    categoryBecamePrivateLoan ||
+    categoryLeftPrivateLoan;
+
+  if (touchesLoan) {
+    const effectiveIsPrivateLoan =
+      categoryLeftPrivateLoan
+        ? false
+        : body.isPrivateLoan !== undefined
+          ? isPrivateLoanFlag(body.isPrivateLoan)
+          : categoryBecamePrivateLoan ||
+            (existing ? subscriptionIsPrivateLoan(existing) : false);
+
+    if (effectiveIsPrivateLoan) {
+      const loanRes = parsePrivateLoanBlock(
+        {
+          isPrivateLoan: true,
+          loanPrincipal:
+            body.loanPrincipal !== undefined
+              ? body.loanPrincipal
+              : existing?.loan_principal,
+          loanTotalRepay:
+            body.loanTotalRepay !== undefined
+              ? body.loanTotalRepay
+              : existing?.loan_total_repay,
+          loanPayments:
+            body.loanPayments !== undefined
+              ? body.loanPayments
+              : existing?.loan_payments,
+        },
+        { requireSchedule: true, category: PRIVATE_LOAN_CATEGORY_KEY },
+      );
+      if (!loanRes.ok) {
+        return loanRes;
+      }
+      applyPrivateLoanFieldsToRow(row, loanRes);
+      syncPrivateLoanDerivedFields(row);
+    } else {
+      applyPrivateLoanFieldsToRow(row, {
+        ok: true,
+        isPrivateLoan: false,
+        loanPrincipal: null,
+        loanTotalRepay: null,
+        loanPayments: [],
+      });
+    }
+  } else if (existing && subscriptionIsPrivateLoan(existing)) {
+    syncPrivateLoanDerivedFields(row);
   }
 
   return { ok: true, row };

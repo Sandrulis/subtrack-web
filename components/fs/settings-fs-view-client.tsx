@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavDash } from "@/components/nav-dash";
+import type { NavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { updateSessionDisplayPreferences } from "@/lib/auth/display-preferences-client";
 import {
@@ -39,11 +40,13 @@ function pickInterfaceLanguageAgainstCatalog(
 const AUTOSAVE_DEBOUNCE_MS = 450;
 
 export function SettingsFsViewClient({
+  brand = null,
   userDisplay,
   dbPreferencesRaw,
   languageOptions,
   preferenceBase,
 }: {
+  brand?: NavBrandSnapshot | null;
   userDisplay?: NavUserDisplay | null;
   /** No servera: `users.display_preferences` vai null */
   dbPreferencesRaw: unknown | null;
@@ -198,7 +201,7 @@ export function SettingsFsViewClient({
 
   return (
     <>
-      <NavDash active="" userDisplay={userDisplay} />
+      <NavDash active="" userDisplay={userDisplay} brand={brand} />
       <AppPageContentGate ready={hydrated}>
         <div className="auth-page-inner">
         <div className="auth-card auth-card--settings auth-card--form">

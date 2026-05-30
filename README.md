@@ -1,26 +1,27 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.5.33` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`). Lietotājam redzamais nosaukums – **`system_settings.system_name`** (admin **`/admin/system`**).
+**Versija:** `0.6.4` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`). Lietotājam redzamais nosaukums – **`system_settings.system_name`** (admin **`/admin/system`**).
 
-**SubTrack** (repozitorijs `subtrack-web`; zīmols **repazy**) ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, **`public.subscription_payments`** maksājumu žurnālam, RLS); CRUD notiek caur **Route Handlers** (`app/api/subscriptions/*`) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
+**SubTrack** (repozitorijs `subtrack-web`; zīmols **repazy**) ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, **`public.subscription_payments`** maksājumu žurnālam, RLS); CRUD notiek caur **Route Handlers** (`app/(app)/api/subscriptions/*`) ar kopīgu **`lib/api/`** (sesija, JSON, atbildes) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`, datumi – **`display-preferences-format.js`**) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
 ## Galvenās iespējas (UI)
 
 - **Sākumlapa** (`/`) - prezentācija, FAQ (navigācijā LV **`BUJ`**, ne angl. „FAQ”), saites uz **publiskajām demonstrācijām** **`/demo/dashboard`** un **`/demo/analytics`**, reģistrāciju un ieeju; **ar aktīvu sesiju** serveris novirza uz **`/dashboard`** (**`app/(marketing)/page.tsx`**, `redirect`). Galvenais saturs **`#main`** (`<main id="main">`); augšējā josla ārpus **`main`** (**`NavLanding`** – klienta komponents; **`LandingPageContent`** – **servera** komponents **`components/landing-page.tsx`**, tulkošanas **`getLandingUiPhrases()`** / **`lib/landing/*`**). **`body.landing-page`** – SSR **`app/layout.tsx`** (`x-pathname` no proxy). Ja **`/admin/integrations`** ieslēgts **`family_sharing`**, trust blokā un iespēju režģī septītā kartīte (**`landing.features.cards.family_sharing.*`**, **`landing.trust.family_sharing_hint`**, SQL **`141_*`**). Ja **`/admin/system`** ir ieslēgts **maksas plāns**, viesiem rādās **cenu / brīvā līmeņa** bloks ar kafijas ilustrāciju (`#pricing`), **ievads** no kopīgā **`subscribe.hero.lead`** un **`landing.pricing.blurb`** ar **`{count}`** / **`{price}`**; ja ieslēgts **`paid_plan_annual_enabled`** un DB ir **`paid_plan_annual_price_eur`**, arī gada cena un aprēķinātais **`{discount}%`** (**`lib/paid-plan-annual.ts`**, **`landing.pricing.annual_*`**); ja ieslēgts **`paid_plan_lifetime_enabled`** ar derīgu cenu un **nav** beidzies laika vai iegādes limits (**`lib/paid-plan-lifetime.ts`**, **`paidPlan.lifetime.active`**), trešā **lifetime** karte ar **countdown** (centrēts, max platums) un/vai atlikušo vietu skaitu (**`components/landing-pricing-lifetime-urgency.tsx`**, **`landing.pricing.lifetime_*`**; **„One-time”** badge aiz cenas, tagline **vienā rindā**; **spots** desktop – kartes augšējā labajā, mobile – centrēts). Dati no **`getPublicSystemSettings().paidPlan`** (SSR). Paneļa augšējās joslas **logo** (tikai ja augšupielādēts no **`/admin/system`**) vai teksta nosaukums (**`DashBrandLink`**, **`components/nav-dash.tsx`**) ved uz **`/dashboard`**, nevis **`/`**. **SEO / dalīšana:** **`<title>`**, **`og:title`**, **`og:image:alt`**, **`twitter:title`** – angļu **`{system_name} – subscription and recurring payment tracker`** (**`buildSiteSharePageTitle`**, **`title.absolute`** uz `/`); **`og:locale`** **`en_US`**; logo URL **`/brand/*`** (ne Supabase hostu). **`/opengraph-image`** (1200×630). **`lib/seo/*`**, **`app/brand/[filename]/route.ts`**, **`app/opengraph-image.tsx`**.
 - **Autentifikācija** – **Supabase Auth** (Server Actions), OAuth (Google / Apple) tikai ar **`/admin/integrations`** **`login_google`** / **`login_apple`** (**`lib/integrations/login-social-flags.ts`**, **`components/login-social-buttons.tsx`**, SQL **`024_*`**, **`025_*`**); pilns iestatīšanas ceļvedis – **[Google OAuth (Supabase)](#google-oauth-supabase)**. **Google profila bilde** – augšējā joslā un admin lietotāju sarakstā (inicialēs, ja nav OAuth bildes); **`public.users.avatar_url`**, SQL **`125_*`**, **`components/user-avatar.tsx`**, **`lib/auth/oauth-avatar-url.ts`**. **Iziet** → **`/`** (ne `/login`). **E-pasti no `/admin/email-design`** (Resend API, ne Supabase Auth HTML): ja serverī ir **`RESEND_API_KEY`**, **`EMAIL_FROM`**, **`SUPABASE_SERVICE_ROLE_KEY`** – **`confirm_signup`**, **`reset_password`**, **`invite_user`** (ģimenes uzaicinājums ārpus `public.users`, **`lib/family-sharing/send-family-invite-email.ts`**) un cron (**`payment_due_today`**, **`weekly_summary`**, **`trial_ending`**, **`win_back_7d`**, **`win_back_30d`** – **`lib/auth/auth-localized-email.ts`**, **`lib/emails/*`**, **`lib/cron/*`**, SQL **`117`–`124`**, **`155_*`**); citādi fallback uz Supabase **`resetPasswordForEmail`** (plakans šablons). Cron un prefs: **[E-pasta paziņojumi (cron)](#e-pasta-paziņojumi-cron)**. Saite e-pastā: **`https://repazy.com/auth/callback?...`** (**`lib/auth/auth-callback-link.ts`**, `token_hash` + `verifyOtp`), ne tikai `*.supabase.co/auth/v1/verify`. **Redirect URLs** Supabase: `https://repazy.com/auth/callback` (skat. **[Supabase](#supabase-obligāti-ar-custom-domēnu)**). **Reģistrācija** (`/signup`, **`useActionState`**): opc. **`?email=`** no ģimenes uzaicinājuma (aizpilda formu); pēc veiksmīgas reģistrācijas – ekrāns **„Pārbaudiet e-pastu”** (kā aizmirstajai parolei; SQL **`122_*`**); e-pasta aizņemtība **`signup_email_exists`** + **`retired_signup_emails`** (dzēstiem kontiem atkārtota reģistrācija liegta, SQL **`119_*`**, **`120_*`**). **Aizmirstā parole** (`/forgot-password`) – success ekrāns „Pārbaudiet e-pastu”. **Parole:** ielogots – **`/change-password`** ar pašreizējo paroli; no e-pasta saites – **`/change-password?recovery=1`** (tikai jaunā parole, SQL **`121_*`**). **`components/auth/auth-signup-flow.tsx`**, **`signup-form.tsx`**, **`auth-login-flow.tsx`**, flash toast auth lapās. Lokāle: **`getUiPhraseForRequest`** / **`resolveRequestUiLocales`**.
-- **Panelis** (`/dashboard`) - maksājumu kalendārs (mēneša navigācija **`cal-prev`/`cal-next`** rāda **visus** periodiskos termiņus skatītajā mēnesī, ne tikai `next_payment_date` – **`subscriptionDueDatesInMonth`**, **`getPaymentsByDateInMonth`**; **mēneša beigu diena** piem. **31.** īsākos mēnešos kļūst **30.** / **28.** vai **29. feb.** – **`calendarDateOnBillingDay`**, **`subscriptionPreferredBillingDay`**; ja vienā datumā vairāki maksājumi, šūnā **`+N`** apakšējā labajā stūrī; **šodienas** šūnai indikatora krāsa kā **ring** apmalei; **„atzīmēts samaksāts”** dienas no **`public.subscription_payments`** (**`paidCalendarDays`**, **`061_*`**); slēdzis **`subtrack_cal_include_paid_marks`** – ja atslēgas vēl nav, **noklusējums ieslēgts**; marķējums un skaidrojums **`SubtrackTooltip`** (hover / fokuss; burbulis portalā paliek, kamēr kursors virs pogas vai burbuļa; **bez** pārlūka **`title`**), **`aria-label`** pieejamībai; kājenes **leģenda vienā rindā**); **peldošie toast** (`showToast` **`subscriptions-helpers.js`**) – auto-aizvēršanās aptur, kamēr kursors virs ziņojuma), **kopsavilkums** (kopējā / aktīvie maksājumi; ja **`/settings`** ir **`monthly_budget`**, trešā stat kartīte – **budžeta atlikums**, kopējais budžets mazākā fontā, **5px** progress josla (% izlietots), zaļa/sarkana **2px** apmale; **`#subtrack-display-prefs-bootstrap-json`**, **`renderBudgetStat`** **`dashboard.js`**, SQL **`133_*`**; **kategoriju josla** virs saraksta (**Pro**, ja ieslēgts maksas plāns – **`subtrackCanShowDashboardCategoryBar`** **`dashboard.js`**; citādi visiem) – segmentu tooltip uz desktop, leģenda mobilajā; **Nākamais maksājums** sadalīts kolonnās: **kavētie** / **šodien jāmaksā** / nākamais – krāsainas kartes ar kopējo € un rēķinu skaitu zem summas; trīs kolonnās nākamais kompakts: € + nosaukums, bez datuma labajā; saraksta darbību pogas – diskrētas krāsas: rediģēt, dzēst, samaksāts), abonementu CRUD pret **`public.subscriptions`** (**`GET`/`POST` `/api/subscriptions`**, **`PATCH`/`DELETE` `/api/subscriptions/[id]`** ); ja admin ieslēdz **maksas plāna** ierobežojumu, **`POST`** atgriež **403** brīvā līmeņa **ierakstu skaita** sasniegšanā (**`paid_plan_active`** `public.users` – pašpārvaldei nē, skat. **`027`**); lietotāja izvēlnē **`fa-crown`**, tikai ja **`navUserHasPaidProMembership`** (apmaksāts vai VIP, **ne** izmēģinājums). Sākuma dati SSR bootstraps (**`#subtrack-subs-bootstrap-json`**, **`#subtrack-category-options-bootstrap-json`**, **`#subtrack-family-sharing-bootstrap-json`**); **`GET /api/subscriptions`** ietver arī **ģimenes dalīšanas** kopīgos ierakstus, ja integrācija ieslēgta; **FS JS** (`public/fs/js/dashboard.js` …) dabū frāzes un **`Intl`** lokāli pirms **`loadScriptOnce`**, jo **`app/dashboard/page.tsx`** renderē **`FsI18nBootstrap`** (skatīt **UI tulkošana**); kalendārā **lv** nedēļas dienu galvenes **Pr … Sv**; **pievienošanas / labošanas modālis** (`#modal-main`) – **nosaukuma ieteikumi** (`#sub-name-suggestions`: populārākie no lietotāja ierakstiem, citādi noklusējumi pēc UI valodas, līdz **3** rindām, paslēpjas rakstot); **kategorijas** (`#sub-category`) no **`public.subscription_categories`** (tikai ieslēgtās) – nosaukumi no **`site_translations`** (`subscription.category.{key}`); SSR **`#subtrack-category-options-bootstrap-json`**, kārtība **lietotāja lietojums → globālā `usage_count` → admin `sort_order`** (**`fetchEnabledSubscriptionCategoryOptions`**, **`lib/subscriptions/subscription-categories-server.ts`**); modāļa atvēršanā **`reorderSubCategorySelect`** atjauno secību pēc pašreizējā saraksta (**`subscriptions-helpers.js`**, **`dashboard.js`**); **dinamiskais maksājums** + otrais slēdzis **„Nākamajam: iepriekšējā summa”** (**`is_dynamic_carry_previous`**, SQL **`130_*`**, noklusējums izslēgts); elpīgākas vertikālās atstarpes galvenajai formai un **Papildu opcijām** (**`styles/subtrack.css`**); virsraksts **„Maksājumi”** bez Pro birkas; augšējā joslā **paziņojumi** (**`dash-alerts.js`**) – tikai **paši** abonementi (**bez** partnera kopīgotajiem: kavētie / šodien / gaidāmie un zvana skaitītājs); **šodienas** un **kavētie** ar **atzīmēšanu kā samaksātu** – API laikā **ielādes riņķis** un **neaktīva** poga; kopīga **`subtrackSetMarkPaidPending`** **`subscriptions-helpers.js`**); **gaidāmie** sākas no **nākamās dienas**; mobilajā skatā – pilnekrāna fons ar **backdrop blur**; abas izvēlnes nevar būt atvērtas vienlaikus). **Modālis – IKONA:** izvēlei **`fa-solid`** klases no **`FA_ICONS_ALL`** (`lib/fs-icons.ts`; ~**102** **`fa-solid`** klases – **nav** pilnās Font Awesome Free kopas, Free satur **daudz vairāk** ikonu nekā šīs ~102). Hintu josla un režģis „Parādīt visas“ **tā pati secība**; augšējā rinda – tikai tik pogas, cik **`dashboard.js`** aprēķina pēc **`#icon-picker-hints-shell`** (bez apgriešanas). Meklēšana ar sinonīmiem – **`lib/fs-icon-picker-search.ts`**, JSON **`#subtrack-icon-search-bootstrap`** (**`components/fs/dashboard-fs-view.tsx`**). Ja **maksas plāns** ieslēgts un lietotājam nav Pro, zem **„Pievienot”** ir saite **„Iegūt Pro”** uz **`/subscribe`**; **kategoriju josla** paslēpta brīvajā līmenī (**`renderDashboardCategoryBar`**, **`subtrackCanShowDashboardCategoryBar`**); **kalendārs** – mēneša navigācija, nedēļas galvenes, **1. nedēļa** un kājene redzama, **no 2. nedēļas** šūnas ar **blur** + CTA (**`pay-calendar-card--preview-locked`**, **`ProFeaturePreviewCtaCard`**, **`dashboard.js`**); **analītika** – **pirmā rinda** (2 stat kartītes), pārējās ar blur + CTA (**`analytics-preview-wrap--locked`**, **`analytics.js`**). **`isProFeaturePreviewLocked`** / **`dashboard-free-tier-gate-payload.ts`** (klientam drošs); nav pilna kartes blur, nav **Pro** pill uz šiem laukiem. **Pievienošanas modālis – ikona:** nejaušā izvēle no **pirmās redzamās** hint rindas; **`Parādīt vairāk`** (LV; SQL **`062_*`**) atver pilnu katalogu.
+- **Pro abonements (ielogotiem)** – profila izvēlnē **Pro abonements** (zeltaina kronīša ikona) → modālis: plāns, statuss, perioda beigas, auto-atjaunošana; **`POST /api/billing/portal`** → Stripe Customer Portal (atgriešanās **`/dashboard?billing=1`**). Nav **`/settings`**. **`components/billing/*`**, **`lib/billing/session-billing-summary.ts`**, **`loadNavBrandSnapshot()`** (SSR). SQL/tulkojumi **`database/translations_daily/2026-05-30-billing-portal.sql`** (7 valodas). Auto-atjaunošanas atslēgšana – portālā (info bloks modālī).
+- **Panelis** (`/dashboard`) - maksājumu kalendārs (mēneša navigācija **`cal-prev`/`cal-next`** rāda **visus** periodiskos termiņus skatītajā mēnesī, ne tikai `next_payment_date` – **`subscriptionDueDatesInMonth`**, **`getPaymentsByDateInMonth`**; **mēneša beigu diena** piem. **31.** īsākos mēnešos kļūst **30.** / **28.** vai **29. feb.** – **`calendarDateOnBillingDay`**, **`subscriptionPreferredBillingDay`**; ja vienā datumā vairāki maksājumi, šūnā **`+N`** apakšējā labajā stūrī; **šodienas** šūnai indikatora krāsa kā **ring** apmalei; **„atzīmēts samaksāts”** dienas no **`public.subscription_payments`** (**`paidCalendarDays`**, **`061_*`**); slēdzis **`subtrack_cal_include_paid_marks`** – ja atslēgas vēl nav, **noklusējums ieslēgts**; marķējums un skaidrojums **`SubtrackTooltip`** (hover / fokuss; burbulis portalā paliek, kamēr kursors virs pogas vai burbuļa; **bez** pārlūka **`title`**), **`aria-label`** pieejamībai; kājenes **leģenda vienā rindā**); **peldošie toast** (`showToast` **`subscriptions-helpers.js`**) – auto-aizvēršanās aptur, kamēr kursors virs ziņojuma), **kopsavilkums** (kopējā / aktīvie maksājumi; ja **`/settings`** ir **`monthly_budget`**, trešā stat kartīte – **budžeta atlikums**, kopējais budžets mazākā fontā, **5px** progress josla (% izlietots), zaļa/sarkana **2px** apmale; **`#subtrack-display-prefs-bootstrap-json`**, **`renderBudgetStat`** **`dashboard.js`**, SQL **`133_*`**; **kategoriju josla** virs saraksta (**Pro**, ja ieslēgts maksas plāns – **`subtrackCanShowDashboardCategoryBar`** **`dashboard.js`**; citādi visiem) – segmentu tooltip uz desktop, leģenda mobilajā; **Nākamais maksājums** sadalīts kolonnās: **kavētie** / **šodien jāmaksā** / nākamais – krāsainas kartes ar kopējo € un rēķinu skaitu zem summas; trīs kolonnās nākamais kompakts: € + nosaukums, bez datuma labajā; saraksta darbību pogas – diskrētas krāsas: rediģēt, dzēst, samaksāts), abonementu CRUD pret **`public.subscriptions`** (**`GET`/`POST` `/api/subscriptions`**, **`PATCH`/`DELETE` `/api/subscriptions/[id]`** ); ja admin ieslēdz **maksas plāna** ierobežojumu, **`POST`** atgriež **403** brīvā līmeņa **ierakstu skaita** sasniegšanā (**`paid_plan_active`** `public.users` – pašpārvaldei nē, skat. **`027`**); lietotāja izvēlnē **`fa-crown`**, tikai ja **`navUserHasPaidProMembership`** (apmaksāts vai VIP, **ne** izmēģinājums). Sākuma dati SSR bootstraps (**`#subtrack-subs-bootstrap-json`**, **`#subtrack-category-options-bootstrap-json`**, **`#subtrack-family-sharing-bootstrap-json`**); **`GET /api/subscriptions`** ietver arī **ģimenes dalīšanas** kopīgos ierakstus, ja integrācija ieslēgta; **FS JS** (`public/fs/js/dashboard.js` …) dabū frāzes un **`Intl`** lokāli pirms **`loadScriptOnce`**, jo **`app/dashboard/page.tsx`** renderē **`FsI18nBootstrap`** (skatīt **UI tulkošana**); kalendārā **lv** nedēļas dienu galvenes **Pr … Sv**; **pievienošanas / labošanas modālis** (`#modal-main`) – **nosaukuma ieteikumi** (`#sub-name-suggestions`: populārākie no lietotāja ierakstiem, citādi noklusējumi pēc UI valodas, līdz **3** rindām, paslēpjas rakstot); **kategorijas** (`#sub-category`) no **`public.subscription_categories`** (tikai ieslēgtās) – nosaukumi no **`site_translations`** (`subscription.category.{key}`); SSR **`#subtrack-category-options-bootstrap-json`**, kārtība **lietotāja lietojums → globālā `usage_count` → admin `sort_order`** (**`fetchEnabledSubscriptionCategoryOptions`**, **`lib/subscriptions/subscription-categories-server.ts`**); modāļa atvēršanā **`reorderSubCategorySelect`** atjauno secību pēc pašreizējā saraksta (**`subscriptions-helpers.js`**, **`dashboard.js`**); **dinamiskais maksājums** + otrais slēdzis **„Nākamajam: iepriekšējā summa”** (**`is_dynamic_carry_previous`**, SQL **`130_*`**, noklusējums izslēgts); **privātais aizdevums** (`private_loan`, SQL **`161_*`**, **`162_*`**): modālī aizņemtā summa, kopā atmaksājam, **nākamais maksājums** (datums + summa); sarakstā **Mainīt summu** pirms apmaksas (faktiskā summa iet progressā); progress **`€… / €…`**; pilna atmaksa → **100%**; pēc maksājuma automātiski nākamais termiņš, kamēr nav atmaksāts; kalendārā neapmaksātie grafika datumi; elpīgākas vertikālās atstarpes galvenajai formai un **Papildu opcijām** (**`styles/subtrack.css`**); virsraksts **„Maksājumi”** bez Pro birkas; augšējā joslā **paziņojumi** (**`dash-alerts.js`**) – tikai **paši** abonementi (**bez** partnera kopīgotajiem: kavētie / šodien / gaidāmie un zvana skaitītājs); **šodienas** un **kavētie** ar **atzīmēšanu kā samaksātu** – API laikā **ielādes riņķis** un **neaktīva** poga; kopīga **`subtrackSetMarkPaidPending`** **`subscriptions-helpers.js`**); **gaidāmie** sākas no **nākamās dienas**; mobilajā skatā – pilnekrāna fons ar **backdrop blur**; abas izvēlnes nevar būt atvērtas vienlaikus). **Modālis – IKONA:** izvēlei **`fa-solid`** klases no **`FA_ICONS_ALL`** (`lib/fs-icons.ts`; ~**102** **`fa-solid`** klases – **nav** pilnās Font Awesome Free kopas, Free satur **daudz vairāk** ikonu nekā šīs ~102). Hintu josla un režģis „Parādīt visas“ **tā pati secība**; augšējā rinda – tikai tik pogas, cik **`dashboard.js`** aprēķina pēc **`#icon-picker-hints-shell`** (bez apgriešanas). Meklēšana ar sinonīmiem – **`lib/fs-icon-picker-search.ts`**, JSON **`#subtrack-icon-search-bootstrap`** (**`components/fs/dashboard-fs-view.tsx`**). Ja **maksas plāns** ieslēgts un lietotājam nav Pro, zem **„Pievienot”** ir saite **„Iegūt Pro”** uz **`/subscribe`**; **kategoriju josla** paslēpta brīvajā līmenī (**`renderDashboardCategoryBar`**, **`subtrackCanShowDashboardCategoryBar`**); **kalendārs** – mēneša navigācija, nedēļas galvenes, **1. nedēļa** un kājene redzama, **no 2. nedēļas** šūnas ar **blur** + CTA (**`pay-calendar-card--preview-locked`**, **`ProFeaturePreviewCtaCard`**, **`dashboard.js`**); **analītika** – **pirmā rinda** (2 stat kartītes), pārējās ar blur + CTA (**`analytics-preview-wrap--locked`**, **`analytics.js`**). **`isProFeaturePreviewLocked`** / **`dashboard-free-tier-gate-payload.ts`** (klientam drošs); nav pilna kartes blur, nav **Pro** pill uz šiem laukiem. **Pievienošanas modālis – ikona:** nejaušā izvēle no **pirmās redzamās** hint rindas; **`Parādīt vairāk`** (LV; SQL **`062_*`**) atver pilnu katalogu.
 - **Pro izmēģinājums** – admin **`/admin/system`**: **`pro_trial_enabled`**, **`pro_trial_days`**; jaunajiem **`107_*`** (`handle_new_user`); esošajiem sesijā **`maybeGrantProTrialForSession`** / **`maybeRepairProTrialStartedAt`** (**`lib/auth/grant-pro-trial-session.ts`**, RPC ar **`service_role`** pēc **`116_*`**). Sākums = **`users.created_at`** (**`110_*`**, **`112_*`** backfill, **`113_*`** repair). Piekļuve kā Pro: **`navUserHasProEntitlement`**; kronītis tikai **`navUserHasPaidProMembership`**. **`/dashboard`** / **`/analytics`**: progress josla (**`percentElapsed`**); desktop **`trial.period_dates`**; **≤960px** datumi paslēpti. SQL **`107`–`116`**.
-- **Pro iepazīšanās** (`/subscribe`) – **`SubscribeProView`** (`app/(app)/subscribe/page.tsx`): **`subscribe.hero.*`**, **`subscribe.free_tier.note`** ar **`{price}`** / **`{n}`**. Ja **`paid_plan_annual_enabled`** – **mēneša pill** + **gada karte** (kā landing **`#pricing`**, teksti **`landing.pricing.*`**); citādi vienkāršs mēneša bloks. Ja aktīvs **lifetime** – trešā karte ar countdown / atlikušajām vietām (**`LandingPricingLifetimeUrgency`**, scope **`subscribe`**); visi plānu bloki **`subscribe-pro-plans-stack`** (vienādas atstarpes mobilajā). Stili **`styles/subtrack.css`** → **`subtrack-app.bundle.css`**. Tulkošanas **`029`**, **`028`** / **`031`**, **`030`**, **`032`**, **`033`**, **`101`–`106`**, **`156`–`157`**, **`database/translations_daily/2026-05-29.sql`** (`subscribe.price.lifetime_interval`).
+- **Pro iepazīšanās** (`/subscribe`) – **`SubscribeProView`** (`app/(app)/subscribe/page.tsx`): **`subscribe.hero.*`**, **`subscribe.free_tier.note`** ar **`{price}`** / **`{n}`**. Ja **`paid_plan_annual_enabled`** – **mēneša pill** + **gada karte** (kā landing **`#pricing`**, teksti **`landing.pricing.*`**); citādi vienkāršs mēneša bloks. Ja aktīvs **lifetime** – trešā karte ar countdown / atlikušajām vietām (**`LandingPricingLifetimeUrgency`**, scope **`subscribe`**); visi plānu bloki **`subscribe-pro-plans-stack`** (vienādas atstarpes mobilajā). Ar ieslēgtu maksas plānu un bez Pro – **`SubscribeProPurchaseButton`** (**„Iegādāties”**) → **`POST /api/billing/checkout`** → Stripe Checkout; pēc apmaksas **`/subscribe/success?session_id=…&plan=…`** – webhook + **`POST /api/billing/sync-checkout`** (fallback) atjauno **`users.paid_plan_*`**; mēneša/gada plānam modālis kalendāra ierakstam (**`SubscribeProTrackPrompt`**, **`POST /api/billing/pro-track-subscription`**). Skatīt **[Stripe (norēķini)](#stripe-norēķini)**. Stili **`styles/subtrack.css`** → **`subtrack-app.bundle.css`**. Tulkošanas **`029`**, **`028`** / **`031`**, **`030`**, **`032`**, **`033`**, **`101`–`106`**, **`156`–`157`**, **`160_*`**, **`database/translations_daily/2026-05-29.sql`** (`subscribe.price.lifetime_interval`).
 - **Demonstrācijas** (`/demo/dashboard`, `/demo/analytics`) – **publiski** (nav **`proxy`** aizsargātas kā `/dashboard`); **`/demo/dashboard`** – **`DashboardFsView`** + **`public/fs/js/dashboard.js`** (kalendārs, modāļi; **API netiek izsaukti**, `window.__SUBTRACK_DEMO_DASHBOARD__`); parauga abonementi **`lib/demo/demo-dashboard-subscriptions.ts`** – maksājumu datumi **pret SSR „šodienu”** (1× nokavēts, 1× šodien, 1× vēlāk šonedēļ, 1× nākamnedēļ, pārējie tālāk kalendārā); **`/demo/analytics`** lieto to pašu masīvu. Virs satura **info josla** (`.subtrack-demo-banner`) un topbar **`Demo`** birka (`.subtrack-demo-topbar-badge`; **≤960 px** – mazāka birka blakus logotipam, **`flex-wrap: nowrap`**). **`/demo/analytics`** – **`DemoAnalyticsPage`** (kopsavilkumi, donut; **nav** tendences/prognozes); tā pati info josla; virsrakstā ar ieslēgtu maksas plānu – **`Pro`** pill (`dash-nav-pro-pill`), citādi **Demo** birka. **Paziņojumu zvans** rāda paraugus arī viesiem. Stili **`/demo/*`** – modulis **`styles/modules/demo-app.css`** app bundle (**`css:split`**, ne tikai `landing.css`). Tulkošanas **`034`**, **`036`**, **`037`**, **`041`**, **`demo.*`**.
 - **Analītika** (`/analytics`) - kopsavilkumi, kategoriju joslas un **CSS donut** sadalījums (`demo-analytics-*`, kā demo; bez Chart.js CDN); **`FsI18nBootstrap`** + **`FsAnalyticsBootstrapTemplates`** (**`#subtrack-free-tier-gate-json`**) + **`public/fs/js/analytics.js`** (**`app/analytics/page.tsx`**). Ja **`paid_plan_enabled`** un nav Pro, **pirmās divas** stat kartītes redzamas, pārējais režģis **blur** + CTA (**`analytics-fs-view.tsx`**, **`ProFeaturePreviewCtaCard`** bez apakšteksta); pilna funkcionalitāte – **`canAccessAnalytics`** / **`navUserHasProEntitlement`**. Analītikas saite **vienmēr** navigācijā ielogotajiem (**`nav-dash.tsx`**, **`nav-landing.tsx`**). Publiskā **`/demo/analytics`** paliek viesiem; sākumlapas **„Explore”** analītikas kartē – **`landing.explore.pro_in_app_badge`** (**Pro**), **`landing.explore.analytics.pro_hint`** un **`/demo/analytics`**. Pirms FS boot – **`AppPageContentGate`** (spinner + **`app.page_loading`**), lai nerādītos **`€0,00`** placeholder.
 - **Lapas ielādes indikators** – **`AppPageContentGate`** (`components/app/app-page-content-gate.tsx`): lielāks spinneris + **`app.page_loading`** (`styles/subtrack.css` **`.app-page-*`**). **`/dashboard`**, **`/analytics`** – saturs redzams pēc **`fsBootDashboard` / `fsBootAnalytics`** un **`subtrackNotifyPageContentReady`** (`public/fs/js/subscriptions-helpers.js`, notikums **`subtrack-page-content-ready`**); **`/settings`** – pēc preferences hydrācijas; **`/change-password`**, **`/email-notifications`**, **`/family-sharing`** – pēc klienta mount. SQL **`139_*`**, **`fallback-phrases.ts`**, **`database/translations_daily/2026-05-29.sql`**.
 - **PWA (Progressive Web App)** – instalējama **SubTrack** lietotne: Serwist SW, manifest, **`/offline`**, mobilais instalācijas banneris, admin **`/admin/pwa`**. Pilns apraksts: **[PWA (SubTrack)](#pwa-subtrack)**.
-- **Iestatījumi** (`/settings`) - preferences: **`public.users.display_preferences`** (JSON), DB sinhronizācija + dublējums `localStorage` (kad ir migrācija `006_*`). Forma **`components/fs/settings-fs-view-client.tsx`** ar **`useSubtrackIntl`**; saglabāšanas toast (**`pushDomToast`**) ar hover apturētu auto-aizvēršanu; **`app/settings/page.tsx`** kārto **`languages`** atlasi ar **`Intl.Collator`** pēc **`resolveRequestUiLocales`** (nevis fiksētu `lv-LV`). **Saskarnes valoda** – pēc izvēles tiek uzreiz **`applyUiLocaleInBrowser`** + **`writeDisplayPreferencesToLocalStorage`** + **`updateSessionDisplayPreferences`** (`lib/auth/display-preferences-client.ts`) + **`router.refresh()`**, lai **`app/layout.tsx`** (**`SubtrackIntlProvider`**, tulkošanas `dbMap`) atbilstu jaunajai lokālei. **Ielogots:** SSR lokāle no profila (`interface_language_code`), nevis sīkdatnes; **`mergeDisplayPreferencesFromSources`** ar **`prioritizeDbInterfaceLanguage`** – profila valoda pār **`localStorage`**. **Viesis:** sīkdatne **`subtrack_ui_locale`**. **Nav josla** (`NavUiLanguageSwitcher`) ielogotam lietotājam saglabā to pašu profila JSON. Bāzes noklusējumi no **`public.system_settings`** (`012`), ja nav lietotāja ieraksta; `/admin/system` ietekmē jaunos kontus un formas bāzi. **Mēneša budžets** (**`monthly_budget`**) – ja iestatīts, panelī rāda atlikumu (skatīt **Panelis**). Lapā tikai preferences (valoda, valūta, budžets, datums/laiks, TZ); **nav** Google piesaistes, PWA instalācijas un push slēdžu (**`SettingsConnectGoogle`**, **`PwaSettingsInstall`**, **`PwaPushSettings`** komponenti repo paliek).
+- **Iestatījumi** (`/settings`) - preferences: **`public.users.display_preferences`** (JSON), DB sinhronizācija + dublējums `localStorage` (kad ir migrācija `006_*`). Forma **`components/fs/settings-fs-view-client.tsx`** ar **`useSubtrackIntl`**; saglabāšanas toast (**`pushDomToast`**) ar hover apturētu auto-aizvēršanu; **`app/settings/page.tsx`** kārto **`languages`** atlasi ar **`Intl.Collator`** pēc **`resolveRequestUiLocales`** (nevis fiksētu `lv-LV`). **Saskarnes valoda** – pēc izvēles tiek uzreiz **`applyUiLocaleInBrowser`** + **`writeDisplayPreferencesToLocalStorage`** + **`updateSessionDisplayPreferences`** (`lib/auth/display-preferences-client.ts`) + **`router.refresh()`**, lai **`app/layout.tsx`** (**`SubtrackIntlProvider`**, tulkošanas `dbMap`) atbilstu jaunajai lokālei. **Ielogots:** SSR lokāle no profila (`interface_language_code`), nevis sīkdatnes; **`mergeDisplayPreferencesFromSources`** ar **`prioritizeDbInterfaceLanguage`** – profila valoda pār **`localStorage`**. **Viesis:** sīkdatne **`subtrack_ui_locale`**. **Nav josla** (`NavUiLanguageSwitcher`) ielogotam lietotājam saglabā to pašu profila JSON. Bāzes noklusējumi no **`public.system_settings`** (`012`), ja nav lietotāja ieraksta; `/admin/system` ietekmē jaunos kontus un formas bāzi. **Mēneša budžets** (**`monthly_budget`**) – ja iestatīts, panelī rāda atlikumu (skatīt **Panelis**). **Pro abonements** – lietotāja izvēlnē (**`NavUserBillingMenuItem`**), ne šajā lapā. Lapā tikai preferences (valoda, valūta, budžets, datums/laiks, TZ); **nav** Google piesaistes, PWA instalācijas un push slēdžu (**`SettingsConnectGoogle`**, **`PwaSettingsInstall`**, **`PwaPushSettings`** komponenti repo paliek).
 - **E-pasta paziņojumi** (`/email-notifications`) – profila izvēlnē **E-pasta paziņojumi**; slēdži **`users.email_notification_preferences`** (šodienas maksājums, nedēļas kopsavilkums, izmēģinājuma beigas – pēdējais tikai aktīvam Pro trial, win-back pēc 7 / 30 dienām bez aktivitātes). Autosaglabāšana caur **`PATCH /api/user/email-notification-preferences`**. UI: **`components/email-notifications/email-notifications-view.tsx`**, stili **`styles/subtrack.css`** (`.email-notif-*`). Nedēļas e-pastā saite atslēgt: **`/email-notifications?disable=weekly`**. Pilns apraksts: **[E-pasta paziņojumi (cron)](#e-pasta-paziņojumi-cron)**.
 - **Ģimenes dalīšana** (`/family-sharing`) – tikai ja admin **`/admin/integrations`** ieslēdz **`family_sharing`** (**`093_*`** SELECT obligāts). **`POST /api/family-sharing`**: ja adresāts **ir** `public.users` – `family_sharing_links` ar `partner_user_id`, pending tikai aplikācijā; ja **nav** – tā pati tabula ar `partner_user_id` null, ieraksts **Tavi uzaicinājumi** (statuss Gaida) + Resend **`invite_user`** no **`/admin/email-design`** (saite **`/signup?email=…`**). Ja e-pasta sūtīšana neizdodas, pending ieraksts tiek atcelts. Bez **`RESEND_API_KEY`** / **`EMAIL_FROM`** ārējam uzaicinājumam – **`family_sharing.err_email_not_configured`**. Accept/decline/revoke/leave, krāsa, **„saskaitīt kopā”** (**`095`**). Lasīšana: **RLS** (`family-sharing-server.ts`); **`PATCH`** stāvokļiem – sesija, tad **`service_role`** fallback. **`components/family-sharing/family-sharing-view.tsx`**, **`lib/family-sharing/send-family-invite-email.ts`**. **`/dashboard`**: kopīgotie ieraksti lasāmi. DB shēma **`084`–`095`** (bez jaunas migrācijas ārējam uzaicinājumam). Tulkošanas **`085_*`**, **`140_*`**.
 - **Blogs** (`/blog`, `/blog/[slug]`) – **publiski** (nav `proxy` aizsargāts); admin **`/admin/blog`**: BBCode (**`lib/blog/bbcode.ts`**), rīkjosla, priekšskatījums, attēlu augšupielāde (Storage **`blog`**, **`154_*`**), YouTube. **URL** automātiski no **virsraksta** (atstarpes → `-`, unikāls ar `-2`, `-3`…). **Īss ievads (SEO)** – neobligāts; tukšs → īss fragments no satura. Publicēšanas slēdzis; melnraksts nav redzams viesiem. **Footer** saite **Blogs** (`legal.footer.blog`) tikai ja DB ir ≥1 **publicēts** ieraksts (**`hasPublishedBlogPosts`** layoutā). **SEO:** **`app/robots.ts`** – `/blog` **nav** `Disallow` (bloķēts tikai `/admin`, panelis, auth u.c. – **`lib/seo/search-crawl.ts`**); **`app/sitemap.ts`** – statisks `/blog` + dinamiski `/blog/{slug}` publicētajiem. Canonical + OG katram rakstam. SQL **`153_blog_posts.sql`**, **`154_blog_storage.sql`**; **`lib/admin/blog-actions.ts`**, **`components/admin/admin-blog-panel.tsx`**, **`components/blog/*`**. Tulkošanas **`2026-05-29.sql`**, **`fallback-phrases.ts`**.
 - **Atbalsts, ieteikumi, atsauksmes** (ielogotiem) – **footer** teksta saites **`Ieteikumi · Atsauksmes · Palīdzība`** (bez ikonām topbar / apakšējā pill); **`SiteLandingFooter`** ar **`showAuthedActionLinks`**, **`components/authed/authed-footer-action-links.tsx`**, modāļi caur **`AuthedNavOverlaysProvider`**. **Palīdzība** – ziņojums → Resend e-pasts uz **`system_settings.support_contact_email`** (**`/admin/system`**), **Reply-To** = lietotāja e-pasts (**`149_*`**, **`lib/support/*`**). **Ieteikumi** – jauni ieteikumi + thumbs-up balsošana, kārtošana pēc balsīm (**`150_*`**, **`lib/suggestions/*`**). **Atsauksmes** – **viens ieraksts / konts**, zvaigžņu vērtējums **1–5**, modālis ar formu (aizveras pēc saglabāšanas; atkārtoti atverot – iepriekšējais teksts un vērtējums); landing **`getLandingFeedback()`** ar **`approved_for_landing`** (**`151_*`**, **`152_*`**, **`lib/feedback/*`**). Tulkošanas **`database/translations_daily/2026-05-29.sql`**, **`fallback-phrases.ts`**. **Resend:** **`RESEND_API_KEY`**, **`EMAIL_FROM`** (atbalsts).
-- **Administrācija** (`/admin`, `/admin/users`, `/admin/languages`, `/admin/translations`, `/admin/integrations`, **`/admin/categories`**, **`/admin/blog`**, `/admin/system`, **`/admin/email-design`**, **`/admin/cron-jobs`**, **`/admin/pwa`**, **`/admin/todos`**) - tikai ar `public.users.is_admin > 0`: paneļa josla + sānizvēlne (sānizvēlnē **`admin.nav.todos`**). **Ikonu tooltipi** admin tabulās – **`SubtrackTooltip`** (`components/subtrack-tooltip.tsx`): melns burbulis, teksts portalā uz **`document.body`** (`position: fixed`), lai **`admin-table-wrap`** `overflow` to neapgriež; burbulis paliek atvērts, kamēr kursors virs pogas vai burbuļa; uz **touch / coarse pointer** nerāda (**`useSupportsHoverTooltip`**). **Peldošie toast** – **`lib/push-dom-toast.ts`** + **`lib/dom-toast-hover-dismiss.ts`** (tā pati hover loģika kā auth **`HoverPauseToast`**). **Lietotāji** – servera lapa **`app/admin/users/page.tsx`** atlasa datus; **`components/admin/admin-users-view.tsx`** (klienta): **`IERAKSTI`** kolonna rāda **kopējo abonementu skaitu** uz lietotāju (bez sadalījuma pa kategorijām); ja **`paid_plan_enabled`**, arī **VIP** slēdzis (`users.pro_vip`, **`POST /api/admin/users/pro-vip`** – admin sesijas pārbaude, RPC **`admin_set_user_pro_vip`** ar **`service_role`**, **`080_*`**); saite **Dzēst** (**`POST /api/admin/users/delete`**, ne sevi / ne administratorus; pēc **`auth.users`** DELETE noņem e-pastu no **`retired_signup_emails`** – atkārtota reģistrācija, **`121_*`**); **Pro** vizuāli – **kronītis** pie avatāra; **Administrators** birka zem e-pasta; **`Intl`** datumi; zem reģistrācijas **Pēdējoreiz** (mazāks fonts): šodien – min/s pirms; 1–30 d. – „nav redzēts X dienas”; vecāk – pilns **`Intl`** datums; **`title`** – absolūts laiks. Relatīvo tekstu **`AdminUserRegisteredDates`** rāda pēc klienta mount (**`useEffect`**), lai nav React hydration kļūdas. **`lib/admin/format-user-last-seen-display.ts`**. Kolonna **`public.users.last_seen`** + RPC **`touch_user_last_seen`** (pieslēgšanās + GET lapas, 2 min droseļu) – **`lib/auth/touch-user-last-seen.ts`**, **`lib/supabase/middleware.ts`**, **`auth/callback`**, SQL **`145`–`147`**, tulkošanas **`2026-05-29.sql`**. Admin kopsavilkumi (RLS + **`008`**). **Vadteksti** (īsi intro, bez tabulu `<code>` un liekiem hintiem) – **`components/admin/admin-intros.tsx`**, **`045_*`**. **Sistēma** – panelis **`AdminSystemPanel`** (tulkošanu atslēgas formas virsrakstiem un kļūdām; dažu **`<select>` opciju** iekšējā teksta vēl var atšķirties). **Sistēma** (`/admin/system`) dati: **`012_system_settings.sql`**, maksas plāns (**`027`**, gada **`101`–`103`**, lifetime **`156_*`**), **atbalsta e-pasts** (**`support_contact_email`**, **`149_*`**), Server Actions **`lib/admin/system-actions.ts`**, **`lib/paid-plan-annual.ts`**, **`lib/paid-plan-lifetime.ts`**; **`AdminSystemPanel`** (maksas + gada + **lifetime** – cena, beigu laiks, iegādes limits – autosave). Logo: **`lib/admin/logo-actions.ts`**, **`lib/system-settings-public.ts`**. Drag-and-drop logo (**`admin-system-logo-upload.tsx`**) → Storage **`brand`**; publiski **`/brand/*`**; topbar, favicon, manifest un **`/offline`** rāda ikonu tikai ja **`logo_revision > 0`** (**`SiteBrandLogo`**, **`DashBrandLink`**). **Valodas** – CRUD pret **`public.languages`**, noklusējuma valoda jaunajiem apmeklētājiem (**`010`**; Server Actions **`lib/admin/languages-actions.ts`**, **`components/admin/admin-languages-panel.tsx`**; pamatā **`007`**); saraksta **`Intl.Collator`** – pēc pašreizējās UI lokāļa. **Integrācijas** – **`public.integrations`** (tehniska atslēga, nosaukums, `enabled`), Server Actions **`lib/admin/integrations-actions.ts`**, **`app/admin/integrations/page.tsx`**, **`components/admin/admin-integrations-panel.tsx`**; migrācija **`024_integrations.sql`**; **SELECT** visa pasaule (lasāms arī no API/feature flagām), rakstīt tikai admins; pēc mutācijas – **`revalidatePath`** arī **`/login`**, **`/signup`**, **`/dashboard`**, **`/family-sharing`**. Karodziņi: **`login_google`**, **`login_apple`** (skatīt **Autentifikācija**); **`family_sharing`** (skatīt **Ģimenes dalīšana**). **Kategorijas** (`/admin/categories`) – tabula **`public.subscription_categories`** (`category_key`, `label`, `sort_order`, `enabled`, **`usage_count`**); nosaukumi visās valodās **`site_translations`** (`subscription.category.{key}`); admin **CRUD**, **drag-and-drop** secībai (fallback, ja skaiti vienādi), jaunas kategorijas ar tulkošanas režģi (kā **`/admin/translations`**, **`admin-i18n-*`**); panelī modāļa `<select>` – popularitāte (skat. **Panelis**). SQL **`131`–`138`**. **`app/admin/categories/page.tsx`**, **`components/admin/admin-categories-panel.tsx`**, **`lib/admin/categories-actions.ts`**, **`lib/admin/category-translations-actions.ts`**, **`lib/subscriptions/subscription-categories-server.ts`**. **Tulkojumi** - **`public.site_translations`**: **`components/admin/admin-translations-panel.tsx`** + **`AdminTranslationsIntro`** (`titleActions`: poga vienā rindā ar virsrakstu); **modāļi** jaunai atslēgai un labošanai; tabulā **atslēga + teksts tikai aktīvajai UI lokālei**; **meklētājs** pilnā platuma rindā; **bez meklēšanas** papildu rindas ar **IntersectionObserver** (lazy DOM), **ar meklēšanu** filtrs pār **visu** servera ielasīto katalogu (`loadAdminTranslationsData`). Migrācija **`011`**; publiskā **SELECT** – **`012_site_translations_select_public.sql`**; sēkla – **`013_site_translations_seed_subtrack_ui.sql`**, skatīt **[UI tulkošana](#ui-tulkošana)** (**`python scripts/export_site_translations_sql.py`** pēc **`fallback-phrases.ts`** izmaiņām). **Uzdevumi** (`/admin/todos`) – **`public.admin_todos`** (`sort_order` kolonnā), Server Actions **`lib/admin/admin-todos-actions.ts`**, **`lib/admin/admin-todos-types.ts`**, **`components/admin/admin-todos-board.tsx`**: divas kolonnas (**Uzdevums**, **Procesā**); **pilna platuma vilkšanas zona** ar **`fa-trash`** **virs un apakš** kolonām – ievilkta karte tiek **pabeigta** (statuss **`done`**, bez apstiprinājuma modāļa, optimistisks UI + toast); **manuāla kārtība** – velc karti **augšup/leju** (zaļa strīpa rāda ievietošanas vietu), starp kolonnām arī drag; saglabā **`sort_order`** (`reorderAdminTodosColumnAction`, `moveAdminTodoAction`). **Nav** prioritātes kārtošanas vai UI (bez birkas un formas lauka). Virsraksts + **Pievienot** vienā rindā (**`AdminTodosIntro`**). Kartītē ikonpogas (**✓** pabeigt, labot, dzēst) ar **`SubtrackTooltip`**; pabeigšana/dzēšana – apstiprinājuma **modāļi** (ne `window.confirm`); optimistisks UI. Pabeigts pazūd no dēļa; DB **`done`** dzēsts pēc **8 h**. SQL **`096`–`100`** (backfill **`100_admin_todos_sort_order_backfill.sql`**, ja vecie ieraksti ar `sort_order = 0`), tulkošanas **`admin.todos.*`**. Atšķiras **prototipa paneļu** vai citu **`components/fs/*`** vietu līmenis par fiksētām virknēm – papildināšana vienmēr ar **`t('…')`**. Admin pazīme: RLS un RPC **`current_user_is_admin`** (pēc **`023`** – **`SECURITY INVOKER`**). Piešķirt tiesības, piem.: `update public.users set is_admin = 1 where email = '...';`
+- **Administrācija** (`/admin`, `/admin/users`, `/admin/languages`, `/admin/translations`, `/admin/integrations`, **`/admin/categories`**, **`/admin/blog`**, `/admin/system`, **`/admin/email-design`**, **`/admin/cron-jobs`**, **`/admin/pwa`**, **`/admin/todos`**) - tikai ar `public.users.is_admin > 0`: paneļa josla + sānizvēlne (sānizvēlnē **`admin.nav.todos`**). **Ikonu tooltipi** admin tabulās – **`SubtrackTooltip`** (`components/subtrack-tooltip.tsx`): melns burbulis, teksts portalā uz **`document.body`** (`position: fixed`), lai **`admin-table-wrap`** `overflow` to neapgriež; burbulis paliek atvērts, kamēr kursors virs pogas vai burbuļa; uz **touch / coarse pointer** nerāda (**`useSupportsHoverTooltip`**). **Peldošie toast** – **`lib/push-dom-toast.ts`** + **`lib/dom-toast-hover-dismiss.ts`** (tā pati hover loģika kā auth **`HoverPauseToast`**). **Admin SSR dati** – plānas **`app/(app)/admin/*/page.tsx`** + **`lib/admin/admin-*-data.ts`** (`loadAdminUsersPageData`, `loadAdminSystemPageData`, integrations, languages, pwa, email-design; agrāk categories, translations, blog); mutācijas – Server Actions (`*-actions.ts`), kopīga forma – **`lib/admin/form-helpers.ts`**. **Lietotāji** – **`lib/admin/admin-users-data.ts`** + **`components/admin/admin-users-view.tsx`** (klienta): **`IERAKSTI`** kolonna rāda **kopējo abonementu skaitu** uz lietotāju (bez sadalījuma pa kategorijām); ja **`paid_plan_enabled`**, virs tabulas **kopsavilkuma bloki** (`stat-card`, **`admin-users-summary`**) – Bezmaksas / Izmēģinājums / Pro mēnesī·gads·lifetime / VIP ar skaitu; bloks redzams tikai, ja kategorijā ir ≥1 lietotājs; klikšķis filtrē tabulu (atkārtots klikšķis – visi). Kolonnas **Pro** (plāna birka: mēnesis, gads, lifetime, izmēģinājums) un **VIP** slēdzis (`users.pro_vip`, **`POST /api/admin/users/pro-vip`** – **`requireApiAdmin`**, tiešs `users.update`, **`159_*`** lauki lasāmi no DB); ja ir **`stripe_customer_id`** un nav VIP – poga **Sinhronizēt Pro no Stripe** (**`POST /api/admin/users/sync-stripe-billing`**, **`lib/billing/sync-user-billing-from-stripe.ts`** – pašreizējais Stripe stāvoklis, **ne** vecā Checkout `session_id`); saite **Dzēst** (**`POST /api/admin/users/delete`**, ne sevi / ne administratorus; pēc **`auth.users`** DELETE noņem e-pastu no **`retired_signup_emails`** – atkārtota reģistrācija, **`121_*`**); **Pro** vizuāli – **kronītis** pie avatāra; **Administrators** birka zem e-pasta; **`Intl`** reģistrācijas datums; **pēdējā aktivitāte** zem e-pasta (mazāks fonts, bez atsevišķas „Pēdējoreiz” kolonnas galvenē). Relatīvo **`last_seen`** tekstu **`AdminUserRegisteredDates`** rāda pēc klienta mount (**`useEffect`**). **`lib/admin/admin-users-filter.ts`**, **`lib/admin/admin-user-plan-label.ts`**, **`lib/admin/format-user-last-seen-display.ts`**. Kolonna **`public.users.last_seen`** + RPC **`touch_user_last_seen`** – SQL **`145`–`147`**, **`159_*`**. Admin kopsavilkumi (RLS + **`008`**). **Vadteksti** (īsi intro, bez tabulu `<code>` un liekiem hintiem) – **`components/admin/admin-intros.tsx`**, **`045_*`**. **Sistēma** – panelis **`AdminSystemPanel`** (tulkošanu atslēgas formas virsrakstiem un kļūdām; dažu **`<select>` opciju** iekšējā teksta vēl var atšķirties). **Sistēma** (`/admin/system`) dati: **`012_system_settings.sql`**, maksas plāns (**`027`**, gada **`101`–`103`**, lifetime **`156_*`**), **atbalsta e-pasts** (**`support_contact_email`**, **`149_*`**), Server Actions **`lib/admin/system-actions.ts`**, **`lib/paid-plan-annual.ts`**, **`lib/paid-plan-lifetime.ts`**; **`AdminSystemPanel`** (maksas + gada + **lifetime** – cena, beigu laiks, iegādes limits – autosave). Logo: **`lib/admin/logo-actions.ts`**, **`lib/system-settings-public.ts`**. Drag-and-drop logo (**`admin-system-logo-upload.tsx`**) → Storage **`brand`**; publiski **`/brand/*`**; topbar, favicon, manifest un **`/offline`** rāda ikonu tikai ja **`logo_revision > 0`** (**`SiteBrandLogo`**, **`DashBrandLink`**). **Valodas** – CRUD pret **`public.languages`**, noklusējuma valoda jaunajiem apmeklētājiem (**`010`**; Server Actions **`lib/admin/languages-actions.ts`**, **`components/admin/admin-languages-panel.tsx`**; pamatā **`007`**); saraksta **`Intl.Collator`** – pēc pašreizējās UI lokāļa. **Integrācijas** – **`public.integrations`** (tehniska atslēga, nosaukums, `enabled`), Server Actions **`lib/admin/integrations-actions.ts`**, **`app/admin/integrations/page.tsx`**, **`components/admin/admin-integrations-panel.tsx`**; migrācija **`024_integrations.sql`**; **SELECT** visa pasaule (lasāms arī no API/feature flagām), rakstīt tikai admins; pēc mutācijas – **`revalidatePath`** arī **`/login`**, **`/signup`**, **`/dashboard`**, **`/family-sharing`**. Karodziņi: **`login_google`**, **`login_apple`** (skatīt **Autentifikācija**); **`family_sharing`** (skatīt **Ģimenes dalīšana**). **Kategorijas** (`/admin/categories`) – tabula **`public.subscription_categories`** (`category_key`, `label`, `sort_order`, `enabled`, **`usage_count`**); nosaukumi visās valodās **`site_translations`** (`subscription.category.{key}`); admin **CRUD**, **drag-and-drop** secībai (fallback, ja skaiti vienādi), jaunas kategorijas ar tulkošanas režģi (kā **`/admin/translations`**, **`admin-i18n-*`**); panelī modāļa `<select>` – popularitāte (skat. **Panelis**). SQL **`131`–`138`**. **`app/admin/categories/page.tsx`**, **`components/admin/admin-categories-panel.tsx`**, **`lib/admin/categories-actions.ts`**, **`lib/admin/category-translations-actions.ts`**, **`lib/subscriptions/subscription-categories-server.ts`**. **Tulkojumi** - **`public.site_translations`**: **`components/admin/admin-translations-panel.tsx`** + **`AdminTranslationsIntro`** (`titleActions`: poga vienā rindā ar virsrakstu); **modāļi** jaunai atslēgai un labošanai; tabulā **atslēga + teksts tikai aktīvajai UI lokālei**; **meklētājs** pilnā platuma rindā; **bez meklēšanas** papildu rindas ar **IntersectionObserver** (lazy DOM), **ar meklēšanu** filtrs pār **visu** servera ielasīto katalogu (`loadAdminTranslationsData`). Migrācija **`011`**; publiskā **SELECT** – **`012_site_translations_select_public.sql`**; sēkla – **`013_site_translations_seed_subtrack_ui.sql`**, skatīt **[UI tulkošana](#ui-tulkošana)** (**`python scripts/export_site_translations_sql.py`** pēc **`fallback-phrases.ts`** izmaiņām). **Uzdevumi** (`/admin/todos`) – **`public.admin_todos`** (`sort_order` kolonnā), SSR **`lib/admin/admin-todos-data.ts`**, Server Actions **`lib/admin/admin-todos-actions.ts`**, **`lib/admin/admin-todos-types.ts`**, Kanban **`components/admin/admin-todos-board.tsx`** (ielāde caur **`admin-todos-board-dynamic.tsx`**, `ssr: false`): divas kolonnas (**Uzdevums**, **Procesā**); **pilna platuma vilkšanas zona** ar **`fa-trash`** **virs un apakš** kolonām – ievilkta karte tiek **pabeigta** (statuss **`done`**, bez apstiprinājuma modāļa, optimistisks UI + toast); **manuāla kārtība** – velc karti **augšup/leju** (zaļa strīpa rāda ievietošanas vietu), starp kolonnām arī drag; saglabā **`sort_order`** (`reorderAdminTodosColumnAction`, `moveAdminTodoAction`). **Nav** prioritātes kārtošanas vai UI (bez birkas un formas lauka). Virsraksts + **Pievienot** vienā rindā (**`AdminTodosIntro`**). Kartītē ikonpogas (**✓** pabeigt, labot, dzēst) ar **`SubtrackTooltip`**; pabeigšana/dzēšana – apstiprinājuma **modāļi** (ne `window.confirm`); optimistisks UI. Pabeigts pazūd no dēļa; DB **`done`** dzēsts pēc **8 h**. SQL **`096`–`100`** (backfill **`100_admin_todos_sort_order_backfill.sql`**, ja vecie ieraksti ar `sort_order = 0`), tulkošanas **`admin.todos.*`**. Atšķiras **prototipa paneļu** vai citu **`components/fs/*`** vietu līmenis par fiksētām virknēm – papildināšana vienmēr ar **`t('…')`**. Admin pazīme: RLS un RPC **`current_user_is_admin`** (pēc **`023`** – **`SECURITY INVOKER`**). Piešķirt tiesības, piem.: `update public.users set is_admin = 1 where email = '...';`
 
 ### Mobilā vide (līdz ~960 px platums)
 
@@ -46,7 +47,7 @@
 | **Galvenais saturs** | **`<main id="main">`** – sākumlapa (`app/(marketing)/page.tsx`), auth (`login`/`signup`), juridiskās (`legal-document-page.tsx`), forgot-password; panelis jau **`main.main-content`** (`dashboard-fs-view.tsx`). |
 | **Kontrasts** | Tumšāks **`--text-muted`** (`#475569`); akcentiem landing **`--primary-dark`**; CTA apakšvirksts bez `opacity` (`styles/subtrack.css`). |
 | **Ikonas** | Font Awesome 6 no CDN – **nebloķējoša** ielāde: **`FontAwesomeDeferredHead`** (hinti) + **`next/script`** `afterInteractive` (`lib/icons/font-awesome-deferred-inject.ts`, **`app/layout.tsx`**); `noscript` fallback; ikonas īsi pēc pirmā paint (**0.4.26**). **0.4.39** – bez `<script>` React komponentā (konsoles brīdinājums). |
-| **Veiktspēja** | Custom domēns vs **`*.vercel.app`** parasti **nemaina** lab Lighthouse skaitļus; svarīgāk deploy, JS/CSS apjoms un mobilais **LCP**. **`/`** → **`styles/landing.css`** (~119 KB); pārējās lapas → **`styles/subtrack-app.bundle.css`** (~170 KB); avots **`styles/subtrack.css`** (~203 KB). **`css:split`**: **`styles/modules/*`** + bundle bez **`@import`**. App bundle ietver arī **`demo-app.css`** (`/demo/*` banneris un badges). **`scripts/split-landing-css.mjs`** griež pēc **sekciju komentāru marķieriem** `subtrack.css` (ne fiksētām rindām) un pārbauda PostCSS; pēc **`subtrack.css`** – **`npm run css:split`** (citādi **`landing.css`** **`Unexpected }`** – **neredigēt** `landing.css` ar roku). **`.cursor/rules/subtrack-css-split.mdc`**. **0.4.24** RSC; **0.4.26** FA nebloķējošs. Pārbaude: [PageSpeed Insights](https://pagespeed.web.dev/) uz production URL. |
+| **Veiktspēja** | Custom domēns vs **`*.vercel.app`** parasti **nemaina** lab Lighthouse skaitļus; svarīgāk deploy, JS/CSS apjoms un mobilais **LCP**. **`/`** → **`styles/landing.css`** (~154 KB); pārējās lapas → **`styles/subtrack-app.bundle.css`** (~211 KB); avots **`styles/subtrack.css`** (~251 KB). **`css:split`**: **`styles/modules/*`** + bundle bez **`@import`**. App bundle ietver arī **`demo-app.css`** (`/demo/*` banneris un badges). **`scripts/split-landing-css.mjs`** griež pēc **sekciju komentāru marķieriem** `subtrack.css` (ne fiksētām rindām) un pārbauda PostCSS; pēc **`subtrack.css`** – **`npm run css:split`** (citādi **`landing.css`** **`Unexpected }`** – **neredigēt** `landing.css` ar roku). **`.cursor/rules/subtrack-css-split.mdc`**. **0.4.24** RSC; **0.4.26** FA nebloķējošs. Pārbaude: [PageSpeed Insights](https://pagespeed.web.dev/) uz production URL. |
 | **Meklētāji (GSC)** | **`app/robots.ts`**, **`app/sitemap.ts`**, **`lib/seo/search-crawl.ts`**. Sitemap: **`/`**, demo, juridiskās, **`/blog`** + katrs publicēts **`/blog/{slug}`** (no DB). **`robots.txt`**: `Allow: /`, `Disallow` panelis/auth/admin/API – **`/blog` nav** aizliegts. Domēna verifikācija – **[Google Search Console](#google-search-console-pēc-verifikācijas)** (TXT **Porkbun**). |
 | **OG / dalīšana** | Sākumlapa un share kartes: angļu **`{system_name} – subscription and recurring payment tracker`**, **`og:locale`** **`en_US`**; logo **`/brand/*`**. Pārbaude: [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/) pēc deploy („Scrape Again”). |
 
@@ -102,17 +103,48 @@ Produkta **Progressive Web App** slānis (pamats **0.3.51**–**0.3.53**; **0.4.
 | **`GET /api/cron/trial-ending-emails`** | Ieteicams **ik stundu** | `trial_end` (tikai aktīvs trial) | **09:00** TZ; atlikušās dienas **3 / 1 / 0** |
 | **`GET /api/cron/win-back-7d-emails`** | Ieteicams **ik stundu** | `win_back` | **09:00** TZ; tieši **7** kalendāra dienas bez aktivitātes (`users.last_seen`) |
 | **`GET /api/cron/win-back-30d-emails`** | Ieteicams **ik stundu** | `win_back` | **09:00** TZ; tieši **30** kalendāra dienas bez aktivitātes |
-| **`GET /api/cron/payment-push-notifications`** | Reizi dienā | Push abonements | Lietotāja TZ (skat. [PWA](#pwa-subtrack)) |
+| **`GET /api/cron/payment-push-notifications`** | Ieteicams **ik stundu** (dedup 1×/dienā) | Push abonements | Lietotāja TZ (skat. [PWA](#pwa-subtrack)) |
+
+**Plānotājs (produkcija): [cron-job.org](https://cron-job.org)** – ne Vercel Hobby cron (tikai reizi dienā). **6 atsevišķi jobi**, katrs **`0 * * * *`** (UTC), metode **GET**, URL `https://<NEXT_PUBLIC_SITE_URL>/api/cron/<job-id>` (skat. tabulu augšā un **`lib/cron/cron-job-registry.ts`**). **Custom header:** `Authorization` = `Bearer <CRON_SECRET>` (**ne** token URL query). **`CRON_SECRET`:** ģenerēt `openssl rand -hex 32`, iestatīt Vercel ENV un visos 6 cron-job.org jobos. Izslēgt Vercel Dashboard cron, ja bija. Alternatīva: Vercel Pro cron ar to pašu Bearer header.
 
 **Kalendāra datumi e-pastos** (`{DUE_DATE}`, `{TRIAL_END_DATE}`, `{LAST_SEEN_DATE}`): prioritāte **1)** `users.display_preferences` (`date_order`, `date_sep`, `timezone` no **`/settings`**), **2)** `system_settings.default_display_preferences` (**`/admin/system`**), **3)** koda noklusējums. **`formatCronEmailDate`**, **`mergeDisplayPreferencesForUser`** (`lib/user-display-preferences.ts`, `lib/cron/email-cron-common.ts`). **`/admin/email-design`** priekšskatījums bez konkrēta lietotāja rāda **sistēmas** noklusējumu (kā lietotājam bez pielāgotiem datuma laukiem). Nedēļas `{WEEK_RANGE}` – `formatWeekRangeLabel` (locale teksts).
 
-**Vercel Cron (piemērs):** visiem – `Authorization: Bearer $CRON_SECRET` ( **`lib/security/cron-auth.ts`** ; bez `?secret=` URL). Bieži **`0 * * * *`** (katru stundu) due-today / weekly / trial / win-back.
+**Aizsardzība:** **`lib/security/cron-auth.ts`** – tikai `Authorization: Bearer $CRON_SECRET`; bez `?secret=` URL. Bez headera → **401**.
 
-**Testa sūtījums (admin):** **`/admin/cron-jobs`** – **`components/admin/admin-cron-jobs-panel.tsx`**, poga **Testa sūtījums** katram darbam; serveris izsauc **`POST /api/admin/cron/run`** → iekšējs **`GET /api/cron/*?testUserId=<admin>`** ar **`Bearer CRON_SECRET`**. **Tikai pogas nospiedēja** e-pasts / push (ne visi lietotāji); testa režīmā **neieraksta** `email_reminder_log` / `push_notification_log`. Nedēļas, trial un **win-back** pievieno arī **`?force=1`**. Ja nav reālu datu, dažos darbos tiek izmantots **parauga saturs**. Plānotais cron (Vercel) **`testUserId` nelieto** – turp joprojām visi atbilstošie lietotāji.
+**Testa sūtījums (admin):** **`/admin/cron-jobs`** – **`components/admin/admin-cron-jobs-panel.tsx`**, poga **Testa sūtījums** katram darbam; serveris izsauc **`POST /api/admin/cron/run`** → iekšējs **`GET /api/cron/*?testUserId=<admin>`** ar **`Bearer CRON_SECRET`**. **Tikai pogas nospiedēja** e-pasts / push (ne visi lietotāji); testa režīmā **neieraksta** `email_reminder_log` / `push_notification_log`. Nedēļas, trial un **win-back** pievieno arī **`?force=1`**. Ja nav reālu datu, dažos darbos tiek izmantots **parauga saturs**. Plānotais cron-job.org **`testUserId` nelieto** – turp joprojām visi atbilstošie lietotāji.
 
 **Lietotājs:** **`/email-notifications`** – **`components/email-notifications/email-notifications-view.tsx`**, **`lib/emails/email-notification-preferences.ts`**. Slēdži: `due_today`, `weekly`, `trial_end` (tikai aktīvam trial), **`win_back`** (`155_*`). Noklusējums visi **ieslēgti** (`123_*`, backfill `win_back` **`155_*`**).
 
-**SQL:** **`123_email_notification_preferences.sql`**, **`124_site_translations_email_cron_notifications.sql`**, **`127_*`** (admin cron UI), **`129_*`** (teksti bez kavēto cron), **`155_win_back_emails.sql`**.
+**SQL:** **`123_email_notification_preferences.sql`**, **`124_site_translations_email_cron_notifications.sql`**, **`127_*`** (admin cron UI), **`129_*`** (teksti bez kavēto cron), **`155_win_back_emails.sql`**, tulkošanas **`database/translations_daily/2026-05-30.sql`** (`admin.cron_jobs.external_scheduler_hint`).
+
+#### CRON_SECRET un cron-job.org (solī pa solim)
+
+**`CRON_SECRET`** nav no Supabase vai cron-job.org – to **pats ģenerē** un glabā tikai ENV (ne Git, ne URL).
+
+1. **Ģenerēt** (PowerShell): `openssl rand -hex 32` (vai līdzīgs nejaušs garums).
+2. **Lokāli** – `.env.local`: `CRON_SECRET=<virkne>`; pārstartēt `npm run dev`.
+3. **Produkcija (Vercel)** – Project → **Settings → Environment Variables** → `CRON_SECRET` = **tā pati** vērtība (Production) → **Redeploy**. Lokālais `.env.local` uz Vercel **neaug**.
+4. **Pārbaude lokāli** (ne pārlūkā – tur nav `Authorization` headera):
+   - Bez tokena → **401**: `curl.exe -s -w "\nHTTP: %{http_code}\n" http://localhost:3000/api/cron/due-today-payment-emails`
+   - Ar tokena → **200** (vai JSON kļūda par Resend, bet **ne** 401): `curl.exe -s -w "\nHTTP: %{http_code}\n" -H "Authorization: Bearer <CRON_SECRET>" http://localhost:3000/api/cron/due-today-payment-emails`
+5. **Admin tests** – **`/admin/cron-jobs`** → **Testa sūtījums** (serveris pats sūta Bearer).
+6. **Produkcija** – tāds pats `curl.exe` ar `https://repazy.com/api/cron/...` pirms cron-job.org.
+7. **[cron-job.org](https://cron-job.org)** – **6 jobi** (cron-job.org **nevar** trāpīt `localhost`; tikai publisks `NEXT_PUBLIC_SITE_URL`):
+
+| Title (piem.) | URL (produkcija) | Schedule | Method | Custom header |
+|---------------|------------------|----------|--------|---------------|
+| due-today | `https://repazy.com/api/cron/due-today-payment-emails` | `0 * * * *` | GET | `Authorization`: `Bearer <CRON_SECRET>` |
+| weekly | `.../api/cron/weekly-summary-emails` | `0 * * * *` | GET | (tas pats) |
+| trial | `.../api/cron/trial-ending-emails` | `0 * * * *` | GET | (tas pats) |
+| win-back 7d | `.../api/cron/win-back-7d-emails` | `0 * * * *` | GET | (tas pats) |
+| win-back 30d | `.../api/cron/win-back-30d-emails` | `0 * * * *` | GET | (tas pats) |
+| push | `.../api/cron/payment-push-notifications` | `0 * * * *` | GET | (tas pats) |
+
+Pēc **Execute now** cron-job.org **History** jāredz **200** (ne 401/404). **Nelietot** `?secret=` vai `&CRON_SECRET=` URL – tikai header (**`lib/security/cron-auth.ts`**).
+
+**JSON atbilde (piem. due-today):** `"sent": N` – jauni e-pasti; `"skipped": N` – jau nosūtīti šodien (`email_reminder_log` dedup) – **normāli**, ne kļūda. `"success": true` + **401 nav** = auth un maršruts OK.
+
+**Vercel Hobby** iebūvētais cron – max reizi dienā; stundas grafikam izmanto **cron-job.org** (vai Vercel Pro ar to pašu Bearer).
 
 ### Sākuma ekrāna ikonas badge (0.4.10)
 
@@ -168,7 +200,58 @@ lib/i18n/pwa-fallback-phrases.ts
 | Demo paneļi | **`lib/demo/demo-dashboard-subscriptions.ts`** (SSR parauga dati), **`lib/demo/build-demo-analytics-snapshot.ts`**; `public/fs/js/*.js` (kalendārs, modāļi, paziņojumi; **`/dashboard`** CRUD pret `/api/subscriptions`; **`/demo/dashboard`** – tas pats UI, bez API; analītika – **`/fs/js/analytics.js`** kategoriju donut kā demo) |
 
 | Backend (pamats) | [Supabase](https://supabase.com) - `lib/supabase/*`, `proxy.ts`, `database/supabase/*.sql` |
+| Kļūdu uzskaite | [Sentry](https://sentry.io) – org **`repazy`**, projekts **`javascript-nextjs`** (EU **`ingest.de.sentry.io`**). Pilns ceļvedis: **[Sentry (kļūdu uzskaite)](#sentry-kļūdu-uzskaite)** |
 | PWA / logo | [Serwist](https://serwist.pages.dev) (`serwist.config.js`, `app/sw.ts` → `public/sw.js`); instalācijas UX – **`components/pwa/*`** (**`PwaDeferredInstallProvider`**); logo – **`sharp`** + Storage **`brand`**, URL **`/brand/*`**. Skatīt **[PWA (SubTrack)](#pwa-subtrack)** |
+
+## Sentry (kļūdu uzskaite)
+
+**Mērķis:** automātiski noķert klienta, servera un edge kļūdas; produkcijā – lasāmi stack traces (source maps) un e-pasta brīdinājumi (Sentry **Alerts**).
+
+| Kas | Kur |
+|-----|-----|
+| SDK | `@sentry/nextjs` |
+| Klienta init | `instrumentation-client.ts` (Session Replay, tracing) |
+| Server / edge | `sentry.server.config.ts`, `sentry.edge.config.ts`, `instrumentation.ts` |
+| App Router globālās kļūdas | `app/global-error.tsx` |
+| Build / maps | `next.config.ts` → `withSentryConfig` (`org`, `project`, `authToken`) |
+| Cron check-in | `lib/cron/sentry-cron-monitor.ts` + visi `app/(app)/api/cron/*` |
+| Tunelis (ad-blocker) | **`/monitoring`** tikai **produkcijā**; lokāli Sentry **izslēgts** |
+| Proxy | `proxy.ts` matcher **izslēdz** `monitoring` (neiet cauri sesijas slānim) |
+| Ieslēgšana | `lib/sentry/is-sentry-enabled.ts` – **`npm run dev` lokāli izslēgts** (kvota); **Vercel production** ieslēgts. Piespiedu lokāls tests: `.env.local` **`SENTRY_ENABLED=1`** |
+
+### DSN (obligāti)
+
+1. Sentry → **Projects** → **`javascript-nextjs`** → **Settings → Client Keys (DSN)** → **Copy** (URL ar `ingest.de.sentry.io`).
+2. `.env.local` (abām rindām **tā pati** vērtība):
+
+   ```env
+   NEXT_PUBLIC_SENTRY_DSN=https://...@....ingest.de.sentry.io/....
+   SENTRY_DSN=https://...@....ingest.de.sentry.io/....
+   ```
+
+3. **Pārstartē** `npm run dev` pēc DSN pievienošanas (`NEXT_PUBLIC_*` tiek ielasīts servera startā).
+
+**Lokāli (`npm run dev`):** ar noklusējumu **nekas netiek sūtīts** uz Sentry (pat ar DSN `.env.local`). Kļūdas vāc tikai **produkcija** (`NODE_ENV=production` uz Vercel). Ja vajag vienreiz pārbaudīt lokāli: `SENTRY_ENABLED=1` + restart.
+
+**Nav DSN:** `SENTRY_AUTH_TOKEN` (`sntrys_...`) – tas ir tikai source map upload, ne kļūdu sūtīšanai.
+
+### Source maps (produkcija / Vercel)
+
+1. [Auth Tokens](https://sentry.io/settings/account/api/auth-tokens/) → **Create** → scope **`project:releases`** (+ **`org:read`**).
+2. Vercel **Production** ENV: `SENTRY_AUTH_TOKEN` (bez `NEXT_PUBLIC_`). Lokāli (opc.): fails **`.env.sentry-build-plugin`** repo saknē (gitignore).
+3. Vercel arī: `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN` → **Redeploy**.
+
+### Pārbaude
+
+| Vide | Kā |
+|------|-----|
+| **Lokāli** | Noklusējums: Sentry **izslēgts**. Tests: `.env.local` → `SENTRY_ENABLED=1`, restart, tad [http://localhost:3000/api/sentry-test](http://localhost:3000/api/sentry-test) → `ok: true` |
+| **Produkcija** | `https://repazy.com` → DevTools Console: `allow pasting`, tad `setTimeout(() => { throw new Error("test"); }, 0);` → Issues (**production**) |
+| **Cron** | Pēc cron-job.org izsaukuma – Sentry **Crons** → monitori `subtrack-cron-*` |
+
+Ja Issues tukšs: pārbaudi DSN, dev **restart**, Network (`ingest.de` lokāli), Sentry filtrs **All environments**, inkognito (ad-blocker).
+
+Wizard (interaktīvi, opc.): `npx @sentry/wizard@latest -i nextjs --saas --org repazy --project javascript-nextjs`
 
 ## Maršrutu aizsardzība (`proxy.ts` → `lib/supabase/middleware.ts`)
 
@@ -176,7 +259,7 @@ lib/i18n/pwa-fallback-phrases.ts
 - **Sesija ir**: **`/login`**, **`/signup`**, **`/forgot-password`** - novirze uz **`/dashboard`** (proxy **`GUEST_ONLY_PATHS`** iekš `lib/supabase/middleware.ts`).
 - **Sesija ir + saknes `/`**: papildus **`app/(marketing)/page.tsx`** izsauc **`redirect('/dashboard')`** (sākumlapas saturs tikai viesiem).
 
-Sesijas cookie atjaunošana arī šeit; saknes **`proxy.ts`** izsauc `updateSession`.
+Sesijas cookie atjaunošana arī šeit; saknes **`proxy.ts`** izsauc `updateSession`. **Bez sesijas (apzināti):** **`POST /api/stripe/webhook`** (Stripe paraksts + **`STRIPE_WEBHOOK_SECRET`**). **Sentry tunelis** `monitoring` ir **ārpus** matcher (skat. **[Sentry](#sentry-kļūdu-uzskaite)**).
 
 ## Navigācija un veiktspēja (kopīgas sajūtas)
 
@@ -216,6 +299,7 @@ Pat salīdzinoši mazā lietotnē **`App Router`** maršruta maiņa parasti nav 
    # RESEND_API_KEY=
    # EMAIL_FROM=SubTrack <noreply@repazy.com>
    # Logo (/admin/system, 071–072): admin sesija + SUPABASE_SERVICE_ROLE_KEY + 072_brand_storage.sql
+   # Stripe (159–160, ja paid_plan_enabled): STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET – skat. Stripe (norēķini)
    ```
 
 4. **Authentication** – URL Configuration un **Google / Apple OAuth**: skatīt **[Google OAuth (Supabase)](#google-oauth-supabase)** (Supabase provideri, Google Cloud redirect, **`/auth/callback`**, admin **`login_google`** / **`login_apple`**; tabula **`024_integrations.sql`**).
@@ -364,6 +448,11 @@ Pat salīdzinoši mazā lietotnē **`App Router`** maršruta maiņa parasti nav 
    - **`database/supabase/155_win_back_emails.sql`** – **`email_reminder_log`**: `win_back_7d`, `win_back_30d` (cron win-back). Pēc **`123_*`**.
    - **`database/supabase/156_paid_plan_lifetime.sql`** – **`system_settings`**: `paid_plan_lifetime_enabled`, `paid_plan_lifetime_price_eur`, `paid_plan_lifetime_ends_at`, `paid_plan_lifetime_purchase_limit`, `paid_plan_lifetime_purchase_count`. Pēc **`155_*`**.
    - **`database/supabase/157_site_translations_paid_plan_lifetime.sql`** – admin **`admin.forms.paid_plan_lifetime_*`**, landing **`landing.pricing.lifetime_*`**. Pēc **`156_*`** (vai **`database/translations_daily/2026-05-29.sql`** lifetime bloks).
+   - **`database/supabase/158_security_advisor_categories_last_seen_feedback.sql`** – Advisor: **`validate_subscription_category_ref`** `search_path`; kategoriju usage RPC/triggeri un **`user_feedback_guard_landing_flag`** – **revoke EXECUTE** no `anon`/`authenticated`; **`refresh_*`** tikai **`service_role`**; **`touch_user_last_seen`** → **INVOKER**. Pēc **`157_*`**. **Leaked password** – Dashboard (skat. **`022`**, **`128`**).
+   - **`database/supabase/159_stripe_billing_users.sql`** – **`users`**: `paid_plan_type`, `paid_plan_period_end_at`, `paid_plan_auto_renew`, `stripe_customer_id`, `stripe_subscription_id`; RLS **`users_update_own`** paplašināts (klients nevar pats mainīt maksas laukus). Pēc **`158_*`**.
+   - **`database/supabase/160_site_translations_stripe_billing.sql`** – Stripe/checkout, admin lietotāju filtri, **`/subscribe/success`** (7 valodas). Pēc **`159_*`**.
+   - **`database/supabase/161_private_loan.sql`** – **`subscriptions`**: privātais aizdevums (`is_private_loan`, `loan_principal`, `loan_total_repay`, `loan_payments` JSON ar datumu/summu/`paidOn`); periods **`once`**, **`is_dynamic_amount`** (Mainīt summu). Pēc **`160_*`**; tulkojumi **`database/translations_daily/2026-05-30-private-loan.sql`**.
+   - **`database/supabase/162_subscription_category_private_loan.sql`** – kategorija **`private_loan`** + tulkojumi. Pēc **`161_*`**.
    - **`database/supabase/078_system_settings_email_templates_split.sql`** – **`system_settings_email_templates`** (admin RLS); noņem **`system_settings_public`**. Pēc **`051`** (un **`076`**, ja bija). **Obligāti** pēc drošības audita.
    - **`database/supabase/079_email_reminder_log_rls_policies.sql`** – RLS politikas **`email_reminder_log`** (Advisor). Pēc **`052`**.
    - **`database/supabase/080_security_advisor_warnings.sql`** – **`storage.brand`** bez bucket listing; **`admin_set_user_pro_vip`** tikai **`service_role`**. Pēc **`043`**, **`072`**.
@@ -398,7 +487,7 @@ Pat salīdzinoši mazā lietotnē **`App Router`** maršruta maiņa parasti nav 
 Virknes UI: **`useSubtrackIntl().t('atslēga')`**, dati no **`site_translations`**, trūkstot - no **`FALLBACK_PHRASES`** (`lib/i18n/fallback-phrases.ts`).
 
 - **Lokāle** – **`resolveUiLocaleCodeForRequest`** (`lib/ui/ui-locale-from-request.ts`), izsaukts caur **`resolveRequestUiLocales`** (`lib/ui/server-ui-phrases.ts`): **ielogots** – `users.display_preferences.interface_language_code` → **`Accept-Language`** (sīkdatne **`subtrack_ui_locale` netiek lietota SSR); **viesis** – sīkdatne → **`Accept-Language`**, salīdzinājumā ar **`public.languages`** (`getLanguagesCatalog`). Saknes **`app/layout.tsx`** un **`<html lang>`** (`localeCodeToHtmlLang`) izmanto to pašu atrisinājumu; **`HtmlLangBridge`** viesim var sinhronizēt no **`localStorage`**, ielogotam – tikai servera lokāli. **`/settings`** un **`NavUiLanguageSwitcher`** – skatīt **Iestatījumi**; pēc maiņas **`router.refresh()`**, lai **`SubtrackIntlProvider`** atjaunotos.
-- **Serveris** - saknes **`app/layout.tsx`** paraleli ielādē **`getPublicSiteTranslationsMerged(locale, defaultLocale)`** (`lib/site-translations-public.ts`, anon Supabase klients + **`unstable_cache`**, tags **`site-translations-public`**) un **`getPublicSystemSettings()`** (`lib/system-settings-public.ts`: **`systemName`**, **`brandLogo`**, **`pwa`**, display prefs, **`paidPlan`** ar **`paid_plan_*`**, **`paid_plan_annual_*`**, **`paid_plan_lifetime_*`** → **`paidPlan.lifetime`**; keša tags **`system-settings`**, versija **`subtrack-system-settings-v8`**), tad ietin saturu **`SubtrackIntlProvider`** (`locale`, **`systemSiteName`**, **`brandLogo`**, **`paidPlan`**, **`pwa`**, **`dbMap`**).
+- **Serveris** - saknes **`app/layout.tsx`** paraleli ielādē **`getPublicSiteTranslationsMerged(locale, defaultLocale)`** (`lib/site-translations-public.ts`, anon Supabase klients + **`unstable_cache`**, tags **`site-translations-public`**) un **`getPublicSystemSettings()`** (`lib/system-settings-public.ts`: **`systemName`**, **`brandLogo`**, **`pwa`**, display prefs, **`paidPlan`** ar **`paid_plan_*`**, **`paid_plan_annual_*`**, **`paid_plan_lifetime_*`** → **`paidPlan.lifetime`**; keša tags **`system-settings`**, versija **`subtrack-system-settings-v9`**), tad ietin saturu **`SubtrackIntlProvider`** + **`NavBrandBridge`**. Paneļa lapas papildus nodod **`brand`** caur **`loadNavBrandSnapshot()`** → **`NavDash`** → **`DashBrandLink`** (vienāda SSR/hydrācija).
 - **Lappušu `<title>` (App Router)** - daudzos maršrutos **`generateMetadata`** izsauc **`getUiPhraseForRequest('meta.title.*')`** (`lib/ui/server-ui-phrases.ts`; tās pašas lokāļa izvēles kā layout), piem.: **`/admin/*`**, **`/login`**, **`/signup`**, **`/dashboard`**, **`/analytics`**, **`/settings`**, **aizmirstā parole / mainīt paroli**. **Sākumlapa `/`:** angļu **`buildSiteSharePageTitle`** + **`title.absolute`** (**`lib/seo/landing-seo.ts`**).
 - **Klients** - **`useSubtrackIntl().t('atslēga')`**: vispirms vērtība no DB mapes, citādi **fallback** no **`lib/i18n/fallback-phrases.ts`** (`pickFallbackPhrase`); rezultātā vietturu aizvietošana (**`{SYSTEM_NAME}`** / **`{SISTEM_NAME}`**) ar **`system_settings.system_name`** (`applySystemNamePlaceholders`). Datuma/mēneša formatēšanai atsevišķi izmanto **`Intl`** ar **`uiLocaleCodeToBcp47ForIntl`** (`lib/ui/ui-locale-from-request.ts`).
 - **FS demo scripts** – **`app/dashboard/page.tsx`** / **`app/analytics/page.tsx`** (Server Component): **`getUiPhrasesForRequest(fs*PhraseKeys)`** (`lib/ui/server-ui-phrases.ts`, atslēgu saraksti **`lib/fs/fs-page-i18n-keys.ts`**) + **`FsI18nBootstrap`** (`components/fs/fs-i18n-bootstrap.tsx`) bez **`use client`**, lai inline **`<script>`** izpildītos dokumenta parsē laikā (`window.__SUBTRACK_FS_I18N`, **`window.__SUBTRACK_FS_META.intlLocale`**). Tikai tad **`DashboardFsView` / Analytics** **`loadScriptOnce('/fs/js/…')`**. Paneļa JS lasa frāzes (piem. globālais **`FsT`**) **`public/fs/js/subscriptions-helpers.js`**, **`dashboard.js`**, **`analytics.js`**).
@@ -416,8 +505,15 @@ app/(app)/                # panelis, auth, admin, API lapas – subtrack-app.bun
 app/(app)/blog/           # publisks saraksts + `blog/[slug]` (BBCode → HTML)
 app/(app)/admin/blog/     # admin bloga CRUD
 app/globals.css           # `@import` `subtrack.css`; papildu CSS (login sociālais tweak, admin integrāciju slēdzis – sk. Tehniskais steks)
-app/api/subscriptions/    # autentificēts CRUD (cookie sesija, Supabase server klients)
-app/api/family-sharing/   # ģimenes dalīšana: GET/POST (POST: lietotājs sistēmā vai ārējs + invite_user e-pasts); PATCH (accept, decline, revoke, leave, krāsa, combine)
+app/(app)/api/subscriptions/    # autentificēts CRUD (`requireApiSession`, `lib/subscriptions/subscription-map.ts`)
+app/(app)/api/family-sharing/   # ģimenes dalīšana: GET/POST; PATCH `[id]` (accept, decline, revoke, leave, krāsa, combine)
+app/(app)/api/billing/checkout/           # POST – Stripe Checkout Session (sesija, `paid_plan_enabled`)
+app/(app)/api/billing/sync-checkout/      # POST – Pro statuss no `session_id` (sesija; Stripe API)
+app/(app)/api/billing/pro-track-subscription/  # POST – kalendāra ieraksts pēc Pro (prasa `paid_plan_active`)
+app/(app)/api/billing/portal/             # POST – Stripe Customer Portal URL (sesija)
+app/(app)/api/stripe/webhook/             # POST – Stripe webhook (bez sesijas; `STRIPE_WEBHOOK_SECRET`)
+app/(app)/subscribe/success/              # pēc Checkout + billing sync + pro-track modālis
+app/(app)/api/admin/                    # `users/delete`, `users/pro-vip`, `users/sync-stripe-billing`, `cron/run`
 app/family-sharing/       # lapa (integrācijas karodziņš `family_sharing`)
 components/               # nav-landing, nav-dash, landing-page.tsx (SSR saturs), landing-pricing-lifetime-urgency.tsx, landing-nav-sync, mobile-bottom-nav(+item), …
 components/family-sharing/  # family-sharing-view.tsx
@@ -432,20 +528,26 @@ components/flash-param-toast.tsx  # auth flash + HoverPauseToast (hover aptur au
 lib/push-dom-toast.ts         # admin / settings toast (#toast-container)
 lib/dom-toast-hover-dismiss.ts  # kopīga hover → auto-aizvēršana (arī FS showToast)
 components/auth/          # auth-login-flow.tsx, auth-signup-flow.tsx (kartīšu saturs lokālei)
-components/admin/         # admin-shell, admin-users-view, admin-categories-panel, admin-blog-panel, admin-cron-jobs-panel, admin-intros, admin-todos-board, …
+components/admin/         # admin-shell, admin-users-view, admin-todos-board-dynamic, admin-categories-panel, admin-blog-panel, …
+components/billing/           # `billing-subscription-modal`, `nav-user-billing-entry`, `NavUserBillingMenuItem`
+components/subscribe-pro-track-prompt.tsx, subscribe-success-billing-sync.tsx
 components/app/           # `app-page-content-gate.tsx` – lapas ielādes spinneris + teksts (`AppPageContentGate`)
 components/fs/            # Paneļa / analītikas skati; `fs-i18n-bootstrap.tsx` – servera inlīnas `window.__SUBTRACK_*` pirms /fs/js
 lib/app/                  # `page-content-ready.ts` – FS boot notikums `subtrack-page-content-ready`
 components/email-notifications/  # `email-notifications-view.tsx` – e-pasta prefs UI
 components/pro-trial/     # `pro-trial-chrome.tsx` – progress josla, Pro badge (izmēģinājums)
-lib/admin/                # Server Actions + `run-cron-job.ts` (admin cron test)
-lib/brand/                # Storage + publisks `/brand/*` URL (`logo-assets.ts`, `process-logo.ts`); noklusējuma zīmols – `lib/pwa/brand-mark.tsx`
+lib/api/                  # Route Handler boilerplate: `require-api-session`, `require-api-admin`, `parse-json-body`, `json-response`
+lib/validation/           # `uuid.ts` – kopīga UUID validācija (API + admin)
+lib/admin/                # Server Actions, `form-helpers.ts`, `admin-*-data.ts` (SSR admin lapām), `run-cron-job.ts`, `format-user-last-seen-display.ts`
+lib/brand/                # Storage + `/brand/*` (`logo-assets.ts`, `process-logo.ts`); `nav-brand-snapshot.ts`; noklusējuma zīmols – `lib/pwa/brand-mark.tsx`
 lib/pwa/                  # `install-prompt-capture.ts`, `install-banner-dismiss.ts`, `install-prompt.ts`, `defaults.ts`, `public-pwa-settings.ts`
 components/brand/         # `site-brand-logo.tsx`, `dash-brand-link.tsx`
 components/pwa/           # `pwa-deferred-install-provider`, `pwa-install-host`, `pwa-install-banner`, `pwa-settings-install`, `offline-page-view`
 lib/system-name-placeholder.ts # {SYSTEM_NAME} aizvietošana `t()` ceļā
 lib/paid-plan-annual.ts        # gada cena, atlaide % pret 12× mēneša, publiskais pitch (`buildPaidPlanAnnualPitchCopy`)
 lib/paid-plan-lifetime.ts      # lifetime cena, laika/iegādes limits, `resolvePaidPlanLifetimePublic`, `paidPlanShowsLifetime`
+lib/billing/                   # Stripe: checkout, portal, webhook; `session-billing-summary.ts` (klientam drošs); `load-session-billing-summary.ts` (SSR)
+components/subscribe-pro-purchase-button.tsx  # `/subscribe` – „Iegādāties” → checkout API
 lib/system-settings-public.ts  # anon kešots: nosaukums, `brandLogo`, `pwa`, `paidPlan` (+ `lifetime`), display prefs (`system-settings`)
 lib/i18n/pwa-fallback-phrases.ts  # PWA + admin PWA fallback (papildus `fallback-phrases.ts`)
 lib/site-translations-public.ts  # anon kešots `site_translations` merge sabiedriskajam UI
@@ -464,32 +566,39 @@ lib/fs-icons.ts            # paneļa atļautās FA Solid klases (`FA_ICONS_ALL`)
 lib/fs-icon-picker-search.ts  # ikonu meklēšanas baiti / bootstrap (`haystack`, sinonīmi) pirms `dashboard.js`
 lib/i18n/                 # FALLBACK_PHRASES (`fallback-phrases.ts`) un apkārtējā palīgfunkcionalitāte
 lib/auth/                 # actions, sesija, `auth-localized-email`, `auth-callback-link`, `signup-email-blocked`, pro-trial, is-admin
-lib/subscriptions/        # `subscription-categories-server.ts`, `analytics-access.ts`, `dashboard-free-tier-gate.ts`, `subscription-payment.ts`, `fetch-paid-calendar-server.ts`, `fetch-subscriptions-server.ts`, `subscription-map.ts`
+lib/subscriptions/        # `subscription-map.ts`, `private-loan.ts`, `subscription-payment.ts`, kategorijas, analytics, paid calendar
 lib/security/             # `auth-rate-limit.ts`, `rate-limit-allow.ts` (opc. Upstash), `cron-auth.ts`, `server-action-rate-limit.ts`
 lib/supabase/middleware.ts  # sesija, lapu aizsardzība, `/api/*` → 401 bez sesijas
 security_check.md         # drošības audits, vērtējums ~9/10, Advisor checklist
 lib/emails/               # admin šabloni, Resend; `email-design-preview-dates.ts`, cron: due-today/weekly/trial/win-back
-lib/cron/                 # `email-cron-common.ts` (`formatCronEmailDate`, `systemDisplayPreferences`), `run-win-back-emails.ts`, `cron-job-registry.ts`
+lib/sentry/               # `is-sentry-enabled.ts` (lokāli off, Vercel production on)
+lib/cron/                 # `email-cron-common.ts` (+ `loadServiceRoleCronContext`), `email-reminder-send.ts` (cron GET wrapper, e-pasta send/log), `run-win-back-emails.ts`, `cron-job-registry.ts`, `sentry-cron-monitor.ts`
+instrumentation.ts        # Sentry server registration (`onRequestError`)
+instrumentation-client.ts # Sentry browser + Session Replay
+sentry.server.config.ts
+sentry.edge.config.ts
+app/global-error.tsx
+app/(app)/api/sentry-test/  # GET – tikai development (Sentry smoke)
 lib/emails/email-notification-preferences.ts
-app/email-notifications/  # aizsargāta lapa (proxy)
-app/api/user/email-notification-preferences/  # PATCH prefs
-app/admin/cron-jobs/      # admin: piespiedu cron testi
-app/admin/categories/     # admin: maksājumu kategoriju katalogs (CRUD, drag, i18n)
-app/api/admin/cron/run/   # POST – tikai admin (`current_user_is_admin`)
-app/api/cron/             # due-today, weekly-summary, trial-ending, win-back-7d/30d, payment-push (CRON_SECRET)
+app/(app)/email-notifications/  # aizsargāta lapa (proxy)
+app/(app)/api/user/email-notification-preferences/  # PATCH prefs
+app/(app)/admin/cron-jobs/      # admin: piespiedu cron testi
+app/(app)/admin/categories/     # admin: maksājumu kategoriju katalogs (CRUD, drag, i18n)
+app/(app)/api/admin/cron/run/   # POST – `requireApiAdmin`
+app/(app)/api/cron/             # due-today, weekly-summary, trial-ending, win-back-7d/30d, payment-push (CRON_SECRET + `createAuthorizedCronGetRoute`)
 lib/integrations/       # `integration-enabled.ts`, OAuth: `login-social-flags.ts`
 lib/family-sharing/     # `family-sharing-server.ts`, `send-family-invite-email.ts` (`invite_user`), tipi, dashboard bootstrap ar kopīgotajiem ierakstiem
 lib/support/            # atbalsta Server Actions, Resend e-pasts
 lib/suggestions/        # ieteikumi + balsošana (Server Actions)
-lib/feedback/           # atsauksmes, landing kešs (`landing-feedback.ts`)
+lib/feedback/           # atsauksmes, `parse-star-rating.ts`, landing kešs (`landing-feedback.ts`)
 lib/user-display-preferences.ts  # display_preferences; **`mergeDisplayPreferencesForUser`** (lietotājs → sistēmas defaults → kods), **`formatDateForDisplayPreferences`**
-lib/languages-catalog.ts  # kešots valodu katalogs + noklusējuma `code` (anon lasījums)
-lib/supabase/             # anon/server klienti, `service-role-client.ts` (service_role tikai serverim), sesijas loģika (+ **rate limit** – skatīt `proxy.ts`)
+lib/languages-catalog.ts  # kešots valodu katalogs + noklusējuma `code` (caur `public-anon-client`)
+lib/supabase/             # `client.ts`, `server.ts`, `service-role-client.ts`, `public-anon-client.ts`, `middleware.ts` (sesija + `/api/*` 401)
 proxy.ts                  # **rate limit** auth ceļiem, tad `updateSession` + redirecti; sk. **[Navigācija un veiktspēja](#navigācija-un-veiktspēja-kopīgas-sajūtas)**
-database/supabase/        # Postgres + RLS (`001` … **`141`**); kategorijas **`131`–`138`**, budžets **`132`–`133`**, lapas ielāde **`139`**, ģimenes ārējais uzaicinājums **`140`**, landing ģimene **`141`**, dinamiskā summa **`130`**, OAuth avatārs **`125`**, admin cron **`127`**, e-pasta prefs/cron **`123`–`124`**, Auth e-pasti **`117`–`122`**, retired signup **`119`–`120`**, PWA **`067`–`070`**, logo **`071`–`075`**, drošība **`078`–`080`**, push **`081`–`082`**, family **`084`–`095`**, todos **`096`–`100`**, Pro trial **`107`–`116`**
+database/supabase/        # Postgres + RLS (`001` … **`160`**); Stripe **`159`–`160`**, kategorijas **`131`–`138`**, budžets **`132`–`133`**, lapas ielāde **`139`**, ģimenes ārējais uzaicinājums **`140`**, landing ģimene **`141`**, dinamiskā summa **`130`**, OAuth avatārs **`125`**, admin cron **`127`**, e-pasta prefs/cron **`123`–`124`**, Auth e-pasti **`117`–`122`**, retired signup **`119`–`120`**, PWA **`067`–`070`**, logo **`071`–`075`**, drošība **`078`–`080`**, push **`081`–`082`**, family **`084`–`095`**, todos **`096`–`100`**, Pro trial **`107`–`116`**
 serwist.config.js         # Serwist build (CommonJS; ģenerē `public/sw.js`)
 scripts/                  # `export_site_translations_sql.py`; **`security-*.mjs`** (smoke, regression, migration-checklist)
-public/fs/js/             # FS demo JS (subscriptions, dash-alerts …)
+public/fs/js/             # FS panelis: `display-preferences-format.js` (datumi ↔ `user-display-preferences.ts`), `subscriptions-helpers.js`, `dashboard.js`, `dash-alerts.js` (ielāde – `components/fs/load-fs-scripts.tsx`)
 styles/subtrack.css       # dizaina līnija (toast-container--auth-pages u.c.)
 supabase.env.template     # ENV veidlapa bez noslēpumiem
 ```
@@ -506,13 +615,17 @@ npm run dev
 
 [http://localhost:3000](http://localhost:3000).
 
+**Stripe (lokāli, ja testē maksājumus):** obligāti **[Stripe (norēķini)](#stripe-norēķini)** – `.env.local` + atsevišķs terminālis ar **`stripe listen`** (CLI nav daļa no `npm run dev`).
+
+**Sentry (lokāli):** ar `npm run dev` **nekas netiek sūtīts** uz Sentry (kvota). DSN `.env.local` var palikt produkcijas deployam. Pārbaudei lokāli: `SENTRY_ENABLED=1` + restart → **`/api/sentry-test`**. Detalizēti – **[Sentry (kļūdu uzskaite)](#sentry-kļūdu-uzskaite)**.
+
 **PWA:** izstrādē **`npm run dev`** ģenerē/uzrauga **`public/sw.js`**; pilnai instalācijas plūsmai pirms deploy – **`npm run build`**. Detalizēti – **[PWA (SubTrack)](#pwa-subtrack)**.
 
 **Ja izstrādē konsolē vai pārlūkā parādās:** `Router action dispatched before initialization` (**`use-action-queue`**, **`hmrRefresh`**) vai **`ChunkLoadError` / `Failed to load chunk`** (`/_next/static/chunks/...`) – tipiska **Next.js 16 Turbopack** HMR / fragmentu sacīkste (parasti tikai **`next dev`** bez **`--webpack`**). **Risinājums:** apturēt serveri, izdzēst mapi **`.next`**, palaist **`npm run dev`** no jauna un **cietā pārlādēšana**; ja atkārtojas – **`npm run dev:webpack`** (stabilāks izstrādes serveris).
 
 **Uzmanību:** nekādā **`next.config`** nelietojiet `deploymentId: process.env.X ?? ""`, ja rezultāts var būt **`""`** – tukša virkne Turbopack režīmā var salauzt hidratāciju un līdzīgas kļūdas (skat. [next.js #92858](https://github.com/vercel/next.js/issues/92858)).
 
-**Drošība:** **`security_check.md`** (vērtējums **~9,0** repozitorijā, **~9,1** ar pilnu DB + smoke). **`npm run security:check`** = regresija + audit + smoke. API: middleware **401** + handler `getUser()`; cron **Bearer**; rate limit auth + `/api/*` (opc. Upstash).
+**Drošība:** **`security_check.md`** (vērtējums **~9,0** repozitorijā, **~9,1** ar pilnu DB + smoke). **`npm run security:check`** = regresija + audit + smoke. **`npm run security:deploy-checklist`** – produkcijas soļi; **`npm run security:verify-migrations`** – pārbauda **159/161** kolonnas. API: middleware **401** + **`requireApiSession`** / **`requireApiAdmin`**; cron **Bearer**; rate limit auth + **`/api/*`** (iesk. **`/api/billing`**, opc. Upstash).
 
 ```bash
 npm run build
@@ -520,6 +633,126 @@ npm run start
 npm run lint
 npm run security:check    # pēc DB / drošības izmaiņām
 ```
+
+## Stripe (norēķini)
+
+Aktivizējas tikai ar **`system_settings.paid_plan_enabled`** (admin **`/admin/system`**). Cenas Checkout sesijā tiek ņemtas no DB (**`paid_plan_price_eur`**, **`paid_plan_annual_price_eur`**, **`paid_plan_lifetime_price_eur`**), ne no fiksētiem Stripe Price ID.
+
+### Obligātie soļi (SQL + admin)
+
+| Solis | Darbība |
+|-------|---------|
+| **SQL** | Supabase SQL Editor: **`159_stripe_billing_users.sql`**, tad **`160_site_translations_stripe_billing.sql`**. |
+| **Admin** | **`/admin/system`** – ieslēdz **maksas plāns** un cenas (mēnesis / gads / lifetime pēc vajadzības). |
+
+### ENV mainīgie
+
+| Mainīgais | Lokāli (Test mode) | Produkcija (Live mode) |
+|-----------|-------------------|------------------------|
+| **`STRIPE_SECRET_KEY`** | **Developers → API keys** → Secret `sk_test_...` | Tas pats, **Live** → `sk_live_...` |
+| **`STRIPE_WEBHOOK_SECRET`** | **Stripe CLI** `stripe listen` izdrukā `whsec_...` (ne API keys lapa) | **Webhooks** → tavs endpoint → **Signing secret** `whsec_...` |
+| **`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`** | Opc. `pk_test_...` | Opc. `pk_live_...` (Checkout šajā projektā iet caur serveri; **nav obligāts**) |
+| **`NEXT_PUBLIC_SITE_URL`** | `http://localhost:3000` | `https://repazy.com` (Vercel Production) |
+
+Pēc **jebkuras** `.env.local` maiņas: **pārstartē** `npm run dev`. **Nekommitē** `.env.local`. Produkcijā – Vercel ENV + **Redeploy** (skat. **[Produkcija (Live + Vercel)](#produkcija-live--vercel)**).
+
+### Lokāla izstrāde – divi termināļi
+
+`stripe listen` **nav** jāliek failā; to palaiž **atsevišķā** logā, kamēr darbojas lietotne.
+
+| Terminālis | Komanda |
+|------------|---------|
+| **1** | `cd subtrack-web` → `npm run dev` → [http://localhost:3000](http://localhost:3000) |
+| **2** | `stripe listen --forward-to localhost:3000/api/stripe/webhook` (logu **neaizver** testa laikā) |
+
+Pirmajā reizē CLI: `stripe login` (pārlūkā apstiprina). Terminālis **2** izdrukā, piem.: `Ready! Your webhook signing secret is whsec_...` → ieliec **`STRIPE_WEBHOOK_SECRET`** → **pārstartē** termināli **1**. Ja **`listen`** palaid no jauna, `whsec_` var mainīties – atjaunini ENV un atkal restartē dev.
+
+### Stripe CLI (Windows)
+
+Ja komanda `stripe` nav atpazīta:
+
+```powershell
+winget install --id Stripe.StripeCli -e --accept-source-agreements --accept-package-agreements
+```
+
+Pēc instalācijas – **jauns** terminālis. Alternatīva: [stripe-cli releases](https://github.com/stripe/stripe-cli/releases/latest) (`windows_x86_64.zip`), pievienot mapi PATH.
+
+### Testa maksājums
+
+1. Ielogojies → **`/subscribe`** → **Iegādāties**.
+2. Stripe test karte: **`4242 4242 4242 4242`**, derīgs termiņš, jebkurš CVC.
+3. Terminālī **`listen`** jāparādās notikumi (piem. `checkout.session.completed`).
+4. **`/subscribe/success`**; Supabase **`users`**: `paid_plan_active`, `paid_plan_type`, `stripe_customer_id` (abonementam arī `stripe_subscription_id`).
+
+### Biežas kļūmes
+
+| Simptoms | Risinājums |
+|----------|------------|
+| Checkout: „nav konfigurēts” | Trūkst **`STRIPE_SECRET_KEY`** vai nav pārstartēts dev pēc `.env.local`. |
+| Maksājums izdevās, bet Pro nav | **`stripe listen`** nav palaists, nepareizs **`STRIPE_WEBHOOK_SECRET`**, vai nav restartēts dev pēc `whsec_` maiņas; atver **`/subscribe/success`** ar `session_id` URL (izsauc **sync-checkout**); admin **`/admin/users`** → **Sinhronizēt no Stripe**. |
+| `stripe` nav komanda | Instalē CLI (skat. augšā). |
+
+### Stripe Customer Portal (profila izvēlne)
+
+1. Stripe Dashboard → **Settings → Billing → Customer portal** – ieslēdz portālu (atcelšana, kartes maiņa, rēķini pēc vajadzības).
+2. Lietotājs: profila izvēlne → **Pro abonements** → modālis; **Atvērt Stripe portālu** → **`POST /api/billing/portal`** → atgriešanās **`/dashboard?billing=1`** (modālis atveras atkārtoti).
+3. **VIP** – tikai info modālī; portāls nav pieejams.
+
+### Drošība un sync (0.6.0)
+
+- **Pro tiesības** tikai caur **`users.paid_plan_*`** (RLS – klients nevar pats uzlikt); webhook ar **`stripe-signature`**.
+- **`sync-checkout`** – lasa sesiju no Stripe API, pārbauda `user_id` + apmaksu + **aktīvu** abonementu (nav vecās `cs_` replay pēc atcelšanas).
+- **Admin sync** – **`sync-user-billing-from-stripe`** – tikai **pašreizējais** Stripe abonements / lifetime maksājums.
+
+### Produkcija (Live + Vercel)
+
+Produkcijā Stripe strādā **Live režīmā**. **`stripe listen`** un **`sk_test_` / `whsec_` no CLI** uz Vercel **nelieto**.
+
+#### 1. Stripe konts
+
+1. [Stripe Dashboard](https://dashboard.stripe.com/) – pabeidz **Activate account** (uzņēmums, banka), lai ieslēgtos **Live**.
+2. Pārslēdz no **Test mode** uz **Live** (slēdzis augšā pie logos).
+
+#### 2. Webhook (obligāti)
+
+**Developers → Webhooks → Add endpoint**
+
+| Lauks | Vērtība |
+|-------|---------|
+| **Endpoint URL** | `https://repazy.com/api/stripe/webhook` (ja lieto citu apex – tas pats domēns) |
+| **Listen to** | **Selected events** |
+| **Events** | `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` |
+
+Pēc saglabāšanas: atver endpoint → **Signing secret** → kopē `whsec_...` → tas ir produkcijas **`STRIPE_WEBHOOK_SECRET`** (atšķiras no lokālā CLI `listen`).
+
+Pārbaude: pēc testa maksājuma **Webhooks → endpoint → Recent deliveries** – `checkout.session.completed` ar **200**.
+
+#### 3. Vercel Environment Variables (Production)
+
+| Mainīgais | Vērtība |
+|-----------|---------|
+| **`STRIPE_SECRET_KEY`** | Live **Secret key** `sk_live_...` (**Developers → API keys**, Live) |
+| **`STRIPE_WEBHOOK_SECRET`** | `whsec_...` no **2. punkta** webhook (ne no `stripe listen`) |
+| **`NEXT_PUBLIC_SITE_URL`** | `https://repazy.com` (bez `/` beigās) |
+
+Pārējās atslēgas – kā **[Vercel un produkcijas domēns](#vercel-un-produkcijas-domēns)** un **`supabase.env.template`**. Pēc pievienošanas: **Redeploy** production.
+
+#### 4. Supabase un SubTrack (bez tā Pro nestrādās)
+
+| Solis | Darbība |
+|-------|---------|
+| SQL | **`159_stripe_billing_users.sql`**, **`160_site_translations_stripe_billing.sql`** |
+| Admin | **`/admin/system`** – ieslēgts **maksas plāns** + cenas |
+| Tulkošanas | **`database/translations_daily/2026-05-30.sql`**, **`2026-05-30-pro-track-prompt.sql`**, **`2026-05-30-billing-portal.sql`** (7 valodas) |
+
+#### 5. Produkcijas pārbaude
+
+1. `https://repazy.com` → ielogojies → **`/subscribe`** → **Iegādāties** (īsta karte Live režīmā).
+2. Stripe webhook **Recent deliveries** – 200.
+3. Supabase **`users`**: `paid_plan_active`, `paid_plan_type`, `stripe_customer_id` (abonementam arī `stripe_subscription_id`).
+4. Ja Pro nav uzreiz: atver **`/subscribe/success`** ar `session_id` URL (fallback **sync-checkout**) vai admin **`/admin/users`** → **Sinhronizēt no Stripe**.
+
+**Kods:** `lib/billing/*`, checkout / sync-checkout / pro-track / **portal** / webhook route. **`npm install`** ietver **`stripe`**. **VIP** (`pro_vip`) – admin dāvina Pro, **atsevišķi** no Stripe. **Customer Portal** – ieslēdz Stripe Dashboard + profila izvēlne **Pro abonements**.
 
 ## Vercel un produkcijas domēns
 
@@ -534,7 +767,7 @@ npm run security:check    # pēc DB / drošības izmaiņām
 1. **Settings → Domains** – pievienots `repazy.com` (statuss **Valid Configuration**, **Production**). Ieteicams arī `www.repazy.com` un redirect uz galveno hostu.
 2. **Settings → Environment Variables** (Production):
    - `NEXT_PUBLIC_SITE_URL` = `https://repazy.com` (bez slīpsvītras beigās) – **robots.txt**, **sitemap**, e-pasta/OAuth saites.
-   - Pārējās atslēgas kā lokāli: `NEXT_PUBLIC_SUPABASE_*`, `SUPABASE_SERVICE_ROLE_KEY`, cron, VAPID u.c. (skatīt **`supabase.env.template`**).
+   - Pārējās atslēgas kā lokāli: `NEXT_PUBLIC_SUPABASE_*`, `SUPABASE_SERVICE_ROLE_KEY`, cron, VAPID, Stripe (**[Produkcija (Live + Vercel)](#produkcija-live--vercel)** – `sk_live_` + Live webhook `whsec_`), **`NEXT_PUBLIC_SENTRY_DSN`**, **`SENTRY_DSN`**, **`SENTRY_AUTH_TOKEN`** (source maps) u.c. (skatīt **`supabase.env.template`**, **[Sentry](#sentry-kļūdu-uzskaite)**).
 3. Pēc ENV maiņas – **Redeploy** production.
 
 ### Supabase (obligāti ar custom domēnu)
@@ -663,9 +896,9 @@ Propagācija: parasti **15–60 min**, retāk līdz **48 h**. Kamēr `*.vercel.a
 
 1. **`npm install`** – vienmēr pēc pull, ja mainījies `package.json` vai `package-lock.json`; ja šaubies, atkārto arī tad, kad lock fails nav mainījies (ātri un novērš „missing dependency’’ lokāli).
 2. **Žurnāls** – salīdzināt ar **[Izmaiņu žurnālu](#izmaiņu-žurnāls)** un rindiņu **`Versija:`** README augšā: tur tiek apkopotas būtiskākās izmaiņas (Auth, proxy/sesija, SQL, ENV, paneļa FS slānis).
-3. **Supabase un ENV** – salīdzināt **`database/supabase/`** (līdz **`157_*`**: lifetime Pro **`156`–`157`**, win-back **`155_*`**, blogs **`153`–`154`**, atsauksmes **`152`**, feedback **`151`**, ieteikumi **`150`**, atbalsta e-pasts **`149`**, reģistrācijas valsts **`148`**, admin **`last_seen`** **`145`–`147`**, u.c.) un **`supabase.env.template`** ar **`.env.local`**. **Lifetime Pro:** **`156_paid_plan_lifetime.sql`**, tulkošanas **`157_*`** vai **`database/translations_daily/2026-05-29.sql`** (lifetime bloks). **Blogs:** **`153_blog_posts.sql`**, **`154_blog_storage.sql`**; attēlu augšupielādei – **`SUPABASE_SERVICE_ROLE_KEY`** (kā logo **`072`**). **Pro trial:** **`107`–`116`**. **Drošība:** **`078`–`080`**, **`022`**, **`023`**. **`SUPABASE_SERVICE_ROLE_KEY`** obligāts: signup/confirm e-pasti, Pro trial RPC, VIP, cron, admin user delete, daļa family **`PATCH`**, blog/storage (ieteicams). **Resend:** `RESEND_API_KEY`, `EMAIL_FROM`. **Cron:** `CRON_SECRET`. Pēc SQL: **`npm run security:check`**. Ja mainīts **`styles/subtrack.css`**: **`npm run css:split`**. Tulkošanas: **`database/translations_daily/2026-05-29.sql`** (t.sk. **`admin.forms.paid_plan_lifetime_*`**, **`landing.pricing.lifetime_*`**, **`admin.blog.*`**, **`blog.*`**, **`legal.footer.blog`**). Migrācijas: **Supabase iestatīšana**, **`npm run security:migration-checklist`**, **`security_check.md`**.
+3. **Supabase un ENV** – salīdzināt **`database/supabase/`** (līdz **`162_*`**: privātais aizdevums **`161`–`162`**, Stripe **`159`–`160`**, Advisor **`158`**, lifetime Pro **`156`–`157`**, win-back **`155_*`**, blogs **`153`–`154`**, u.c.) un **`supabase.env.template`** ar **`.env.local`**. **Stripe (ja ieslēgts maksas plāns):** **`159_*`**, **`160_*`**, ENV **`STRIPE_SECRET_KEY`**, **`STRIPE_WEBHOOK_SECRET`** – skatīt **[Stripe (norēķini)](#stripe-norēķini)**. **Privātais aizdevums:** **`161_private_loan.sql`**, **`162_subscription_category_private_loan.sql`**, tulkojumi **`database/translations_daily/2026-05-30-private-loan.sql`**. **Lifetime Pro:** **`156_paid_plan_lifetime.sql`**, tulkošanas **`157_*`** vai **`database/translations_daily/2026-05-29.sql`** (lifetime bloks). **Blogs:** **`153_blog_posts.sql`**, **`154_blog_storage.sql`**; attēlu augšupielādei – **`SUPABASE_SERVICE_ROLE_KEY`** (kā logo **`072`**). **Pro trial:** **`107`–`116`**. **Drošība:** **`078`–`080`**, **`022`**, **`023`**, **`158`**. **`SUPABASE_SERVICE_ROLE_KEY`** obligāts: signup/confirm e-pasti, Pro trial RPC, VIP, cron, admin user delete, admin kategoriju usage refresh, daļa family **`PATCH`**, blog/storage (ieteicams). **Resend:** `RESEND_API_KEY`, `EMAIL_FROM`. **Cron:** `CRON_SECRET` (`.env.local` + Vercel ENV; skat. **[E-pasta paziņojumi (cron)](#e-pasta-paziņojumi-cron)** → CRON_SECRET un cron-job.org). Pēc SQL: **`npm run security:check`**. Ja mainīts **`styles/subtrack.css`**: **`npm run css:split`**. Tulkošanas: **`database/translations_daily/2026-05-29.sql`**, **`2026-05-30.sql`**, **`2026-05-30-pro-track-prompt.sql`**, **`2026-05-30-billing-portal.sql`**, **`2026-05-30-private-loan.sql`**, **`2026-05-30-missing-locales.sql`** – **vienmēr 7 valodas** (`lv`, `en`, `fr`, `de`, `es`, `pt`, `ru`; skat. **`.cursor/rules/translations-all-locales.mdc`**). Migrācijas: **Supabase iestatīšana**, **`npm run security:migration-checklist`**, **`security_check.md`**.
 4. **Pārbaude** – **`npm run lint`** un **`npm run build`** pēc lielākām izmaiņām; ikdienas **`npm run dev`**. Ja mainīta drošība/DB: **`npm run security:check`**. Mobilā: PWA banneris + **`/offline`** (**[PWA](#pwa-subtrack)**). **≥0.4.22:** pēc pull pārbaudīt **Font Awesome** ikonas (admin todos ✓/rediģēt, panelis, landing); ja tukšas – **`app/layout.tsx`** nedrīkst lietot atlikto FA ielādi (`media="print"`). Turbopack **`CssSyntaxError`** uz **`landing.css`** (piem. `Unexpected }`) – vispirms **`npm run css:split`**, tad dzēst **`.next`** un restartēt dev (**0.4.38**).
-5. **Produkcija (Vercel)** – ja mainīts domēns vai ENV: Vercel **Redeploy**; pārbaudīt **`NEXT_PUBLIC_SITE_URL`**, Supabase **Redirect URLs** un Porkbun DNS (skatīt **[Vercel un produkcijas domēns](#vercel-un-produkcijas-domēns)**). Ja pieslēdz **Google Search Console** – TXT **Porkbun**, pēc tam **sitemap.xml** GSC (skatīt **[Google Search Console](#google-search-console-pēc-verifikācijas)**).
+5. **Produkcija (Vercel)** – ja mainīts domēns vai ENV: Vercel **Redeploy**; pārbaudīt **`NEXT_PUBLIC_SITE_URL`**, **`CRON_SECRET`**, **`STRIPE_*`** (ja Stripe), Supabase **Redirect URLs** un Porkbun DNS (skatīt **[Vercel un produkcijas domēns](#vercel-un-produkcijas-domēns)**). Cron stundai: **cron-job.org** ar Bearer header (**[E-pasta paziņojumi (cron)](#e-pasta-paziņojumi-cron)**). Ja pieslēdz **Google Search Console** – TXT **Porkbun**, pēc tam **sitemap.xml** GSC (skatīt **[Google Search Console](#google-search-console-pēc-verifikācijas)**).
 
 ### Ko „pateikt’’ / kā īsi atbildēt pēc jauna Git atjauninājuma
 
@@ -709,7 +942,9 @@ Jaunai videi pēc **`001`** – obligāti vismaz: **`015`**, **`016`**, **`022`*
 ### Komandas un CI
 
 ```bash
-npm run security:migration-checklist   # obligāto SQL saraksts
+npm run security:migration-checklist   # obligāto SQL saraksts (H1 + 158–162)
+npm run security:deploy-checklist      # produkcijas deploy soļi (teksts)
+npm run security:verify-migrations     # pēc SQL 159/161 (service_role)
 npm run security:regression-check      # L2 statika (CI push/PR)
 npm run security:smoke                 # DB smoke (.env + opc. SECURITY_SMOKE_*)
 npm run security:check                 # regression + audit + smoke
@@ -721,7 +956,7 @@ npm run audit
 - **Proxy rate limit:** `lib/security/auth-rate-limit.ts`, `proxy.ts` (auth ceļi; **`DISABLE_RATE_LIMIT`**, **`RATE_LIMIT_MULTIPLIER`**).
 - **API rate limit (opc. Upstash):** `lib/security/rate-limit-allow.ts` – `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`.
 - **Signup e-pasta pārbaude:** `signupEmailExistsAction` – `lib/security/server-action-rate-limit.ts` (sliding window).
-- **Middleware API:** `lib/supabase/middleware.ts` – `/api/*` bez sesijas → **401** JSON (izņ. cron, dev-env-check).
+- **Middleware API:** `lib/supabase/middleware.ts` – `/api/*` bez sesijas → **401** JSON (izņ. cron, dev-env-check); handleros – **`lib/api/require-api-session.ts`** / **`require-api-admin.ts`** (ne dublēt `getUser()` katrā route).
 - **CSP enforce:** `next.config.ts` (`Content-Security-Policy`).
 
 ### Supabase Dashboard (manuāli)
@@ -733,11 +968,77 @@ npm run audit
 
 ## Ceļš uz backend
 
-Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscriptions`**, RLS) un **Next Route Handlers** (`app/api/subscriptions`). Citas funkcijas un paplašinājumi dokumentē atsevišķi. Vecāka prototipa atsauce: **`www/FS`** (īpašiem workspace gadījumiem).
+Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscriptions`**, RLS) un **Next Route Handlers** (`app/(app)/api/subscriptions`). Kopīgais HTTP slānis – **`lib/api/`**; biznesa validācija – **`lib/subscriptions/subscription-map.ts`**. Citas funkcijas un paplašinājumi dokumentē atsevišķi. Vecāka prototipa atsauce: **`www/FS`** (īpašiem workspace gadījumiem).
 
 ## Izmaiņu žurnāls
 
 Šeit īss pieraksts par izlaistām izmaiņām. **PWA** – **[PWA (SubTrack)](#pwa-subtrack)**. **0.4.x** no **0.4.0** (= agrāk **0.3.54**).
+
+### 0.6.4 (2026-05-30)
+
+- **Pro abonements – UI un izvēlne** – **`/settings`** vairs nerāda norēķinu bloku; **profila izvēlnē** **Pro abonements** (zeltaina ikona) atver modāli (2×2 kartītes, Stripe portāla poga, zils info par auto-atjaunošanu). Modālis **`createPortal`** uz `document.body` (nav iekš dropdown). **`POST /api/billing/portal`**, atgriešanās **`/dashboard?billing=1`**. Stili tikai **`styles/subtrack.css`** → **`npm run css:split`** (`.billing-subscription-*`, `.dash-user-dropdown-item--pro`).
+- **Hydrācija – zīmols** – **`DashBrandLink`** vairs nelieto `useSubtrackIntl` logo/nosaukumam; **`loadNavBrandSnapshot()`** + `brand` props no servera lapām (**`dashboard`**, **`analytics`**, **`settings`**, **`admin`**, **`demo`**). Kešs **`subtrack-system-settings-v9`**. **`lib/brand/nav-brand-snapshot.ts`**, **`load-session-billing-summary.ts`** (atdalīts no klienta importiem).
+
+### 0.6.3 (2026-05-30)
+
+- **Dashboard – privātais aizdevums (UX)** – vienkārša forma: aizņemtā summa, kopā atmaksājam, nākamais maksājums; **Mainīt summu** pirms apmaksas; progress **`€samaksāts / €kopā`**; automātisks nākamais termiņš. **`lib/subscriptions/private-loan.ts`**, **`dashboard.js`**, tulkojumi **`2026-05-30-private-loan.sql`**.
+
+### 0.6.2 (2026-05-30)
+
+- **Pro abonements (sākums)** – modālis un **`POST /api/billing/portal`**; sākotnēji **`/settings`** (aizstāts ar izvēlni **0.6.4**). **`components/billing/*`**, **`lib/billing/*`**, **`2026-05-30-billing-portal.sql`**. Stripe: **Customer portal**.
+- **Drošība – deploy** – **`security_check.md`** atjaunināts (2026-05-30); regresijas skripts atpazīst **`requireApiSession`** / **`requireApiAdmin`**; rate limit **`/api/billing`**, **`/api/user`**, catch-all **`/api`**; jauni skripti **`security:deploy-checklist`**, **`security:verify-migrations`**; migrāciju checklist paplašināts ar **158–162**.
+- **Dashboard – privātais aizdevums (sākums)** – kategorija **`private_loan`**: DB lauki, progress josla, „Samaksāts”. SQL **`161_private_loan.sql`**, **`162_subscription_category_private_loan.sql`**. Detalizēta UX – **0.6.3**.
+
+### 0.6.1 (2026-05-30)
+
+- **README – Stripe produkcija** – jauna sadaļa **[Produkcija (Live + Vercel)](#produkcija-live--vercel)**: Live konts, webhook URL + 3 notikumi, Vercel ENV (`sk_live_`, Live `whsec_`), SQL/admin, pārbaude; ENV tabula Test vs Live.
+
+### 0.6.0 (2026-05-30)
+
+- **Stripe Pro pēc apmaksas** – **`grantProFromCheckoutSession`** (`lib/billing/verify-checkout-grant.ts`): apmaksa + aktīvs/trial abonements; **`POST /api/billing/sync-checkout`** + **`SubscribeSuccessBillingSync`** uz **`/subscribe/success`** (retry, ja webhook kavējas).
+- **Pro kalendāra ieraksts** – modālis pēc mēneša/gada checkout (**`SubscribeProTrackPrompt`**, **`POST /api/billing/pro-track-subscription`**); prasa apmaksātu Pro; SQL/tulkojumi **`2026-05-30-pro-track-prompt.sql`**.
+- **Stripe drošība** – nav `paid_plan_active` bez Stripe verifikācijas; **`sync-checkout`** neļauj vecās `session_id` replay; **`pro-track`** tikai ar **`paid_plan_active`** / VIP.
+- **Admin Stripe sync** – **`/admin/users`**: poga sinhronizācijai (**`POST /api/admin/users/sync-stripe-billing`**, **`sync-user-billing-from-stripe.ts`**) – pašreizējais Stripe stāvoklis (atceltam lietotājam izslēdz Pro, ja nav aktīva abonementa).
+- **Admin todos** – SSR dati **`admin-todos-data.ts`** (ne no `"use server"` faila); Kanban **`admin-todos-board-dynamic.tsx`** (`ssr: false`) – novērš bundļu kļūdu uz dashboard.
+- **Tulkojumi** – **`database/translations_daily/2026-05-30.sql`** (sync-checkout, admin stripe sync; **7 valodas**); noteikums **`.cursor/rules/translations-all-locales.mdc`**.
+
+### 0.5.42 (2026-05-30)
+
+- **README – Stripe lokāli** – paplašināta **[Stripe (norēķini)](#stripe-norēķini)**: kur ņemt `sk_test_` / `whsec_`, **divi termināļi** (`npm run dev` + `stripe listen`), Windows CLI (`winget`), testa karte, biežas kļūmes; **Palaišana lokāli** un Vercel ENV atsauce.
+
+### 0.5.41 (2026-05-30)
+
+- **Admin `/admin/users`** – maksas plāna kopsavilkuma **bloki** virs tabulas (`stat-card`, skaits + filtrs); bloki tikai, ja kategorijā ir lietotāji; noņemtas filtra pogas; kolonna **Pro** ar plāna birku; **VIP** API – tiešs `users.update` (ne `admin_set_user_pro_vip` RPC). **`lib/admin/admin-users-filter.ts`**, **`admin-user-plan-label.ts`**, **`styles/modules/subtrack-app.css`**.
+
+### 0.5.40 (2026-05-30)
+
+- **Sentry lokāli izslēgts** – `lib/sentry/is-sentry-enabled.ts`: `enabled: false` pie `npm run dev` (kvota); produkcijā kā iepriekš. Cron monitori un `/api/sentry-test` respektē to pašu; piespiedu tests: **`SENTRY_ENABLED=1`**. README **[Sentry](#sentry-kļūdu-uzskaite)**.
+- **Stripe norēķini** – SQL **`159_stripe_billing_users.sql`**, **`160_site_translations_stripe_billing.sql`**; **`POST /api/billing/checkout`**, **`POST /api/stripe/webhook`** (publisks ceļš); **`/subscribe/success`**, **`SubscribeProPurchaseButton`**; ENV **`STRIPE_*`** (`supabase.env.template`). **`lib/billing/*`**, **`npm install stripe`**. Ceļvedis README **[Stripe (norēķini)](#stripe-norēķini)**.
+
+### 0.5.39 (2026-05-30)
+
+- **Refaktors – dublētas funkcijas** – kopīgs **`lib/api/`** (sesija, admin, JSON, UUID, atbildes); **`lib/admin/form-helpers.ts`**, **`lib/admin/admin-*-data.ts`** (system, integrations, languages, pwa, email-design, users); **`lib/subscriptions/parse-interface-locale.ts`**, **`lib/supabase/public-anon-client.ts`**, **`lib/cron/email-reminder-send.ts`** (cron route wrapper + e-pasta send/log); FS **`public/fs/js/display-preferences-format.js`**. API route un cron handleri pārslēgti uz helperiem.
+- **README** – **Struktūra**, ievads, admin SSR datu loaderi, **`lib/api/`** / middleware / Ceļš uz backend.
+
+### 0.5.38 (2026-05-30)
+
+- **README – Sentry** – jauna sadaļa **[Sentry (kļūdu uzskaite)](#sentry-kļūdu-uzskaite)**: DSN (`ingest.de`), ENV, Vercel, pārbaude (`/api/sentry-test`, Issues), cron monitori; **Tehniskais steks**, **Palaišana lokāli**, **Vercel**, **Struktūra**, **proxy** (`monitoring` izņēmums). Kods: tunelis **`/monitoring`** tikai produkcijā; **`app/(app)/api/sentry-test/route.ts`** (dev); `instrumentation-client.ts` – `debug` development.
+
+### 0.5.37 (2026-05-30)
+
+- **README – cron uzstādīšana** – sadaļa **[E-pasta paziņojumi (cron)](#e-pasta-paziņojumi-cron)**: soli pa solim `CRON_SECRET` (`.env.local` + Vercel ENV), `curl` pārbaude, cron-job.org tabula (6 jobi), `sent`/`skipped` interpretācija; brīdinājums par URL tokeniem un localhost.
+
+### 0.5.36 (2026-05-30)
+
+- **Sentry** (skill **`sentry-nextjs-sdk`**): kļūdas + tracing + **Session Replay** (`replayIntegration`), server **`includeLocalVariables`**, `next.config.ts` – **`authToken`**, tunnel **`/monitoring`**, **`proxy.ts`** izslēdz `monitoring`; **Cron Monitors** – `lib/cron/sentry-cron-monitor.ts` + visi **`/api/cron/*`**. ENV: **`NEXT_PUBLIC_SENTRY_DSN`**, **`SENTRY_DSN`**, build **`SENTRY_AUTH_TOKEN`** (`.env.sentry-build-plugin`). Pārbaude: īslaicīga kļūda API/route → [Issues](https://sentry.io/issues/).
+
+### 0.5.35 (2026-05-30)
+
+- **Cron plānotājs** – produkcija: **cron-job.org** (6 jobi, `0 * * * *` UTC, `Authorization: Bearer CRON_SECRET`); README, **`supabase.env.template`**, **`/admin/cron-jobs`** norāde; **`lib/security/cron-auth.ts`** `timingSafeEqual`. Tulkošanas **`database/translations_daily/2026-05-30.sql`**. Vercel Hobby built-in cron nav nepieciešams.
+
+### 0.5.34 (2026-05-30)
+
+- **Security Advisor** – SQL **`158_security_advisor_categories_last_seen_feedback.sql`**: `validate_subscription_category_ref` `search_path`; kategoriju usage un feedback triggeri – revoke EXECUTE no `anon`/`authenticated`; `refresh_subscription_category_usage_counts` tikai `service_role` (`subscription-categories-server.ts`); `touch_user_last_seen` → SECURITY INVOKER. **`security_check.md`**.
 
 ### 0.5.33 (2026-05-29)
 
@@ -864,7 +1165,7 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 ### 0.5.8 (2026-05-23)
 
 - **OAuth profila bilde** – Google (un citi provideri ar `avatar_url` / `picture` metadata) rāda profila foto topbar lietotāja izvēlnē un **`/admin/users`**; rezerve – inicialēs. SQL **`125_users_oauth_avatar_url.sql`** (`avatar_url`, `handle_new_user`, Auth trigeris, backfill). Kods: **`UserAvatar`**, **`sync-oauth-avatar.ts`**, **`auth/callback`** sinhronizācija, **`user-display.ts`**.
-- **E-pasta paziņojumi – UI un dokumentācija** – **`/email-notifications`**: `auth-card`, `admin-switch`, `.email-notif-*` (**`styles/subtrack.css`**; pēc izmaiņām **`npm run css:split`**). Profila izvēlne **E-pasta paziņojumi**. README: **[E-pasta paziņojumi (cron)](#e-pasta-paziņojumi-cron)** (Vercel cron tabula), struktūra, **Pēc Git** līdz **`124_*`**, **`supabase.env.template`** cron ceļi.
+- **E-pasta paziņojumi – UI un dokumentācija** – **`/email-notifications`**: `auth-card`, `admin-switch`, `.email-notif-*` (**`styles/subtrack.css`**; pēc izmaiņām **`npm run css:split`**). Profila izvēlne **E-pasta paziņojumi**. README: **[E-pasta paziņojumi (cron)](#e-pasta-paziņojumi-cron)** (cron plānotājs), struktūra, **Pēc Git** līdz **`124_*`**, **`supabase.env.template`** cron ceļi.
 
 ### 0.5.7 (2026-05-23)
 
@@ -916,7 +1217,7 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 ### 0.4.39 (2026-05-22)
 
 - **React konsole** – Font Awesome: `<script>` noņemts no komponenta, ielāde caur **`next/script`** (`afterInteractive`) root layout; **`FontAwesomeDeferredHead`** tikai `preconnect` / `preload` / `noscript`.
-- **Hydrācija (zīmols)** – **`NavBrandBridge`** (`label`, `logoTopbar`) atsevišķi no lielā Intl `dbMap`; **`DashBrandLink`** lasa to pirms konteksta.
+- **Hydrācija (zīmols)** – **`NavBrandBridge`** layoutā; paneļa lapās arī **`loadNavBrandSnapshot()`** → **`NavDash` `brand` prop** → **`DashBrandLink`** (ne Intl fallback). Skat. **0.6.4**.
 - **FS bootstrap** – `<template>` JSON pārvietots uz servera komponentiem (**`FsDashboardBootstrapTemplates`**, **`FsAnalyticsBootstrapTemplates`**) ārpus klienta koka (dashboard / demo / analytics).
 
 ### 0.4.38 (2026-05-22)

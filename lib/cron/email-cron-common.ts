@@ -1,5 +1,7 @@
 import { loadEmailTemplatesStoreForSend } from "@/lib/emails/load-email-templates-store";
+import { DEFAULT_SYSTEM_NAME } from "@/lib/pwa/defaults";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
+import { getSystemSiteName } from "@/lib/system-settings-public";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import {
   DISPLAY_PREFERENCES_DEFAULTS,
@@ -19,18 +21,20 @@ export function todayIsoUtc(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export type EmailCronContext = {
+export type ServiceRoleCronContext = {
   supabase: NonNullable<ReturnType<typeof createServiceRoleSupabaseClient>>;
   siteUrl: string;
   systemName: string;
-  currency: string;
-  templatesStore: EmailTemplatesStore;
-  /** Sistēmas noklusējums (`/admin/system`) virs `DISPLAY_PREFERENCES_DEFAULTS`. */
   systemDisplayPreferences: DisplayPreferences;
 };
 
-export async function loadEmailCronContext(): Promise<
-  EmailCronContext | { error: string; status: number }
+export type EmailCronContext = ServiceRoleCronContext & {
+  currency: string;
+  templatesStore: EmailTemplatesStore;
+};
+
+export async function loadServiceRoleCronContext(): Promise<
+  ServiceRoleCronContext | { error: string; status: number }
 > {
   let supabase;
   try {
@@ -44,15 +48,36 @@ export async function loadEmailCronContext(): Promise<
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL?.trim() || "http://localhost:3000";
 
-  const [{ data: settings }, tplBundle] = await Promise.all([
+  const [{ data: settings }, systemName] = await Promise.all([
     supabase
       .from("system_settings")
       .select("default_display_preferences")
       .eq("id", 1)
       .maybeSingle(),
-    loadEmailTemplatesStoreForSend(),
+    getSystemSiteName(),
   ]);
 
+  const systemDisplayPreferences = resolveSystemDisplayPreferences(
+    settings?.default_display_preferences,
+  );
+
+  return {
+    supabase,
+    siteUrl,
+    systemName: systemName.trim() || DEFAULT_SYSTEM_NAME,
+    systemDisplayPreferences,
+  };
+}
+
+export async function loadEmailCronContext(): Promise<
+  EmailCronContext | { error: string; status: number }
+> {
+  const base = await loadServiceRoleCronContext();
+  if ("error" in base) {
+    return base;
+  }
+
+  const tplBundle = await loadEmailTemplatesStoreForSend();
   if (!tplBundle) {
     return {
       error: "E-pasta šabloni nav pieejami (system_settings_email_templates).",
@@ -60,18 +85,11 @@ export async function loadEmailCronContext(): Promise<
     };
   }
 
-  const systemDisplayPreferences = resolveSystemDisplayPreferences(
-    settings?.default_display_preferences,
-  );
-  const currency = systemDisplayPreferences.currency;
-
   return {
-    supabase,
-    siteUrl,
+    ...base,
     systemName: tplBundle.systemName,
-    currency,
+    currency: base.systemDisplayPreferences.currency,
     templatesStore: tplBundle.store,
-    systemDisplayPreferences,
   };
 }
 

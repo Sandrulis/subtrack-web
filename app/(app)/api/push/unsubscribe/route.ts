@@ -1,27 +1,24 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { apiJsonError } from "@/lib/api/json-response";
+import { parseJsonBody } from "@/lib/api/parse-json-body";
+import { requireApiSession } from "@/lib/api/require-api-session";
 
 export async function POST(request: Request) {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireApiSession();
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
 
   let endpoint = "";
-  try {
-    const body = (await request.json()) as { endpoint?: unknown };
+  const parsedBody = await parseJsonBody(request);
+  if (parsedBody.ok) {
+    const body = parsedBody.body as { endpoint?: unknown };
     endpoint = typeof body.endpoint === "string" ? body.endpoint.trim() : "";
-  } catch {
-    return NextResponse.json({ success: false, message: "Invalid JSON" }, { status: 400 });
   }
 
   if (!endpoint) {
     const { error } = await supabase.from("push_subscriptions").delete().eq("user_id", user.id);
     if (error) {
-      return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+      return apiJsonError(500, error.message);
     }
     return NextResponse.json({ success: true });
   }
@@ -33,7 +30,7 @@ export async function POST(request: Request) {
     .eq("endpoint", endpoint);
 
   if (error) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return apiJsonError(500, error.message);
   }
 
   return NextResponse.json({ success: true });

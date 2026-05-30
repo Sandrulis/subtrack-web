@@ -13,7 +13,7 @@ function interpolate(
   return out;
 }
 
-function formatDateTimeIntl(iso: string, intlLocale: string): string {
+export function formatDateTimeIntl(iso: string, intlLocale: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   try {

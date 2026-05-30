@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { authorizeCron } from "@/lib/security/cron-auth";
+import {
+  applyCronMailSendResult,
+  buildCronEmailStatsBody,
+  createAuthorizedCronGetRoute,
+  logEmailReminderAndCountSent,
+} from "@/lib/cron/email-reminder-send";
 import {
   buildAdminTestWeeklyPayload,
   cronIncludesUser,
@@ -25,11 +30,9 @@ import {
   sendWeeklySummaryEmail,
 } from "@/lib/emails/send-transactional";
 
-export async function GET(request: Request) {
-  if (!authorizeCron(request)) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-  }
+export const GET = createAuthorizedCronGetRoute("weekly-summary-emails", handleGet);
 
+async function handleGet(request: Request) {
   if (!isTransactionalEmailConfigured()) {
     return NextResponse.json({
       success: false,
@@ -62,22 +65,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, message: usersErr.message }, { status: 500 });
   }
 
-  let sent = 0;
-  let skipped = 0;
-  const errors: string[] = [];
+  const counters = { sent: 0, skipped: 0, errors: [] as string[] };
 
   for (const user of users ?? []) {
     if (!cronIncludesUser(user.id, testUserId)) {
-      skipped += 1;
+      counters.skipped += 1;
       continue;
     }
     const email = user.email?.trim();
     if (!email) {
-      skipped += 1;
+      counters.skipped += 1;
       continue;
     }
     if (!isTest && !userWantsEmail(user.email_notification_preferences, "weekly")) {
-      skipped += 1;
+      counters.skipped += 1;
       continue;
     }
 
@@ -87,7 +88,7 @@ export async function GET(request: Request) {
     );
     const force = isCronForceRun(request) || isTest;
     if (!force && !isWeeklySummarySendWindow(timezone)) {
-      skipped += 1;
+      counters.skipped += 1;
       continue;
     }
 
@@ -103,7 +104,7 @@ export async function GET(request: Request) {
         .maybeSingle();
 
       if (already) {
-        skipped += 1;
+        counters.skipped += 1;
         continue;
       }
     }
@@ -114,7 +115,7 @@ export async function GET(request: Request) {
       .eq("user_id", user.id);
 
     if (subsErr) {
-      errors.push(`${email}: ${subsErr.message}`);
+      counters.errors.push(`${email}: ${subsErr.message}`);
       continue;
     }
 
@@ -148,7 +149,7 @@ export async function GET(request: Request) {
       payload.upcomingCount > 0;
 
     if (!isTest && !hasContent) {
-      skipped += 1;
+      counters.skipped += 1;
       continue;
     }
 
@@ -165,32 +166,27 @@ export async function GET(request: Request) {
       payload,
     });
 
-    if (!mail.ok) {
-      if (mail.reason === "not_configured") skipped += 1;
-      else errors.push(`${email}: ${mail.message}`);
-      continue;
-    }
+    const outcome = applyCronMailSendResult(mail, email, counters);
+    if (outcome !== "sent_pending_log") continue;
 
-    if (!isTest) {
-      const { error: logErr } = await supabase.from("email_reminder_log").insert({
-        user_id: user.id,
-        subscription_id: null,
-        reminder_type: "weekly_summary",
-        sent_on: sentUtcDay,
-      });
-
-      if (logErr) errors.push(`${email}: nosūtīts, žurnāls – ${logErr.message}`);
-      else sent += 1;
-    } else {
-      sent += 1;
-    }
+    await logEmailReminderAndCountSent({
+      supabase,
+      isTest,
+      sentUtcDay,
+      userId: user.id,
+      subscriptionId: null,
+      reminderType: "weekly_summary",
+      email,
+      counters,
+    });
   }
 
-  return NextResponse.json({
-    success: errors.length === 0,
-    sent,
-    skipped,
-    testMode: isTest,
-    errors: errors.slice(0, 20),
-  });
+  return NextResponse.json(
+    buildCronEmailStatsBody({
+      errors: counters.errors,
+      sent: counters.sent,
+      skipped: counters.skipped,
+      isTest,
+    }),
+  );
 }

@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { apiJsonError } from "@/lib/api/json-response";
+import { asJsonRecord, parseJsonBody } from "@/lib/api/parse-json-body";
+import { requireApiSession } from "@/lib/api/require-api-session";
 import {
   fetchFamilySharingLinksForSession,
   isValidInviteEmail,
@@ -9,26 +12,12 @@ import {
 import { sendFamilySharingInviteUserEmail } from "@/lib/family-sharing/send-family-invite-email";
 import { isTransactionalEmailConfigured } from "@/lib/emails/send-transactional";
 import { isIntegrationEnabled } from "@/lib/integrations/integration-enabled";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUiPhraseForRequest, resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
 
-async function requireSessionUser() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return null;
-  }
-  return { supabase, user };
-}
-
 export async function GET() {
-  const session = await requireSessionUser();
-  if (!session) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-  }
-  const { user } = session;
+  const auth = await requireApiSession();
+  if (!auth.ok) return auth.response;
+  const { user } = auth;
 
   try {
     const enabled = await isIntegrationEnabled("family_sharing");
@@ -40,7 +29,7 @@ export async function GET() {
         links: [],
       });
     }
-    const { supabase } = session;
+    const { supabase } = auth;
     const links = await fetchFamilySharingLinksForSession({ supabase, user });
     return NextResponse.json({
       success: true,
@@ -49,54 +38,38 @@ export async function GET() {
       links,
     });
   } catch {
-    return NextResponse.json(
-      { success: false, message: "Internal server error" },
-      { status: 500 },
-    );
+    return apiJsonError(500, "Internal server error");
   }
 }
 
 export async function POST(request: Request) {
-  const session = await requireSessionUser();
-  if (!session) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-  }
-  const { supabase, user } = session;
+  const auth = await requireApiSession();
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
 
   if (!(await isIntegrationEnabled("family_sharing"))) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("family_sharing.err_disabled"),
-      },
-      { status: 403 },
+    return apiJsonError(
+      403,
+      await getUiPhraseForRequest("family_sharing.err_disabled"),
     );
   }
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ success: false, message: "Invalid JSON" }, { status: 400 });
-  }
+  const parsedBody = await parseJsonBody(request);
+  if (!parsedBody.ok) return parsedBody.response;
 
-  const rec =
-    typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+  const rec = asJsonRecord(parsedBody.body);
   const emailRaw = String(rec.email ?? "");
   const email = normalizeInviteEmail(emailRaw);
 
   if (!isValidInviteEmail(email)) {
-    return NextResponse.json({ success: false, message: "Invalid email" }, { status: 400 });
+    return apiJsonError(400, "Invalid email");
   }
 
   const selfEmail = normalizeInviteEmail(user.email ?? "");
   if (email === selfEmail) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("family_sharing.err_self"),
-      },
-      { status: 400 },
+    return apiJsonError(
+      400,
+      await getUiPhraseForRequest("family_sharing.err_self"),
     );
   }
 
@@ -104,12 +77,9 @@ export async function POST(request: Request) {
   const isExternalInvite = !partnerId;
 
   if (isExternalInvite && !isTransactionalEmailConfigured()) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("family_sharing.err_email_not_configured"),
-      },
-      { status: 503 },
+    return apiJsonError(
+      503,
+      await getUiPhraseForRequest("family_sharing.err_email_not_configured"),
     );
   }
 

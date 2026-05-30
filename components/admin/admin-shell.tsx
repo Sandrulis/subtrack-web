@@ -8,6 +8,7 @@ import { AuthedNavOverlaysProvider } from "@/components/authed/authed-nav-overla
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { NavDash } from "@/components/nav-dash";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import type { NavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 
 export type AdminNavActive =
@@ -48,6 +49,7 @@ function navActiveFromPath(pathname: string): AdminNavActive {
 type AdminShellProps = {
   children: React.ReactNode;
   userDisplay?: NavUserDisplay | null;
+  brand?: NavBrandSnapshot | null;
 };
 
 const navItems: {
@@ -106,6 +108,7 @@ const navItems: {
 export function AdminShell({
   children,
   userDisplay,
+  brand = null,
 }: AdminShellProps) {
   const { t, systemSiteName } = useSubtrackIntl();
   const pathname = usePathname() ?? "";
@@ -129,7 +132,7 @@ export function AdminShell({
 
   return (
     <div className="app-layout app-layout-stacked admin-app">
-      <NavDash active="admin" userDisplay={userDisplay} />
+      <NavDash active="admin" userDisplay={userDisplay} brand={brand} />
       <div className="admin-body">
         <aside className="admin-sidebar" aria-label={t("admin.sidebar.menu")}>
           <div className="admin-sidebar-head">

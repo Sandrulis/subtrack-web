@@ -110,6 +110,9 @@ export function AdminCronJobsPanel({
       <p className="admin-alert admin-alert--warning" role="status">
         {t("admin.cron_jobs.force_hint")}
       </p>
+      <p className="admin-alert admin-alert--info" role="status">
+        {t("admin.cron_jobs.external_scheduler_hint")}
+      </p>
       <ul className="admin-cron-env-list">
           <li>
             <code>CRON_SECRET</code>:{" "}

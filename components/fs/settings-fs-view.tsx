@@ -1,3 +1,4 @@
+import type { NavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { SettingsFsViewClient } from "@/components/fs/settings-fs-view-client";
 import type { DisplayPreferences } from "@/lib/user-display-preferences";
@@ -8,11 +9,13 @@ export type SettingsLanguageOption = {
 };
 
 export function SettingsFsView({
+  brand = null,
   userDisplay,
   dbPreferencesRaw,
   languageOptions,
   preferenceBase,
 }: {
+  brand?: NavBrandSnapshot | null;
   userDisplay?: NavUserDisplay | null;
   dbPreferencesRaw: unknown | null;
   /** No `languages` tabulas; ja tukšs `[]`, atlasei izmantoti statiski pagaidu varianti */
@@ -25,6 +28,7 @@ export function SettingsFsView({
 }) {
   return (
     <SettingsFsViewClient
+      brand={brand}
       userDisplay={userDisplay}
       dbPreferencesRaw={dbPreferencesRaw}
       languageOptions={languageOptions}

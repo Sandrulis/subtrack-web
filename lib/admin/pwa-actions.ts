@@ -2,17 +2,11 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdminUser } from "@/lib/auth/require-admin";
+import { readFormBool } from "@/lib/admin/form-helpers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { normalizeHexColor } from "@/lib/pwa/public-pwa-settings";
 
 export type PwaSettingsActionResult = { ok: true } | { ok: false; message: string };
-
-function readFormBool(formData: FormData, key: string): boolean {
-  const v = String(formData.get(key) ?? "")
-    .trim()
-    .toLowerCase();
-  return v === "1" || v === "true" || v === "on" || v === "yes";
-}
 
 function readOptionalHex(formData: FormData, key: string): string | null {
   const raw = String(formData.get(key) ?? "").trim();

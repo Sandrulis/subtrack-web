@@ -4,7 +4,9 @@ import {
   toEmailNotificationPreferencesJson,
   type EmailNotificationPreferences,
 } from "@/lib/emails/email-notification-preferences";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { apiJsonError } from "@/lib/api/json-response";
+import { parseJsonBody } from "@/lib/api/parse-json-body";
+import { requireApiSession } from "@/lib/api/require-api-session";
 
 type Body = {
   dueToday?: unknown;
@@ -18,20 +20,13 @@ function pickBool(v: unknown, fallback: boolean): boolean {
 }
 
 export async function PATCH(request: Request) {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireApiSession();
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
 
-  let body: Body;
-  try {
-    body = (await request.json()) as Body;
-  } catch {
-    return NextResponse.json({ success: false, message: "Invalid JSON" }, { status: 400 });
-  }
+  const parsedBody = await parseJsonBody(request);
+  if (!parsedBody.ok) return parsedBody.response;
+  const body = parsedBody.body as Body;
 
   const { data: row } = await supabase
     .from("users")
@@ -54,7 +49,7 @@ export async function PATCH(request: Request) {
     .eq("id", user.id);
 
   if (error) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return apiJsonError(500, error.message);
   }
 
   return NextResponse.json({ success: true, preferences: next });

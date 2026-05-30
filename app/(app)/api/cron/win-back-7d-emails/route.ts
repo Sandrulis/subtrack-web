@@ -1,10 +1,6 @@
-import { NextResponse } from "next/server";
-import { authorizeCron } from "@/lib/security/cron-auth";
+import { createAuthorizedCronGetRoute } from "@/lib/cron/email-reminder-send";
 import { runWinBackEmailsCron } from "@/lib/cron/run-win-back-emails";
 
-export async function GET(request: Request) {
-  if (!authorizeCron(request)) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-  }
-  return runWinBackEmailsCron(request, 7);
-}
+export const GET = createAuthorizedCronGetRoute("win-back-7d-emails", (request) =>
+  runWinBackEmailsCron(request, 7),
+);

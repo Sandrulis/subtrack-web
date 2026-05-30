@@ -36,6 +36,8 @@ const serwist = new Serwist({
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
+  /** Bez krāsainajiem „serwist” ierakstiem lietotāja SW konsolei (produkcija). */
+  disableDevLogs: process.env.NODE_ENV === "production",
   runtimeCaching: [
     {
       matcher: ({ url }) => url.pathname.startsWith("/api/"),

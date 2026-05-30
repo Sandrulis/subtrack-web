@@ -1,99 +1,55 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { asJsonRecord, parseJsonBody } from "@/lib/api/parse-json-body";
+import { requireApiAdmin } from "@/lib/api/require-api-admin";
+import { apiJsonError } from "@/lib/api/json-response";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { isValidUuid } from "@/lib/validation/uuid";
 
 function normalizeSignupEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
 export async function POST(request: Request) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("api.admin.delete_user.bad_request"),
-      },
-      { status: 400 },
-    );
-  }
+  const parsedBody = await parseJsonBody(
+    request,
+    await getUiPhraseForRequest("api.admin.delete_user.bad_request"),
+  );
+  if (!parsedBody.ok) return parsedBody.response;
 
-  const rec =
-    typeof body === "object" && body !== null
-      ? (body as Record<string, unknown>)
-      : {};
+  const rec = asJsonRecord(parsedBody.body);
   const userIdRaw = rec.userId;
   const userId =
     typeof userIdRaw === "string"
       ? userIdRaw.trim()
       : String(userIdRaw ?? "").trim();
 
-  if (!UUID_RE.test(userId)) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("api.admin.delete_user.bad_request"),
-      },
-      { status: 400 },
+  if (!isValidUuid(userId)) {
+    return apiJsonError(
+      400,
+      await getUiPhraseForRequest("api.admin.delete_user.bad_request"),
     );
   }
 
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user: sessionUser },
-  } = await supabase.auth.getUser();
-
-  if (!sessionUser) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest(
-          "api.admin.delete_user.unauthorized",
-        ),
-      },
-      { status: 401 },
-    );
-  }
+  const admin = await requireApiAdmin({
+    unauthorized: await getUiPhraseForRequest("api.admin.delete_user.unauthorized"),
+    forbidden: await getUiPhraseForRequest("api.admin.delete_user.forbidden"),
+  });
+  if (!admin.ok) return admin.response;
+  const { user: sessionUser } = admin;
 
   if (sessionUser.id === userId) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("api.admin.delete_user.self"),
-      },
-      { status: 400 },
-    );
-  }
-
-  const { data: isAdminRpc, error: adminRpcErr } = await supabase.rpc(
-    "current_user_is_admin",
-  );
-  if (adminRpcErr || isAdminRpc !== true) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("api.admin.delete_user.forbidden"),
-      },
-      { status: 403 },
+    return apiJsonError(
+      400,
+      await getUiPhraseForRequest("api.admin.delete_user.self"),
     );
   }
 
   const service = createServiceRoleSupabaseClient();
   if (!service) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest(
-          "api.admin.delete_user.service_unavailable",
-        ),
-      },
-      { status: 500 },
+    return apiJsonError(
+      500,
+      await getUiPhraseForRequest("api.admin.delete_user.service_unavailable"),
     );
   }
 
@@ -104,22 +60,16 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (targetErr) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("api.admin.delete_user.failed"),
-      },
-      { status: 500 },
+    return apiJsonError(
+      500,
+      await getUiPhraseForRequest("api.admin.delete_user.failed"),
     );
   }
 
   if (!targetRow) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("api.admin.delete_user.not_found"),
-      },
-      { status: 404 },
+    return apiJsonError(
+      404,
+      await getUiPhraseForRequest("api.admin.delete_user.not_found"),
     );
   }
 
@@ -129,12 +79,9 @@ export async function POST(request: Request) {
       : Number.parseInt(String(targetRow.is_admin ?? 0), 10) || 0;
 
   if (targetIsAdmin > 0) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("api.admin.delete_user.admin"),
-      },
-      { status: 400 },
+    return apiJsonError(
+      400,
+      await getUiPhraseForRequest("api.admin.delete_user.admin"),
     );
   }
 
@@ -144,22 +91,14 @@ export async function POST(request: Request) {
   if (deleteAuthErr) {
     const msg = (deleteAuthErr.message ?? "").trim().toLowerCase();
     if (msg.includes("not found") || msg.includes("user not found")) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: await getUiPhraseForRequest(
-            "api.admin.delete_user.not_found",
-          ),
-        },
-        { status: 404 },
+      return apiJsonError(
+        404,
+        await getUiPhraseForRequest("api.admin.delete_user.not_found"),
       );
     }
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("api.admin.delete_user.failed"),
-      },
-      { status: 500 },
+    return apiJsonError(
+      500,
+      await getUiPhraseForRequest("api.admin.delete_user.failed"),
     );
   }
 

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { AdminTodosBoard } from "@/components/admin/admin-todos-board";
-import { loadAdminTodosForPage } from "@/lib/admin/admin-todos-actions";
+import { AdminTodosBoardDynamic } from "@/components/admin/admin-todos-board-dynamic";
+import { loadAdminTodosForPage } from "@/lib/admin/admin-todos-data";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -14,7 +14,7 @@ export default async function AdminTodosPage() {
 
   return (
     <div className="admin-page admin-todos-page">
-      <AdminTodosBoard initialRows={rows} loadError={loadError} />
+      <AdminTodosBoardDynamic initialRows={rows} loadError={loadError} />
     </div>
   );
 }

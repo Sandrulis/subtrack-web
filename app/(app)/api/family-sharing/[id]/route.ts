@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { apiJsonError } from "@/lib/api/json-response";
+import { asJsonRecord, parseJsonBody } from "@/lib/api/parse-json-body";
+import { requireApiSession } from "@/lib/api/require-api-session";
+import { isValidUuid } from "@/lib/validation/uuid";
 import {
   normalizeInviteEmail,
   normalizePartnerColor,
   resolveInviteEmailForUser,
 } from "@/lib/family-sharing/family-sharing-server";
 import { isIntegrationEnabled } from "@/lib/integrations/integration-enabled";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
@@ -45,20 +48,6 @@ async function runLinkUpdate(
   return { ok: false, message: lastMessage };
 }
 
-async function requireSessionUser() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return null;
-  }
-  return { supabase, user };
-}
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 type RouteCtx = { params: Promise<{ id: string }> };
 
 type LinkRow = {
@@ -70,36 +59,26 @@ type LinkRow = {
 };
 
 export async function PATCH(request: Request, ctx: RouteCtx) {
-  const session = await requireSessionUser();
-  if (!session) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-  }
-  const { supabase, user } = session;
+  const auth = await requireApiSession();
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
 
   if (!(await isIntegrationEnabled("family_sharing"))) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("family_sharing.err_disabled"),
-      },
-      { status: 403 },
+    return apiJsonError(
+      403,
+      await getUiPhraseForRequest("family_sharing.err_disabled"),
     );
   }
 
   const { id } = await ctx.params;
-  if (!UUID_RE.test(id)) {
-    return NextResponse.json({ success: false, message: "Invalid id" }, { status: 400 });
+  if (!isValidUuid(id)) {
+    return apiJsonError(400, "Invalid id");
   }
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ success: false, message: "Invalid JSON" }, { status: 400 });
-  }
+  const parsedBody = await parseJsonBody(request);
+  if (!parsedBody.ok) return parsedBody.response;
 
-  const rec =
-    typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+  const rec = asJsonRecord(parsedBody.body);
 
   const patch: Record<string, unknown> = {};
   if (rec.action === "accept") {

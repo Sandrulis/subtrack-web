@@ -1,26 +1,19 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { asJsonRecord, parseJsonBody } from "@/lib/api/parse-json-body";
+import { requireApiAdmin } from "@/lib/api/require-api-admin";
+import { apiJsonError } from "@/lib/api/json-response";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { isValidUuid } from "@/lib/validation/uuid";
 
 export async function POST(request: Request) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("api.admin.pro_vip.bad_request"),
-      },
-      { status: 400 },
-    );
-  }
+  const parsedBody = await parseJsonBody(
+    request,
+    await getUiPhraseForRequest("api.admin.pro_vip.bad_request"),
+  );
+  if (!parsedBody.ok) return parsedBody.response;
 
-  const rec = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+  const rec = asJsonRecord(parsedBody.body);
   const userIdRaw = rec.userId;
   const userId =
     typeof userIdRaw === "string" ? userIdRaw.trim() : String(userIdRaw ?? "").trim();
@@ -31,77 +24,56 @@ export async function POST(request: Request) {
     proVipRaw === 1 ||
     proVipRaw === "1";
 
-  if (!UUID_RE.test(userId)) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("api.admin.pro_vip.bad_request"),
-      },
-      { status: 400 },
+  if (!isValidUuid(userId)) {
+    return apiJsonError(
+      400,
+      await getUiPhraseForRequest("api.admin.pro_vip.bad_request"),
     );
   }
 
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("api.admin.pro_vip.unauthorized"),
-      },
-      { status: 401 },
-    );
-  }
-
-  const { data: isAdminRpc, error: adminRpcErr } = await supabase.rpc(
-    "current_user_is_admin",
-  );
-  if (adminRpcErr || isAdminRpc !== true) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("api.admin.pro_vip.forbidden"),
-      },
-      { status: 403 },
-    );
-  }
+  const admin = await requireApiAdmin({
+    unauthorized: await getUiPhraseForRequest("api.admin.pro_vip.unauthorized"),
+    forbidden: await getUiPhraseForRequest("api.admin.pro_vip.forbidden"),
+  });
+  if (!admin.ok) return admin.response;
 
   const service = createServiceRoleSupabaseClient();
   if (!service) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("api.admin.pro_vip.rpc_failed"),
-      },
-      { status: 500 },
+    return apiJsonError(
+      500,
+      await getUiPhraseForRequest("api.admin.pro_vip.rpc_failed"),
     );
   }
 
-  const { error: rpcErr } = await service.rpc("admin_set_user_pro_vip", {
-    target_user_id: userId,
-    enabled: proVip,
-  });
+  const { data: targetRow, error: targetErr } = await service
+    .from("users")
+    .select("id")
+    .eq("id", userId)
+    .maybeSingle();
 
-  if (rpcErr) {
-    const msg = (rpcErr.message ?? "").trim();
-    if (msg.includes("admin_set_user_pro_vip_missing_user")) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: await getUiPhraseForRequest("api.admin.pro_vip.not_found"),
-        },
-        { status: 404 },
-      );
-    }
-    return NextResponse.json(
-      {
-        success: false,
-        message: await getUiPhraseForRequest("api.admin.pro_vip.rpc_failed"),
-      },
-      { status: 500 },
+  if (targetErr) {
+    return apiJsonError(
+      500,
+      await getUiPhraseForRequest("api.admin.pro_vip.rpc_failed"),
+    );
+  }
+
+  if (!targetRow) {
+    return apiJsonError(
+      404,
+      await getUiPhraseForRequest("api.admin.pro_vip.not_found"),
+    );
+  }
+
+  const { error: updErr } = await service
+    .from("users")
+    .update({ pro_vip: proVip })
+    .eq("id", userId);
+
+  if (updErr) {
+    return apiJsonError(
+      500,
+      await getUiPhraseForRequest("api.admin.pro_vip.rpc_failed"),
     );
   }
 

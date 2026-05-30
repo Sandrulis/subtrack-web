@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { FsI18nBootstrap } from "@/components/fs/fs-i18n-bootstrap";
 import { FsAnalyticsBootstrapTemplates } from "@/components/fs/fs-analytics-bootstrap-templates";
 import { AnalyticsFsView } from "@/components/fs/analytics-fs-view";
+import { loadNavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
 import { getSessionUserDisplay } from "@/lib/auth/user-display";
 import {
   buildDashboardFreeTierGatePayload,
@@ -23,9 +24,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AnalyticsPage() {
-  const [userDisplay, paidPlanLive] = await Promise.all([
+  const [userDisplay, paidPlanLive, brand] = await Promise.all([
     getSessionUserDisplay(),
     fetchSystemPaidPlanLiveForDashboard(),
+    loadNavBrandSnapshot(),
   ]);
   const freeTierGate = buildDashboardFreeTierGatePayload(userDisplay, paidPlanLive);
 
@@ -42,6 +44,7 @@ export default async function AnalyticsPage() {
         freeTierGate={freeTierGate}
       />
       <AnalyticsFsView
+        brand={brand}
         userDisplay={userDisplay}
         initialSubscriptions={initialSubscriptions}
         freeTierGate={freeTierGate}

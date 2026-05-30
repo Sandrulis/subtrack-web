@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { authorizeCron } from "@/lib/security/cron-auth";
+import {
+  applyCronMailSendResult,
+  buildCronEmailStatsBody,
+  createAuthorizedCronGetRoute,
+  logEmailReminderAndCountSent,
+} from "@/lib/cron/email-reminder-send";
 import {
   adminTestTrialDaysRemaining,
   adminTestTrialEndDateFormatted,
@@ -35,11 +40,9 @@ function trialReminderType(daysRemaining: number): "trial_end_3d" | "trial_end_1
   return null;
 }
 
-export async function GET(request: Request) {
-  if (!authorizeCron(request)) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-  }
+export const GET = createAuthorizedCronGetRoute("trial-ending-emails", handleGet);
 
+async function handleGet(request: Request) {
   if (!isTransactionalEmailConfigured()) {
     return NextResponse.json({
       success: false,
@@ -91,22 +94,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, message: usersErr.message }, { status: 500 });
   }
 
-  let sent = 0;
-  let skipped = 0;
-  const errors: string[] = [];
+  const counters = { sent: 0, skipped: 0, errors: [] as string[] };
 
   for (const row of users ?? []) {
     if (!cronIncludesUser(row.id, testUserId)) {
-      skipped += 1;
+      counters.skipped += 1;
       continue;
     }
     const email = row.email?.trim();
     if (!email) {
-      skipped += 1;
+      counters.skipped += 1;
       continue;
     }
     if (!isTest && !userWantsEmail(row.email_notification_preferences, "trialEnd")) {
-      skipped += 1;
+      counters.skipped += 1;
       continue;
     }
 
@@ -122,12 +123,12 @@ export async function GET(request: Request) {
 
     if (!isTest) {
       if (!isProTrialActive(userFields, trialConfig, { paidPlanEnabled })) {
-        skipped += 1;
+        counters.skipped += 1;
         continue;
       }
 
       if (!userFields.proTrialStartedAt) {
-        skipped += 1;
+        counters.skipped += 1;
         continue;
       }
 
@@ -138,7 +139,7 @@ export async function GET(request: Request) {
 
       reminderType = trialReminderType(daysRemaining);
       if (!reminderType) {
-        skipped += 1;
+        counters.skipped += 1;
         continue;
       }
 
@@ -149,7 +150,7 @@ export async function GET(request: Request) {
       const force = isCronForceRun(request);
       const local = getUserLocalParts(timezone);
       if (!force && local.hour !== 9) {
-        skipped += 1;
+        counters.skipped += 1;
         continue;
       }
 
@@ -162,7 +163,7 @@ export async function GET(request: Request) {
         .maybeSingle();
 
       if (already) {
-        skipped += 1;
+        counters.skipped += 1;
         continue;
       }
     }
@@ -199,32 +200,31 @@ export async function GET(request: Request) {
       trialEndDateFormatted,
     });
 
-    if (!mail.ok) {
-      if (mail.reason === "not_configured") skipped += 1;
-      else errors.push(`${email}: ${mail.message}`);
-      continue;
-    }
+    const outcome = applyCronMailSendResult(mail, email, counters);
+    if (outcome !== "sent_pending_log") continue;
 
     if (!isTest && reminderType) {
-      const { error: logErr } = await supabase.from("email_reminder_log").insert({
-        user_id: row.id,
-        subscription_id: null,
-        reminder_type: reminderType,
-        sent_on: sentUtcDay,
+      await logEmailReminderAndCountSent({
+        supabase,
+        isTest,
+        sentUtcDay,
+        userId: row.id,
+        subscriptionId: null,
+        reminderType,
+        email,
+        counters,
       });
-
-      if (logErr) errors.push(`${email}: nosūtīts, žurnāls – ${logErr.message}`);
-      else sent += 1;
-    } else {
-      sent += 1;
+    } else if (isTest) {
+      counters.sent += 1;
     }
   }
 
-  return NextResponse.json({
-    success: errors.length === 0,
-    sent,
-    skipped,
-    testMode: isTest,
-    errors: errors.slice(0, 20),
-  });
+  return NextResponse.json(
+    buildCronEmailStatsBody({
+      errors: counters.errors,
+      sent: counters.sent,
+      skipped: counters.skipped,
+      isTest,
+    }),
+  );
 }

@@ -713,49 +713,52 @@ export function AdminSystemPanel({
               <p className="form-hint" style={{ marginTop: 8 }}>
                 {t("admin.forms.paid_plan_hint")}
               </p>
-              <div
-                className="form-group"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  flexWrap: "wrap",
-                  marginTop: 16,
-                }}
-              >
-                <PaidPlanSwitch
-                  checked={proTrialEnabled}
-                  disabled={loadError !== null}
-                  onCheckedChange={(next) => {
-                    setProTrialEnabled(next);
-                    scheduleAutosave();
+              <div className="form-row" style={{ marginTop: 16 }}>
+                <div
+                  className="form-group form-group--switch-inline"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    marginBottom: 0,
                   }}
-                  ariaLabelledBy="sys_pro_trial_toggle_label"
-                />
-                <span id="sys_pro_trial_toggle_label">
-                  {t("admin.forms.pro_trial_enable")}
-                </span>
-              </div>
-              {proTrialEnabled ? (
-                <div className="form-group" style={{ marginTop: 12, maxWidth: 200 }}>
-                  <label htmlFor="sys_pro_trial_days">
-                    {t("admin.forms.label_pro_trial_days")}
-                  </label>
-                  <input
-                    id="sys_pro_trial_days"
-                    inputMode="numeric"
-                    name="pro_trial_days"
-                    min={1}
-                    max={365}
-                    value={proTrialDays}
+                >
+                  <PaidPlanSwitch
+                    checked={proTrialEnabled}
                     disabled={loadError !== null}
-                    onChange={(e) => {
-                      setProTrialDays(e.target.value.replace(/\D/g, "").slice(0, 3));
+                    onCheckedChange={(next) => {
+                      setProTrialEnabled(next);
                       scheduleAutosave();
                     }}
+                    ariaLabelledBy="sys_pro_trial_toggle_label"
                   />
+                  <span id="sys_pro_trial_toggle_label">
+                    {t("admin.forms.pro_trial_enable")}
+                  </span>
                 </div>
-              ) : null}
+                {proTrialEnabled ? (
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label htmlFor="sys_pro_trial_days">
+                      {t("admin.forms.label_pro_trial_days")}
+                    </label>
+                    <input
+                      id="sys_pro_trial_days"
+                      inputMode="numeric"
+                      name="pro_trial_days"
+                      min={1}
+                      max={365}
+                      value={proTrialDays}
+                      disabled={loadError !== null}
+                      onChange={(e) => {
+                        setProTrialDays(e.target.value.replace(/\D/g, "").slice(0, 3));
+                        scheduleAutosave();
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="form-group form-group--annual-price-placeholder" aria-hidden />
+                )}
+              </div>
               <p className="form-hint" style={{ marginTop: 8 }}>
                 {t("admin.forms.pro_trial_hint")}
               </p>

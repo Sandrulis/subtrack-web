@@ -2,6 +2,7 @@
 
 import { DashBrandLink } from "@/components/brand/dash-brand-link";
 import Link from "next/link";
+import type { NavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { AuthedNotifyBootstrap } from "@/components/authed-notify-bootstrap";
@@ -21,6 +22,8 @@ type NavDashProps = {
   demoMode?: boolean;
   /** Pārlasīt `#subtrack-subs-bootstrap-json` pēc skriptiem (lapas bez dashboard, piem. family-sharing). */
   reloadSubscriptionsFromBootstrap?: boolean;
+  /** Zīmols no servera lapas (vienāda hydrācija). */
+  brand?: NavBrandSnapshot | null;
 };
 
 export function NavDash({
@@ -28,6 +31,7 @@ export function NavDash({
   userDisplay,
   demoMode = false,
   reloadSubscriptionsFromBootstrap = false,
+  brand = null,
 }: NavDashProps) {
   const { t } = useSubtrackIntl();
   const analyticsHref = demoMode ? "/demo/analytics" : "/analytics";
@@ -46,7 +50,7 @@ export function NavDash({
       <div className="dash-topbar-shell">
         <div className="dash-topbar-inner">
           <div className="dash-topbar-left">
-            <DashBrandLink href={dashboardHref} />
+            <DashBrandLink href={dashboardHref} brand={brand} />
             {demoMode ? (
               <span
                 className="subtrack-demo-topbar-badge"

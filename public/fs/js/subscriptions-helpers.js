@@ -2,13 +2,25 @@
    SubTrack - kopīgas palīgfunkcijas (panelis, analītika, paziņojumi)
    ============================================= */
 
+var PRIVATE_LOAN_CATEGORY_KEY = 'private_loan';
+
+function isPrivateLoanCategoryKey(key) {
+    return normalizeCategoryKey(key) === PRIVATE_LOAN_CATEGORY_KEY;
+}
+
+function subscriptionIsPrivateLoanClient(s) {
+    if (!s) return false;
+    return s.isPrivateLoan === true || isPrivateLoanCategoryKey(s.category);
+}
+
 var CATEGORY_PHRASE_KEY = {
     subscription: 'landing.mock.pill_subscription',
     bill: 'landing.mock.pill_bill',
     credit: 'landing.mock.pill_credit',
     leasing: 'landing.mock.pill_leasing',
     insurance: 'landing.mock.pill_insurance',
-    other: 'landing.mock.pill_other'
+    other: 'landing.mock.pill_other',
+    private_loan: 'subscription.category.private_loan'
 };
 
 /** Atkāpe bez React bootstrap */
@@ -18,7 +30,8 @@ var SUB_CATEGORY_LABELS_LV = {
     credit: 'Kredīts',
     leasing: 'Līzings',
     insurance: 'Apdrošināšana',
-    other: 'Citi maksājumi'
+    other: 'Citi maksājumi',
+    private_loan: 'Privātais aizdevums'
 };
 
 var CATEGORY_CATALOG_BY_KEY = null;
@@ -138,6 +151,7 @@ function categoryLabel(key) {
 }
 
 function monthlyAmount(amount, period) {
+    if (period === 'once') return amount;
     if (period === 'yearly') return amount / 12;
     if (period === 'weekly') return amount * 4.33;
     return amount;
@@ -163,7 +177,21 @@ function parseDecimalAmountInput(raw) {
             s = s.replace(/,/g, '');
         }
     } else if (lastComma !== -1) {
-        s = s.replace(',', '.');
+        var afterComma = s.slice(lastComma + 1);
+        if (/^\d{3}$/.test(afterComma) && s.indexOf(',') === lastComma && s.split(',').length === 2) {
+            s = s.replace(/,/g, '');
+        } else {
+            s = s.replace(',', '.');
+        }
+    } else if (lastDot !== -1) {
+        if (/^\d{1,3}(\.\d{3})+$/.test(s)) {
+            s = s.replace(/\./g, '');
+        } else {
+            var afterDot = s.slice(lastDot + 1);
+            if (/^\d{3}$/.test(afterDot) && s.split('.').length === 2) {
+                s = s.replace(/\./g, '');
+            }
+        }
     }
 
     var n = parseFloat(s);
@@ -196,9 +224,21 @@ function isDueDateWithinTerm(dueIso, termEndStr) {
     return due <= termEnd;
 }
 
+function isPrivateLoanRepaidClient(s) {
+    if (!s || !subscriptionIsPrivateLoanClient(s)) return false;
+    var total = parseFloat(s.loanTotalRepay);
+    if (!Number.isFinite(total) || total <= 0) return false;
+    var payments = Array.isArray(s.loanPayments) ? s.loanPayments : [];
+    return computeLoanPaidTotalClient(payments) >= total - 0.01;
+}
+
 /** Vai abonements/kredīts vēl rāda maksājumus (kopsavilkums, paziņojumi). */
 function isSubscriptionDueActive(s, refDate) {
     if (!s) return false;
+    if (subscriptionIsPrivateLoanClient(s)) {
+        if (isPrivateLoanRepaidClient(s)) return false;
+        return true;
+    }
     if (isTermEndedForRef(s.termEnd, refDate)) return false;
     return isDueDateWithinTerm(s.date, s.termEnd);
 }
@@ -217,7 +257,7 @@ function effectiveBaseAmountForDue(s, dueIso) {
     var due = normalizeSubscriptionDateIso(dueIso);
     var subDue = normalizeSubscriptionDateIso(s.date);
     if (
-        s.dynamicAmount === true &&
+        (s.dynamicAmount === true || subscriptionIsPrivateLoanClient(s)) &&
         due &&
         subDue &&
         due === subDue &&
@@ -270,16 +310,119 @@ function subtrackMarkPaidPatchBody(s, newDate, paidOnIso) {
     return body;
 }
 
+function findFirstUnpaidLoanPaymentClient(payments) {
+    if (!Array.isArray(payments)) return null;
+    var sorted = payments.slice().sort(function (a, b) {
+        return String(a.date || '').localeCompare(String(b.date || ''));
+    });
+    for (var i = 0; i < sorted.length; i++) {
+        if (sorted[i] && sorted[i].date && !sorted[i].paidOn) return sorted[i];
+    }
+    return null;
+}
+
+function computeLoanPaidTotalClient(payments) {
+    if (!Array.isArray(payments)) return 0;
+    return payments.reduce(function (sum, p) {
+        if (!p || !p.paidOn) return sum;
+        var amt = parseFloat(p.amount);
+        return sum + (Number.isFinite(amt) ? amt : 0);
+    }, 0);
+}
+
+function computeLoanProgressPctClient(totalRepay, payments) {
+    var total = parseFloat(totalRepay);
+    if (!Number.isFinite(total) || total <= 0) return null;
+    var paid = computeLoanPaidTotalClient(payments);
+    var pct = Math.round((paid / total) * 100);
+    return Math.max(0, Math.min(100, pct));
+}
+
+function appendNextLoanPaymentIfOwingClient(s, referenceDueIso, referenceAmount) {
+    if (!s || !subscriptionIsPrivateLoanClient(s)) return;
+    if (isPrivateLoanRepaidClient(s)) return;
+    if (findFirstUnpaidLoanPaymentClient(s.loanPayments)) return;
+    var total = parseFloat(s.loanTotalRepay);
+    var paid = computeLoanPaidTotalClient(s.loanPayments);
+    var remaining = Math.round((total - paid) * 100) / 100;
+    if (remaining <= 0.009) return;
+    var refAmt = parseFloat(referenceAmount);
+    var amt =
+        Number.isFinite(refAmt) && refAmt > 0
+            ? Math.min(Math.round(refAmt * 100) / 100, remaining)
+            : remaining;
+    var due = normalizeSubscriptionDateIso(referenceDueIso);
+    var nextDate = due;
+    if (due && typeof addOneBillingPeriod === 'function') {
+        var d = new Date(due + 'T00:00:00');
+        d.setHours(0, 0, 0, 0);
+        nextDate = toISODateLocal(addOneBillingPeriod(d, 'monthly', d.getDate()));
+    }
+    if (!nextDate) return;
+    var maxId = 0;
+    s.loanPayments.forEach(function (p) {
+        if (p && p.id > maxId) maxId = p.id;
+    });
+    s.loanPayments.push({
+        id: maxId + 1,
+        date: nextDate,
+        amount: amt,
+        paidOn: '',
+    });
+}
+
+function advancePrivateLoanAfterPayment(s, paidOnIso, amountPaid) {
+    if (!s || !Array.isArray(s.loanPayments)) return s.date;
+    var dueIso = normalizeSubscriptionDateIso(s.date);
+    var paidIso = normalizeSubscriptionDateIso(paidOnIso);
+    var actualAmt =
+        amountPaid != null && !isNaN(parseFloat(amountPaid))
+            ? parseFloat(amountPaid)
+            : typeof subscriptionPaymentAmountForDue === 'function'
+              ? subscriptionPaymentAmountForDue(s, paidIso || dueIso)
+              : parseFloat(s.amount) || 0;
+    var scheduledAmt = parseFloat(s.amount) || actualAmt;
+    s.loanPayments = s.loanPayments.map(function (p) {
+        if (p && p.date === dueIso && !p.paidOn) {
+            return Object.assign({}, p, {
+                paidOn: paidIso || dueIso,
+                amount: actualAmt,
+            });
+        }
+        return p;
+    });
+    appendNextLoanPaymentIfOwingClient(s, dueIso, scheduledAmt);
+    var next = findFirstUnpaidLoanPaymentClient(s.loanPayments);
+    if (next && next.date) {
+        s.amount = parseFloat(next.amount) || s.amount;
+        if (typeof clearDuePeriodAmountOverride === 'function') {
+            clearDuePeriodAmountOverride(s);
+        }
+        return next.date;
+    }
+    var last = s.loanPayments.slice().sort(function (a, b) {
+        return String(a.date || '').localeCompare(String(b.date || ''));
+    }).pop();
+    return last && last.date ? last.date : s.date;
+}
+
 function subscriptionMonthlyTotal(s, refDate) {
     var ref = refDate != null ? refDate : s && s.date;
     var base = 0;
     if (isSubscriptionDueActive(s, ref)) {
-        base = monthlyAmount(effectiveBaseAmountForDue(s, ref), s.period);
+        if (subscriptionIsPrivateLoanClient(s)) {
+            base = effectiveBaseAmountForDue(s, ref);
+        } else {
+            base = monthlyAmount(effectiveBaseAmountForDue(s, ref), s.period);
+        }
     }
     return base + sumDeviceAmounts(s, refDate);
 }
 
 function formatDate(dateStr) {
+    if (typeof formatIsoDateForUserPrefs === 'function') {
+        return formatIsoDateForUserPrefs(dateStr, { longMonth: true });
+    }
     if (!dateStr) return '-';
     var iso = normalizeSubscriptionDateIso(dateStr);
     if (!iso) return '-';
@@ -389,6 +532,22 @@ function subtractOneBillingPeriod(d, period, billingDay) {
  */
 function subscriptionDueDatesInMonth(s, y, m) {
     if (!s) return [];
+    if (subscriptionIsPrivateLoanClient(s)) {
+        var payments = Array.isArray(s.loanPayments) ? s.loanPayments : [];
+        var outLoan = [];
+        for (var li = 0; li < payments.length; li++) {
+            var lp = payments[li];
+            if (!lp || lp.paidOn || !lp.date) continue;
+            var lpIso = normalizeSubscriptionDateIso(lp.date);
+            if (!lpIso) continue;
+            var lpD = new Date(lpIso + 'T00:00:00');
+            if (isNaN(lpD.getTime())) continue;
+            if (lpD.getFullYear() === y && lpD.getMonth() === m) {
+                outLoan.push(lpIso);
+            }
+        }
+        return outLoan;
+    }
     var anchorIso = normalizeSubscriptionDateIso(s.date);
     if (!anchorIso) return [];
 
@@ -682,16 +841,19 @@ function formatOverdueLabel(days) {
 
 function periodTextUi(period) {
     var k =
-        period === 'yearly'
-            ? 'fs.dashboard.period_yearly'
-            : period === 'weekly'
-              ? 'fs.dashboard.period_weekly'
-              : period === 'monthly'
-                ? 'fs.dashboard.period_monthly'
-                : '';
+        period === 'once'
+            ? 'fs.dashboard.period_once'
+            : period === 'yearly'
+              ? 'fs.dashboard.period_yearly'
+              : period === 'weekly'
+                ? 'fs.dashboard.period_weekly'
+                : period === 'monthly'
+                  ? 'fs.dashboard.period_monthly'
+                  : '';
     if (!k) return period;
     var t = FsT(k);
     if (t) return t;
+    if (period === 'once') return 'vienreiz';
     if (period === 'monthly') return 'mēnesī';
     if (period === 'yearly') return 'gadā';
     if (period === 'weekly') return 'nedēļā';
@@ -817,6 +979,16 @@ function mergeSubscriptionFromApi(sub) {
         termStart: sub.termStart || '',
         termEnd: sub.termEnd || '',
         devices: Array.isArray(sub.devices) ? sub.devices : [],
+        isPrivateLoan: subscriptionIsPrivateLoanClient(sub),
+        loanPrincipal:
+            sub.loanPrincipal != null && !isNaN(parseFloat(sub.loanPrincipal))
+                ? parseFloat(sub.loanPrincipal)
+                : 0,
+        loanTotalRepay:
+            sub.loanTotalRepay != null && !isNaN(parseFloat(sub.loanTotalRepay))
+                ? parseFloat(sub.loanTotalRepay)
+                : 0,
+        loanPayments: Array.isArray(sub.loanPayments) ? sub.loanPayments : [],
     };
     if (idx === -1) {
         row._preferredBillingDay = subscriptionBillingDayFromIso(row.date);

@@ -9,6 +9,7 @@ import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import { buildPaidPlanAnnualPitchCopy } from "@/lib/paid-plan-annual";
 import { LandingPricingLifetimeUrgency } from "@/components/landing-pricing-lifetime-urgency";
+import { SubscribeProPurchaseButton } from "@/components/subscribe-pro-purchase-button";
 import { createBillingAmountFormatter } from "@/lib/billing/format-billing-amount";
 import type { BillingCurrency } from "@/lib/billing/billing-currency";
 import { useMemo } from "react";
@@ -108,29 +109,37 @@ export function SubscribeProView({
           {annualPitch ? (
             <div className="subscribe-pro-pricing-highlight">
               <div className="subscribe-pro-pricing-monthly-pill">
-                <span className="subscribe-pro-pricing-monthly-value">{priceFmt}</span>
-                <span className="subscribe-pro-pricing-monthly-period">
-                  {t("landing.pricing.monthly_suffix")}
-                </span>
+                <div className="subscribe-pro-pricing-card-body subscribe-pro-pricing-card-body--monthly">
+                  <div className="subscribe-pro-pricing-monthly-head">
+                    <span className="subscribe-pro-pricing-monthly-value">{priceFmt}</span>
+                    <span className="subscribe-pro-pricing-monthly-period">
+                      {t("landing.pricing.monthly_suffix")}
+                    </span>
+                  </div>
+                </div>
+                <SubscribeProPurchaseButton plan="monthly" />
               </div>
               <div className="subscribe-pro-pricing-annual-card">
-                <div className="subscribe-pro-pricing-annual-row">
-                  <span className="subscribe-pro-pricing-annual-label">
-                    {t("landing.pricing.annual_label")}
-                  </span>
-                  <span className="subscribe-pro-pricing-annual-amount">
-                    {annualPitch.annualFormatted}
-                  </span>
-                  {annualPitch.discountPercent != null ? (
-                    <span className="subscribe-pro-pricing-annual-badge">
-                      {t("landing.pricing.annual_badge_off").replace(
-                        /\{discount\}/g,
-                        String(annualPitch.discountPercent),
-                      )}
+                <div className="subscribe-pro-pricing-card-body">
+                  <div className="subscribe-pro-pricing-annual-row">
+                    <span className="subscribe-pro-pricing-annual-label">
+                      {t("landing.pricing.annual_label")}
                     </span>
-                  ) : null}
+                    <span className="subscribe-pro-pricing-annual-amount">
+                      {annualPitch.annualFormatted}
+                    </span>
+                    {annualPitch.discountPercent != null ? (
+                      <span className="subscribe-pro-pricing-annual-badge">
+                        {t("landing.pricing.annual_badge_off").replace(
+                          /\{discount\}/g,
+                          String(annualPitch.discountPercent),
+                        )}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="subscribe-pro-pricing-annual-equiv">{annualPitch.equiv}</p>
                 </div>
-                <p className="subscribe-pro-pricing-annual-equiv">{annualPitch.equiv}</p>
+                <SubscribeProPurchaseButton plan="annual" />
               </div>
             </div>
           ) : (
@@ -138,6 +147,7 @@ export function SubscribeProView({
               <p className="subscribe-pro-price-label">{t("subscribe.price.title")}</p>
               <p className="subscribe-pro-price-value">{priceFmt}</p>
               <p className="subscribe-pro-price-interval">{t("subscribe.price.interval")}</p>
+              <SubscribeProPurchaseButton plan="monthly" />
             </div>
           )}
 
@@ -173,6 +183,7 @@ export function SubscribeProView({
                   secondsLabel={t("landing.pricing.lifetime_countdown_seconds")}
                   purchasesLabel={t("landing.pricing.lifetime_purchases_remaining")}
                 />
+                <SubscribeProPurchaseButton plan="lifetime" />
               </div>
             </div>
           ) : null}
@@ -194,6 +205,7 @@ export function SubscribeProView({
         </section>
       </main>
       <SiteLandingFooter showAuthedActionLinks={Boolean(userDisplay)} />
+      <div className="toast-container" id="toast-container" />
     </div>
   );
 }

@@ -1,4 +1,5 @@
-import { normalizeEmailLocale, type EmailPreviewLocale } from "@/lib/emails/template-types";
+import type { EmailPreviewLocale } from "@/lib/emails/template-types";
+import { parseInterfaceLocale } from "@/lib/subscriptions/parse-interface-locale";
 
 export type OverdueSubscriptionRow = {
   subscriptionId: string;
@@ -11,16 +12,6 @@ export type OverdueSubscriptionRow = {
   overdueDays: number;
   locale: EmailPreviewLocale;
 };
-
-function parseInterfaceLocale(displayPreferences: unknown): EmailPreviewLocale {
-  if (!displayPreferences || typeof displayPreferences !== "object") {
-    return "lv";
-  }
-  const code = String(
-    (displayPreferences as Record<string, unknown>).interface_language_code ?? "",
-  );
-  return normalizeEmailLocale(code);
-}
 
 function daysBetween(dueIso: string, todayIso: string): number {
   const due = new Date(`${dueIso}T12:00:00Z`).getTime();

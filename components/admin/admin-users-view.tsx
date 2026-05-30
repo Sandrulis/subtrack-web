@@ -3,28 +3,24 @@
 import { SubtrackTooltip } from "@/components/subtrack-tooltip";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { pushDomToast } from "@/lib/push-dom-toast";
-import { formatUserLastSeenDisplay } from "@/lib/admin/format-user-last-seen-display";
+import { formatUserLastSeenDisplay, formatDateTimeIntl } from "@/lib/admin/format-user-last-seen-display";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import { navUserHasProEntitlement } from "@/lib/auth/pro-plan-access";
+import { isProTrialActive, type ProTrialConfig } from "@/lib/auth/pro-trial-access";
+import { getAdminUserPlanLabelKey } from "@/lib/admin/admin-user-plan-label";
+import {
+  ADMIN_USERS_FILTER_CARD_KEYS,
+  type AdminUsersFilter,
+  countAdminUsersByFilter,
+  matchesAdminUsersFilter,
+} from "@/lib/admin/admin-users-filter";
+import type { AdminUsersViewUserRow } from "@/lib/admin/admin-users-data";
 import { UserAvatar } from "@/components/user-avatar";
 import { isHttpsAvatarUrl } from "@/lib/auth/oauth-avatar-url";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
-export type AdminUsersViewUser = {
-  id: string;
-  name: string;
-  surname: string;
-  email: string;
-  is_admin: number;
-  created_at: string;
-  /** `public.users.last_seen` (null, ja vēl nav aktivitātes pēc migrācijas) */
-  last_seen: string | null;
-  /** Kad `paid_plan_enabled` un kolonna pieejama no DB */
-  paidPlanActive?: boolean;
-  proVip?: boolean;
-  avatarUrl?: string | null;
-};
+export type AdminUsersViewUser = AdminUsersViewUserRow;
 
 type SubscriptionCategory =
   | "subscription"
@@ -52,6 +48,7 @@ type AdminUsersViewProps = {
   countsByUserId: Record<string, AdminUsersCountsSerializable> | null;
   /** Ja true, rāda VIP slēdzi (`system_settings.paid_plan_enabled`); Pro – kronītis pie avatāra. */
   paidPlanEnabled?: boolean;
+  proTrial?: ProTrialConfig;
   /** Pašreizējā admin sesijas lietotāja ID (nevar dzēst sevi). */
   currentUserId?: string | null;
   fetchError?: string | null;
@@ -62,6 +59,7 @@ export function AdminUsersView({
   users,
   countsByUserId,
   paidPlanEnabled = false,
+  proTrial = { enabled: false, days: 14 },
   currentUserId = null,
   fetchError,
   subscriptionsFetchError,
@@ -72,9 +70,50 @@ export function AdminUsersView({
     () => uiLocaleCodeToBcp47ForIntl(locale),
     [locale],
   );
+  const [userFilter, setUserFilter] = useState<AdminUsersFilter>("all");
   const [deletePendingUser, setDeletePendingUser] =
     useState<AdminUsersViewUser | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+
+  const filterCtx = useMemo(
+    () => ({ paidPlanEnabled, proTrial }),
+    [paidPlanEnabled, proTrial],
+  );
+
+  const toFilterRow = (u: AdminUsersViewUser) => ({
+    paidPlanActive: u.paidPlanActive,
+    proVip: u.proVip,
+    paidPlanType: u.paidPlanType,
+    proTrialUsed: u.proTrialUsed,
+    proTrialStartedAt: u.proTrialStartedAt,
+  });
+
+  const filterCounts = useMemo(
+    () => countAdminUsersByFilter(users.map(toFilterRow), filterCtx),
+    [users, filterCtx],
+  );
+
+  const visibleFilterCards = useMemo(
+    () =>
+      ADMIN_USERS_FILTER_CARD_KEYS.filter((key) => (filterCounts[key] ?? 0) > 0),
+    [filterCounts],
+  );
+
+  useEffect(() => {
+    if (userFilter !== "all" && (filterCounts[userFilter] ?? 0) === 0) {
+      setUserFilter("all");
+    }
+  }, [userFilter, filterCounts]);
+
+  const filteredUsers = useMemo(() => {
+    return users.filter((u) =>
+      matchesAdminUsersFilter(toFilterRow(u), userFilter, filterCtx),
+    );
+  }, [users, userFilter, filterCtx]);
+
+  function onFilterCardClick(key: AdminUsersFilter) {
+    setUserFilter((prev) => (prev === key ? "all" : key));
+  }
 
   const deleteConfirmBody = useMemo(() => {
     if (!deletePendingUser) return "";
@@ -152,6 +191,34 @@ export function AdminUsersView({
             </div>
           ) : null}
 
+          {paidPlanEnabled && visibleFilterCards.length > 0 ? (
+            <div
+              className="admin-users-summary stats-row"
+              role="toolbar"
+              aria-label={t("admin.users.filter_toolbar")}
+            >
+              {visibleFilterCards.map((key) => {
+                const count = filterCounts[key] ?? 0;
+                const active = userFilter === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={
+                      "stat-card admin-users-summary-card" +
+                      (active ? " admin-users-summary-card--active" : "")
+                    }
+                    aria-pressed={active}
+                    onClick={() => onFilterCardClick(key)}
+                  >
+                    <span className="stat-label">{t(`admin.users.filter_${key}`)}</span>
+                    <span className="stat-value">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
           <div className="admin-table-wrap">
             <table className="admin-table">
               <thead>
@@ -160,6 +227,11 @@ export function AdminUsersView({
                   <th className="admin-table-col-counts">
                     {t("admin.users.col_records")}
                   </th>
+                  {paidPlanEnabled ? (
+                    <th className="admin-table-col-pro">
+                      {t("admin.users.col_pro")}
+                    </th>
+                  ) : null}
                   {paidPlanEnabled ? (
                     <th className="admin-table-col-vip">
                       {t("admin.users.col_vip")}
@@ -174,11 +246,30 @@ export function AdminUsersView({
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => {
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={paidPlanEnabled ? 5 : 3} className="admin-empty">
+                      {t("admin.users.filter_empty")}
+                    </td>
+                  </tr>
+                ) : null}
+                {filteredUsers.map((u) => {
+                  const trialActive = isProTrialActive(
+                    {
+                      paidPlanActive: u.paidPlanActive,
+                      proVip: u.proVip,
+                      proTrialUsed: u.proTrialUsed,
+                      proTrialStartedAt: u.proTrialStartedAt,
+                    },
+                    proTrial,
+                    { paidPlanEnabled },
+                  );
                   const hasPro = navUserHasProEntitlement({
-                    paidPlanActive: u.paidPlanActive === true,
-                    proVip: u.proVip === true,
+                    paidPlanActive: u.paidPlanActive,
+                    proVip: u.proVip,
+                    proTrialActive: trialActive,
                   });
+                  const planLabelKey = getAdminUserPlanLabelKey(u);
                   return (
                     <tr key={u.id}>
                     <td>
@@ -237,7 +328,6 @@ export function AdminUsersView({
                                 createdAt={u.created_at}
                                 lastSeen={u.last_seen}
                                 intlLocale={intlLocale}
-                                lastSeenLabel={t("admin.users.last_seen")}
                                 t={t}
                               />
                             </span>
@@ -265,6 +355,30 @@ export function AdminUsersView({
                       />
                     </td>
                     {paidPlanEnabled ? (
+                      <td className="admin-table-col-pro">
+                        {trialActive && !u.proVip && !u.paidPlanActive ? (
+                          <span className="admin-badge admin-badge--trial">
+                            {t("admin.users.plan_trial")}
+                          </span>
+                        ) : planLabelKey ? (
+                          <span
+                            className={
+                              "admin-badge" +
+                              (u.proVip
+                                ? " admin-badge--vip"
+                                : u.paidPlanActive
+                                  ? " admin-badge--pro"
+                                  : "")
+                            }
+                          >
+                            {t(planLabelKey)}
+                          </span>
+                        ) : (
+                          <span className="admin-text-muted">–</span>
+                        )}
+                      </td>
+                    ) : null}
+                    {paidPlanEnabled ? (
                       <td className="admin-table-col-vip">
                         <AdminUserVipSwitch
                           userId={u.id}
@@ -277,11 +391,13 @@ export function AdminUsersView({
                         createdAt={u.created_at}
                         lastSeen={u.last_seen}
                         intlLocale={intlLocale}
-                        lastSeenLabel={t("admin.users.last_seen")}
                         t={t}
                       />
                     </td>
                     <td className="admin-table-col-actions admin-actions-cell">
+                      {paidPlanEnabled && u.stripeCustomerId && !u.proVip ? (
+                        <AdminUserStripeSyncButton userId={u.id} />
+                      ) : null}
                       <AdminUserDeleteControl
                         user={u}
                         currentUserId={currentUserId}
@@ -388,6 +504,78 @@ function AdminUserDeleteConfirmModal({
         </div>
       </div>
     </div>
+  );
+}
+
+function AdminUserStripeSyncButton({ userId }: { userId: string }) {
+  const { t } = useSubtrackIntl();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+
+  async function sync() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/users/sync-stripe-billing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      let data: {
+        success?: boolean;
+        message?: string;
+        source?: string;
+        paid_plan_active?: boolean;
+      } = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+      if (!res.ok || data.success !== true) {
+        pushDomToast(data.message ?? t("admin.users.err_stripe_sync"), "error");
+        return;
+      }
+      if (data.source === "cleared") {
+        pushDomToast(t("admin.users.stripe_sync_cleared"), "success");
+      } else {
+        pushDomToast(t("admin.users.stripe_sync_ok"), "success");
+      }
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <SubtrackTooltip label={t("admin.users.stripe_sync_tooltip")}>
+      <button
+        type="button"
+        className="admin-icon-btn admin-icon-btn--edit"
+        disabled={busy}
+        aria-label={t("admin.users.stripe_sync_aria")}
+        aria-busy={busy}
+        onClick={() => {
+          void sync();
+        }}
+      >
+        <IconRefresh />
+      </button>
+    </SubtrackTooltip>
+  );
+}
+
+function IconRefresh() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 12a8 8 0 0 1 13.4-5.9M20 7v5h-5M20 12a8 8 0 0 1-13.4 5.9M4 17v-5h5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -544,13 +732,11 @@ function AdminUserRegisteredDates({
   createdAt,
   lastSeen,
   intlLocale,
-  lastSeenLabel,
   t,
 }: {
   createdAt: string;
   lastSeen: string | null;
   intlLocale: string;
-  lastSeenLabel: string;
   t: (key: string) => string;
 }) {
   const [lastSeenText, setLastSeenText] = useState(() =>
@@ -566,34 +752,19 @@ function AdminUserRegisteredDates({
       <time dateTime={createdAt || undefined}>
         {formatDateTimeIntl(createdAt, intlLocale)}
       </time>
-      <div className="admin-user-last-seen">
-        <span className="admin-user-last-seen-label">{lastSeenLabel}</span>
-        <time
-          className="admin-user-last-seen-value"
-          dateTime={lastSeen ?? undefined}
-          title={lastSeen ? formatDateTimeIntl(lastSeen, intlLocale) : undefined}
-        >
-          {lastSeenText}
-        </time>
-      </div>
+      <time
+        className="admin-user-last-seen"
+        dateTime={lastSeen ?? undefined}
+        title={
+          lastSeen
+            ? `${t("admin.users.last_seen")}: ${formatDateTimeIntl(lastSeen, intlLocale)}`
+            : undefined
+        }
+      >
+        {lastSeenText}
+      </time>
     </div>
   );
-}
-
-function formatDateTimeIntl(iso: string, intlLocale: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  try {
-    return new Intl.DateTimeFormat(intlLocale, {
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(d);
-  } catch {
-    return new Intl.DateTimeFormat("en-GB", {
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(d);
-  }
 }
 
 function fullDisplayName(u: Pick<AdminUsersViewUser, "name" | "surname">): string {

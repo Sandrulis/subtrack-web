@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { apiJsonError } from "@/lib/api/json-response";
+import { parseJsonBody } from "@/lib/api/parse-json-body";
+import { requireApiSession } from "@/lib/api/require-api-session";
 
 type Body = {
   endpoint?: unknown;
@@ -8,26 +10,19 @@ type Body = {
 };
 
 export async function POST(request: Request) {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireApiSession();
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
 
-  let body: Body;
-  try {
-    body = (await request.json()) as Body;
-  } catch {
-    return NextResponse.json({ success: false, message: "Invalid JSON" }, { status: 400 });
-  }
+  const parsedBody = await parseJsonBody(request);
+  if (!parsedBody.ok) return parsedBody.response;
 
+  const body = parsedBody.body as Body;
   const endpoint = typeof body.endpoint === "string" ? body.endpoint.trim() : "";
   const p256dh = typeof body.p256dh === "string" ? body.p256dh.trim() : "";
-  const auth = typeof body.auth === "string" ? body.auth.trim() : "";
-  if (!endpoint || !p256dh || !auth) {
-    return NextResponse.json({ success: false, message: "Missing subscription fields" }, { status: 400 });
+  const authKey = typeof body.auth === "string" ? body.auth.trim() : "";
+  if (!endpoint || !p256dh || !authKey) {
+    return apiJsonError(400, "Missing subscription fields");
   }
 
   const ua = request.headers.get("user-agent") ?? null;
@@ -37,7 +32,7 @@ export async function POST(request: Request) {
       user_id: user.id,
       endpoint,
       p256dh,
-      auth,
+      auth: authKey,
       user_agent: ua,
       updated_at: new Date().toISOString(),
     },
@@ -45,7 +40,7 @@ export async function POST(request: Request) {
   );
 
   if (error) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return apiJsonError(500, error.message);
   }
 
   return NextResponse.json({ success: true });

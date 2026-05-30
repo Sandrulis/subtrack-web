@@ -2,18 +2,27 @@
 
 import Link from "next/link";
 import { useNavBrand } from "@/components/brand/nav-brand-bridge";
-import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import type { NavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
+import { DEFAULT_SYSTEM_NAME } from "@/lib/pwa/defaults";
 
 type DashBrandLinkProps = {
   href: string;
   className?: string;
+  /**
+   * SSR snapshot no lapas (vienāds servera HTML un hydrācijai).
+   * Ja nav, izmanto `NavBrandBridge` no layout.
+   */
+  brand?: NavBrandSnapshot | null;
 };
 
-export function DashBrandLink({ href, className }: DashBrandLinkProps) {
+export function DashBrandLink({ href, className, brand: brandProp }: DashBrandLinkProps) {
   const navBrand = useNavBrand();
-  const { systemSiteName, brandLogo } = useSubtrackIntl();
-  const label = navBrand?.label ?? systemSiteName;
-  const logoTopbar = navBrand?.logoTopbar ?? brandLogo?.topbar ?? null;
+  const snapshot = brandProp ?? navBrand ?? {
+    label: DEFAULT_SYSTEM_NAME,
+    logoTopbar: null,
+  };
+  const label = snapshot.label.trim() || DEFAULT_SYSTEM_NAME;
+  const logoTopbar = snapshot.logoTopbar?.trim() ? snapshot.logoTopbar.trim() : null;
   const hasLogo = Boolean(logoTopbar);
 
   return (
@@ -22,9 +31,10 @@ export function DashBrandLink({ href, className }: DashBrandLinkProps) {
       className={className ?? "dash-brand"}
       aria-label={label}
       title={label}
+      suppressHydrationWarning
     >
       {hasLogo ? (
-        // eslint-disable-next-line @next/next/no-img-element -- Supabase Storage publisks URL
+        // eslint-disable-next-line @next/next/no-img-element -- brand URL no /brand/*
         <img
           src={logoTopbar!}
           alt=""
@@ -33,9 +43,12 @@ export function DashBrandLink({ href, className }: DashBrandLinkProps) {
           className="dash-brand-logo"
           decoding="async"
           aria-hidden="true"
+          suppressHydrationWarning
         />
       ) : (
-        <span className="dash-brand-text">{label}</span>
+        <span className="dash-brand-text" suppressHydrationWarning>
+          {label}
+        </span>
       )}
     </Link>
   );

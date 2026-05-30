@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { Suspense, useEffect, useId, useRef, useState } from "react";
+import {
+  NavUserBillingMenuItem,
+  NavUserBillingModal,
+  NavUserBillingQueryListener,
+  useNavUserBillingVisible,
+} from "@/components/billing/nav-user-billing-entry";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { navUserHasPaidProMembership } from "@/lib/auth/pro-plan-access";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
@@ -38,7 +44,9 @@ export function NavUserMenu({
       : `${displayName}: ${t("session.user_menu_aria_suffix")}`;
   const menuId = useId();
   const [open, setOpen] = useState(false);
+  const [billingModalOpen, setBillingModalOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const billing = useNavUserBillingVisible(userDisplay);
 
   useEffect(() => {
     if (!open) return;
@@ -84,6 +92,18 @@ export function NavUserMenu({
   }, []);
 
   return (
+    <>
+    <Suspense fallback={null}>
+      <NavUserBillingQueryListener userDisplay={userDisplay} />
+    </Suspense>
+    {billing ? (
+      <NavUserBillingModal
+        billing={billing}
+        displayPrefs={userDisplay?.displayPreferences}
+        open={billingModalOpen}
+        onClose={() => setBillingModalOpen(false)}
+      />
+    ) : null}
     <div
       ref={wrapRef}
       className={
@@ -215,6 +235,11 @@ export function NavUserMenu({
           </svg>
           <span>{t("session.email_notifications")}</span>
         </Link>
+        <NavUserBillingMenuItem
+          userDisplay={userDisplay}
+          onCloseMenu={() => setOpen(false)}
+          onOpenModal={() => setBillingModalOpen(true)}
+        />
         <Link
           href="/settings"
           prefetch={false}
@@ -263,5 +288,6 @@ export function NavUserMenu({
         ) : null}
       </div>
     </div>
+    </>
   );
 }

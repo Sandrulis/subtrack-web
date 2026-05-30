@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { FsI18nBootstrap } from "@/components/fs/fs-i18n-bootstrap";
 import { FsDashboardBootstrapTemplates } from "@/components/fs/fs-dashboard-bootstrap-templates";
 import { DashboardFsView } from "@/components/fs/dashboard-fs-view";
+import { loadNavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
 import { getSessionUserDisplaySafe } from "@/lib/auth/user-display";
 import { DEMO_DASHBOARD_PHRASE_KEYS } from "@/lib/demo/demo-dashboard-phrase-keys";
 import { buildDemoDashboardSubscriptions } from "@/lib/demo/demo-dashboard-subscriptions";
@@ -27,10 +28,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DemoDashboardRoute() {
-  const [userDisplay, paidPlanLive, demoPhrases] = await Promise.all([
+  const [userDisplay, paidPlanLive, demoPhrases, brand] = await Promise.all([
     getSessionUserDisplaySafe(),
     fetchSystemPaidPlanLiveForDashboard(),
     getUiPhrasesForRequest(DEMO_SUB_PHRASE_KEYS),
+    loadNavBrandSnapshot(),
   ]);
 
   const initialSubscriptions = buildDemoDashboardSubscriptions({
@@ -72,6 +74,7 @@ export default async function DemoDashboardRoute() {
         demoMode
       />
       <DashboardFsView
+        brand={brand}
         userDisplay={userDisplay}
         initialSubscriptions={initialSubscriptions}
         freeTierGate={demoFreeTierGate}

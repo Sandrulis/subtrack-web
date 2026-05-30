@@ -7,6 +7,7 @@ import {
   ensureAuthedNotifyScriptsLoaded,
   loadScriptOnce,
 } from "@/components/fs/load-fs-scripts";
+import type { NavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import type { SubscriptionClient } from "@/lib/subscriptions/subscription-client";
 import {
@@ -26,10 +27,12 @@ import {
 const ANALYTICS_TAIL_SCRIPTS = ["/fs/js/analytics.js"] as const;
 
 export function AnalyticsFsView({
+  brand = null,
   userDisplay,
   initialSubscriptions,
   freeTierGate,
 }: {
+  brand?: NavBrandSnapshot | null;
   userDisplay?: NavUserDisplay | null;
   initialSubscriptions: SubscriptionClient[];
   freeTierGate: DashboardFreeTierGatePayload;
@@ -63,7 +66,7 @@ export function AnalyticsFsView({
   return (
     <>
       <div className="app-layout app-layout-stacked">
-        <NavDash active="analytics" userDisplay={userDisplay} />
+        <NavDash active="analytics" userDisplay={userDisplay} brand={brand} />
         <main className="main-content">
           {trialProgress ? (
             <ProTrialProgressBlock progress={trialProgress} fullWidth />

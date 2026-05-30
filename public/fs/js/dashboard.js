@@ -220,6 +220,7 @@ function continueDashboardBoot() {
     initSubAmountInlineEdit();
     initIconPicker();
     initColorPicker();
+    initSubCategoryLoanSync();
 }
 
 function fsBootDashboard() {
@@ -322,12 +323,13 @@ function pad2Cal(n) {
 function getPaymentsByDateInMonth(y, m) {
     var map = {};
     subscriptions.forEach(function (s) {
+        var nextDueIso = normalizeSubscriptionDateIso(s.date);
         var dates =
             typeof subscriptionDueDatesInMonth === 'function'
                 ? subscriptionDueDatesInMonth(s, y, m)
                 : [];
         if (!dates.length) {
-            var dayIso = normalizeSubscriptionDateIso(s.date);
+            var dayIso = nextDueIso;
             if (!dayIso) return;
             if (!isDueDateWithinTerm(dayIso, s.termEnd)) return;
             var d = new Date(dayIso + 'T00:00:00');
@@ -337,6 +339,8 @@ function getPaymentsByDateInMonth(y, m) {
         }
         for (var di = 0; di < dates.length; di++) {
             var key = dates[di];
+            /* Jau apmaksātie periodi (next_payment_date pārcelts uz priekšu) – ne rādīt kā kavētus. */
+            if (nextDueIso && key < nextDueIso) continue;
             if (!map[key]) map[key] = [];
             map[key].push(s);
         }
@@ -543,6 +547,24 @@ function commitSubAmountInline(inp) {
     if (!isNaN(prev) && Math.abs(prev - amount) < 0.0001) {
         cancelSubAmountInline();
         return;
+    }
+
+    if (typeof setDuePeriodAmountOverride === 'function') {
+        setDuePeriodAmountOverride(s, baseOverride, dueIso);
+    }
+    if (
+        typeof subscriptionIsPrivateLoanClient === 'function' &&
+        subscriptionIsPrivateLoanClient(s) &&
+        Array.isArray(s.loanPayments)
+    ) {
+        s.loanPayments = s.loanPayments.map(function (p) {
+            if (p && normalizeSubscriptionDateIso(p.date) === dueIso && !p.paidOn) {
+                return Object.assign({}, p, { amount: baseOverride });
+            }
+            return p;
+        });
+        s.amount = baseOverride;
+        s.dynamicAmount = true;
     }
 
     amountEditId = null;
@@ -964,6 +986,9 @@ function computeTermProgressPct(startStr, endStr) {
 }
 
 function formatDateWithYear(dateStr) {
+    if (typeof formatIsoDateForUserPrefs === 'function') {
+        return formatIsoDateForUserPrefs(dateStr, { includeYear: true });
+    }
     if (!dateStr) return '';
     var d = new Date(dateStr + 'T00:00:00');
     if (isNaN(d.getTime())) return '';
@@ -997,6 +1022,7 @@ function wholeMonthsFromEndRemaining(endStr) {
 }
 
 function buildTermHtml(s) {
+    if (subscriptionIsPrivateLoanClient(s)) return buildLoanProgressHtml(s);
     if (!s.termStart || !s.termEnd) return '';
     var pct = computeTermProgressPct(s.termStart, s.termEnd);
     if (pct === null) return '';
@@ -1080,6 +1106,57 @@ function buildDeviceTermHtml(dev, parentColor) {
         '</div>';
 }
 
+function buildLoanProgressHtml(s) {
+    if (!s || !subscriptionIsPrivateLoanClient(s)) return '';
+    var totalRepay = parseFloat(s.loanTotalRepay);
+    var payments = Array.isArray(s.loanPayments) ? s.loanPayments : [];
+    if (!Number.isFinite(totalRepay) || totalRepay <= 0 || !payments.length) return '';
+    var pct =
+        typeof computeLoanProgressPctClient === 'function'
+            ? computeLoanProgressPctClient(totalRepay, payments)
+            : null;
+    if (pct === null) return '';
+    var c = s.color || '#0d9488';
+    var paidTotal =
+        typeof computeLoanPaidTotalClient === 'function'
+            ? computeLoanPaidTotalClient(payments)
+            : 0;
+    var paidLine =
+        '€' +
+        paidTotal.toFixed(2) +
+        ' / €' +
+        totalRepay.toFixed(2);
+    var rightCol;
+    if (pct >= 100) {
+        rightCol =
+            '<span class="sub-term-pct sub-term-pct-done">' +
+            escHtml(FsT('fs.dashboard.loan_done')) +
+            '</span>';
+    } else {
+        rightCol =
+            '<span class="sub-term-pct"><strong>' +
+            pct +
+            '%</strong> ' +
+            escHtml(FsT('fs.dashboard.loan_progress_suffix')) +
+            '</span>';
+    }
+    return (
+        '<div class="sub-term-block sub-term-block--loan">' +
+        '<div class="sub-term-header">' +
+        '<div class="sub-term-label"><i class="fa-solid fa-hand-holding-dollar"></i> ' +
+        escHtml(paidLine) +
+        '</div>' +
+        rightCol +
+        '</div>' +
+        '<div class="sub-term-bar-track"><div class="sub-term-bar-fill" style="width:' +
+        pct +
+        '%;background:' +
+        escAttr(c) +
+        ';"></div></div>' +
+        '</div>'
+    );
+}
+
 function buildItem(s) {
     var dateLabel = formatDate(s.date);
     var urgencyClass = getUrgencyClass(s.date);
@@ -1143,7 +1220,9 @@ function buildItem(s) {
     }
 
     var changeAmountBtn =
-        s.dynamicAmount === true
+        s.dynamicAmount === true ||
+        (typeof subscriptionIsPrivateLoanClient === 'function' &&
+            subscriptionIsPrivateLoanClient(s))
             ? '<button type="button" class="icon-btn change-amount" data-subscription-id="' +
               escAttr(String(s.id)) +
               '" data-tooltip="' +
@@ -1286,8 +1365,17 @@ function buildItem(s) {
 }
 
 /* ---- Mark paid (sinhronizācija ar API) ---- */
+function flushPendingAmountEditForSubscription(id) {
+    if (amountEditId == null || String(amountEditId) !== String(id)) return;
+    var inp = document.querySelector(
+        '.sub-amount-inline-input[data-subscription-id="' + String(id) + '"]',
+    );
+    if (inp) commitSubAmountInline(inp);
+}
+
 function markPaid(id) {
     if (subtrackIsMarkPaidPending(id)) return;
+    flushPendingAmountEditForSubscription(id);
     var idx = subscriptions.findIndex(function (x) {
         return String(x.id) === String(id);
     });
@@ -1299,11 +1387,20 @@ function markPaid(id) {
     }
     var paidOnIso = normalizeSubscriptionDateIso(s.date);
     var period = s.period || 'monthly';
-    var billingDay =
-        typeof subscriptionPreferredBillingDay === 'function'
-            ? subscriptionPreferredBillingDay(s)
-            : null;
-    var newDate = advanceNextDueAfterPayment(s.date, period, s.termEnd, billingDay);
+    var newDate;
+    if (subscriptionIsPrivateLoanClient(s) && typeof advancePrivateLoanAfterPayment === 'function') {
+        var payAmt =
+            typeof subscriptionPaymentAmountForDue === 'function'
+                ? subscriptionPaymentAmountForDue(s, paidOnIso)
+                : parseFloat(s.amount) || 0;
+        newDate = advancePrivateLoanAfterPayment(s, paidOnIso, payAmt);
+    } else {
+        var billingDay =
+            typeof subscriptionPreferredBillingDay === 'function'
+                ? subscriptionPreferredBillingDay(s)
+                : null;
+        newDate = advanceNextDueAfterPayment(s.date, period, s.termEnd, billingDay);
+    }
 
     subtrackSetMarkPaidPending(id, true);
 
@@ -2055,6 +2152,7 @@ function openAddModal() {
     collapseIconPicker();
     collapseModalAdvanced();
     clearDeviceEditor();
+    clearLoanPaymentEditor();
     editingId = null;
     document.getElementById('modal-title').textContent = FsT('fs.dashboard.modal_add_title');
     setModalSavePending(false);
@@ -2067,6 +2165,7 @@ function openAddModal() {
     document.getElementById('sub-note').value = '';
     document.getElementById('sub-term-start').value = '';
     document.getElementById('sub-term-end').value = '';
+    syncPrivateLoanFormVisibility();
     setDefaultDate();
     setSubDynamicAmountSwitch(false);
     setSubDynamicCarrySwitch(false);
@@ -2093,6 +2192,7 @@ function openEditModal(id) {
     editingId = String(id);
     collapseIconPicker();
     clearDeviceEditor();
+    clearLoanPaymentEditor();
 
     document.getElementById('modal-title').textContent = FsT('fs.dashboard.modal_edit_title');
     setModalSavePending(false);
@@ -2114,6 +2214,21 @@ function openEditModal(id) {
     } else {
         collapseModalAdvanced();
     }
+    if (subscriptionIsPrivateLoanClient(s)) {
+        document.getElementById('sub-category').value = PRIVATE_LOAN_CATEGORY_KEY;
+        document.getElementById('sub-loan-principal').value =
+            s.loanPrincipal != null && !isNaN(s.loanPrincipal) ? String(s.loanPrincipal) : '';
+        document.getElementById('sub-loan-total-repay').value =
+            s.loanTotalRepay != null && !isNaN(s.loanTotalRepay) ? String(s.loanTotalRepay) : '';
+        if (s.loanPayments && s.loanPayments.length) {
+            s.loanPayments.forEach(function (p) {
+                addLoanPaymentRow(p);
+            });
+        } else {
+            addLoanPaymentRow();
+        }
+    }
+    syncPrivateLoanFormVisibility();
     selectIcon(s.icon || 'fa-solid fa-film');
     selectColor(s.color || '#0d9488');
     setSubDynamicAmountSwitch(s.dynamicAmount === true);
@@ -2195,6 +2310,8 @@ function modalSaveSetLabel(text) {
 
 function saveSubscription() {
     var name = document.getElementById('sub-name').value.trim();
+    var category = normalizeCategoryKey(document.getElementById('sub-category').value);
+    var isPrivateLoan = isPrivateLoanCategoryKey(category);
     var amountRaw = document.getElementById('sub-amount').value.trim();
     var amount =
         typeof parseDecimalAmountInput === 'function'
@@ -2203,9 +2320,64 @@ function saveSubscription() {
     var period = document.getElementById('sub-period').value;
     var date = document.getElementById('sub-date').value;
     var note = document.getElementById('sub-note').value.trim();
-    var category = normalizeCategoryKey(document.getElementById('sub-category').value);
     var termStart = document.getElementById('sub-term-start').value.trim();
     var termEnd = document.getElementById('sub-term-end').value.trim();
+
+    if (isPrivateLoan) {
+        if (!name) {
+            shakeInput('sub-name');
+            return;
+        }
+        var loanPrincipalRaw = document.getElementById('sub-loan-principal').value.trim();
+        var loanTotalRaw = document.getElementById('sub-loan-total-repay').value.trim();
+        var loanPrincipal =
+            typeof parseDecimalAmountInput === 'function'
+                ? parseDecimalAmountInput(loanPrincipalRaw)
+                : parseFloat(loanPrincipalRaw);
+        var loanTotalRepay =
+            typeof parseDecimalAmountInput === 'function'
+                ? parseDecimalAmountInput(loanTotalRaw)
+                : parseFloat(loanTotalRaw);
+        if (loanPrincipalRaw === '' || isNaN(loanPrincipal) || loanPrincipal < 0) {
+            shakeInput('sub-loan-principal');
+            showToast(FsT('fs.dashboard.toast_loan_principal_invalid'), 'error');
+            return;
+        }
+        if (loanTotalRaw === '' || isNaN(loanTotalRepay) || loanTotalRepay <= 0) {
+            shakeInput('sub-loan-total-repay');
+            showToast(FsT('fs.dashboard.toast_loan_total_invalid'), 'error');
+            return;
+        }
+        var loanPayments = collectLoanPaymentsFromForm();
+        if (loanPayments === null) return;
+        if (!loanPayments.length) {
+            showToast(FsT('fs.dashboard.toast_loan_schedule_required'), 'error');
+            return;
+        }
+        var firstPay = loanPayments.slice().sort(function (a, b) {
+            return String(a.date).localeCompare(String(b.date));
+        })[0];
+        var payloadLoan = {
+            name: name,
+            category: PRIVATE_LOAN_CATEGORY_KEY,
+            amount: firstPay.amount,
+            dynamicAmount: true,
+            dynamicCarryPrevious: false,
+            period: 'once',
+            date: firstPay.date,
+            icon: selectedIcon,
+            color: selectedColor,
+            note: note,
+            termStart: '',
+            termEnd: '',
+            devices: [],
+            loanPrincipal: loanPrincipal,
+            loanTotalRepay: loanTotalRepay,
+            loanPayments: loanPayments,
+        };
+        submitSubscriptionPayload(payloadLoan);
+        return;
+    }
 
     if (!date) {
         shakeInput('sub-date');
@@ -2256,6 +2428,10 @@ function saveSubscription() {
         devices: devices,
     };
 
+    submitSubscriptionPayload(payload);
+}
+
+function submitSubscriptionPayload(payload) {
     setModalSavePending(true);
 
     if (typeof window !== 'undefined' && window.__SUBTRACK_DEMO_DASHBOARD__) {
@@ -2911,6 +3087,150 @@ function clearDeviceEditor() {
     var c = document.getElementById('sub-devices-container');
     if (c) c.innerHTML = '';
 }
+
+function subPrivateLoanCategorySelected() {
+    var cat = document.getElementById('sub-category');
+    return cat ? isPrivateLoanCategoryKey(cat.value) : false;
+}
+
+function syncPrivateLoanFormVisibility() {
+    var on = subPrivateLoanCategorySelected();
+    var panel = document.getElementById('sub-private-loan-panel');
+    var recurring = document.getElementById('sub-recurring-fields');
+    var dynamicWrap = document.querySelector('.modal-footer-dynamic');
+    var modalAdvanced = document.getElementById('modal-advanced');
+    if (panel) panel.classList.toggle('hidden', !on);
+    if (recurring) recurring.classList.toggle('hidden', on);
+    if (dynamicWrap) dynamicWrap.classList.toggle('hidden', on);
+    if (modalAdvanced) modalAdvanced.classList.toggle('hidden', on);
+    if (on) {
+        setSubDynamicAmountSwitch(false);
+        setSubDynamicCarrySwitch(false);
+        syncSubDynamicCarryVisibility();
+    }
+}
+
+function ensurePrivateLoanPaymentRow() {
+    var c = document.getElementById('sub-loan-payments-container');
+    if (c && !c.querySelector('.sub-loan-payment-editor')) {
+        addLoanPaymentRow();
+    }
+}
+
+function initSubCategoryLoanSync() {
+    var cat = document.getElementById('sub-category');
+    if (!cat || cat.dataset.subtrackLoanBound === '1') return;
+    cat.dataset.subtrackLoanBound = '1';
+    cat.addEventListener('change', function () {
+        syncPrivateLoanFormVisibility();
+        if (subPrivateLoanCategorySelected()) {
+            ensurePrivateLoanPaymentRow();
+        }
+    });
+}
+
+function clearLoanPaymentEditor() {
+    var c = document.getElementById('sub-loan-payments-container');
+    if (c) c.innerHTML = '';
+    var principal = document.getElementById('sub-loan-principal');
+    var total = document.getElementById('sub-loan-total-repay');
+    if (principal) principal.value = '';
+    if (total) total.value = '';
+}
+
+function removeLoanPaymentRow(btn) {
+    var row = btn && btn.closest ? btn.closest('.sub-loan-payment-editor') : null;
+    if (row) row.remove();
+}
+
+function addLoanPaymentRow(data) {
+    var c = document.getElementById('sub-loan-payments-container');
+    if (!c) return;
+    var dateV = '';
+    var amountV = '';
+    var paidOnV = '';
+    if (data) {
+        dateV = data.date != null ? String(data.date) : '';
+        if (data.amount != null && !isNaN(data.amount)) amountV = String(data.amount);
+        paidOnV = data.paidOn != null ? String(data.paidOn) : '';
+    }
+    var div = document.createElement('div');
+    div.className = 'sub-loan-payment-editor sub-device-editor';
+    var paidBadge =
+        paidOnV
+            ? '<span class="sub-loan-paid-badge">' +
+              escHtml(FsT('fs.dashboard.loan_payment_paid')) +
+              '</span>'
+            : '';
+    div.innerHTML =
+        '<div class="sub-device-editor-top">' +
+            '<span class="sub-device-editor-title">' +
+            escHtml(FsT('fs.dashboard.loan_payment_row_title')) +
+            '</span>' +
+            paidBadge +
+            '<button type="button" class="sub-device-remove" aria-label="' +
+            escAttr(FsT('fs.dashboard.aria_remove_loan_payment_row')) +
+            '" onclick="removeLoanPaymentRow(this)"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>' +
+        '</div>' +
+        '<input type="hidden" class="sub-loan-paid-on" value="' +
+        escAttr(paidOnV) +
+        '">' +
+        '<div class="form-row">' +
+            '<div class="form-group"><label>' +
+            escHtml(FsT('fs.dashboard.loan_payment_date_label')) +
+            '</label><input type="date" class="sub-loan-date" value="' +
+            escAttr(dateV) +
+            '"></div>' +
+            '<div class="form-group"><label>' +
+            escHtml(FsT('fs.dashboard.loan_payment_amount_label')) +
+            '</label><input type="text" class="sub-loan-amount" inputmode="decimal" autocomplete="off" placeholder="0" value="' +
+            escAttr(amountV) +
+            '"></div>' +
+        '</div>';
+    c.appendChild(div);
+}
+
+function collectLoanPaymentsFromForm() {
+    var rows = document.querySelectorAll('#sub-loan-payments-container .sub-loan-payment-editor');
+    var out = [];
+    var nid = 1;
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var date = row.querySelector('.sub-loan-date').value.trim();
+        var amountRaw = row.querySelector('.sub-loan-amount').value;
+        var amount =
+            typeof parseDecimalAmountInput === 'function'
+                ? parseDecimalAmountInput(amountRaw)
+                : parseFloat(amountRaw);
+        var paidOnEl = row.querySelector('.sub-loan-paid-on');
+        var paidOn = paidOnEl ? paidOnEl.value.trim() : '';
+        var hasAny = date || (amountRaw !== '' && !isNaN(amount) && amount !== 0);
+        if (!hasAny) continue;
+        if (!date) {
+            showToast(FsT('fs.dashboard.toast_loan_payment_date_required'), 'error');
+            return null;
+        }
+        if (amountRaw === '' || isNaN(amount) || amount <= 0) {
+            showToast(FsT('fs.dashboard.toast_loan_payment_amount_required'), 'error');
+            return null;
+        }
+        out.push({
+            id: nid++,
+            date: date,
+            amount: amount,
+            paidOn: paidOn || '',
+        });
+    }
+    out.sort(function (a, b) {
+        return String(a.date).localeCompare(String(b.date));
+    });
+    for (var j = 0; j < out.length; j++) {
+        out[j].id = j + 1;
+    }
+    return out;
+}
+
+window.addLoanPaymentRow = addLoanPaymentRow;
 
 function removeDeviceRow(btn) {
     var row = btn && btn.closest ? btn.closest('.sub-device-editor') : null;

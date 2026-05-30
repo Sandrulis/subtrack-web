@@ -2,6 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdminUser } from "@/lib/auth/require-admin";
+import { readFormBool, readFormString } from "@/lib/admin/form-helpers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 import { parsePaidPlanPriceField } from "@/lib/paid-plan-annual";
@@ -25,17 +26,6 @@ const TIMEZONES = new Set<string>([
   "UTC",
   "America/New_York",
 ]);
-
-function readFormString(formData: FormData, key: string): string {
-  return String(formData.get(key) ?? "").trim();
-}
-
-function readFormBool(formData: FormData, key: string): boolean {
-  const v = String(formData.get(key) ?? "")
-    .trim()
-    .toLowerCase();
-  return v === "1" || v === "true" || v === "on" || v === "yes";
-}
 
 function validateSystemName(raw: string): string | null {
   const t = raw.trim();

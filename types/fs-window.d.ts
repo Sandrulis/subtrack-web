@@ -19,6 +19,7 @@ declare global {
     saveSubscription?: () => void;
     toggleModalAdvanced?: () => void;
     addDeviceRow?: () => void;
+    addLoanPaymentRow?: () => void;
     handleDeleteOverlayClick?: (e: MouseEvent) => void;
     closeDeleteModal?: () => void;
     confirmDelete?: () => void;

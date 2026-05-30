@@ -1,3 +1,4 @@
+import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 import { loadEnvConfig } from "@next/env";
 
@@ -30,4 +31,16 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: "repazy",
+  project: "javascript-nextjs",
+
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+
+  silent: !process.env.CI,
+
+  widenClientFileUpload: true,
+
+  // Tunelis tikai produkcijā (ad-blocker). Lokāli sūta tieši uz ingest.
+  tunnelRoute: process.env.NODE_ENV === "production" ? "/monitoring" : undefined,
+});

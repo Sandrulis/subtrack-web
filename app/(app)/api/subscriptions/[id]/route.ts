@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { apiJsonError } from "@/lib/api/json-response";
+import { parseJsonBody } from "@/lib/api/parse-json-body";
+import { requireApiSession } from "@/lib/api/require-api-session";
+import { isValidUuid } from "@/lib/validation/uuid";
 import { fetchAllowedSubscriptionCategoryKeys } from "@/lib/subscriptions/subscription-categories-server";
 import {
   mapSubscriptionRowToClient,
@@ -16,45 +19,32 @@ import {
   parsePaidOnFromPatch,
   resolveBaseAmountForDue,
 } from "@/lib/subscriptions/subscription-payment";
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+import {
+  appendNextLoanPaymentIfOwing,
+  coerceLoanPaymentsFromDb,
+  markPrivateLoanPaymentPaid,
+  resolvePrivateLoanScheduledAmount,
+  subscriptionIsPrivateLoan,
+  syncPrivateLoanDerivedFields,
+} from "@/lib/subscriptions/private-loan";
 
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  if (!UUID_RE.test(id)) {
-    return NextResponse.json(
-      { success: false, message: "Invalid subscription id" },
-      { status: 400 },
-    );
+  if (!isValidUuid(id, true)) {
+    return apiJsonError(400, "Invalid subscription id");
   }
 
-  let json: unknown;
-  try {
-    json = await request.json();
-  } catch {
-    return NextResponse.json(
-      { success: false, message: "Invalid JSON body" },
-      { status: 400 },
-    );
-  }
-
+  const parsedBody = await parseJsonBody(request, "Invalid JSON body");
+  if (!parsedBody.ok) return parsedBody.response;
+  const json = parsedBody.body;
   const body = json as Record<string, unknown>;
 
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json(
-      { success: false, message: "Unauthorized" },
-      { status: 401 },
-    );
-  }
+  const auth = await requireApiSession();
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
 
   const { data: existing, error: fetchErr } = await supabase
     .from("subscriptions")
@@ -64,10 +54,7 @@ export async function PATCH(
     .single();
 
   if (fetchErr || !existing) {
-    return NextResponse.json(
-      { success: false, message: "Update failed or not found" },
-      { status: 404 },
-    );
+    return apiJsonError(404, "Update failed or not found");
   }
 
   const mergedName = Object.prototype.hasOwnProperty.call(body, "name")
@@ -80,19 +67,10 @@ export async function PATCH(
 
   const devNorm = normalizeDevicesForSubscription(mergedDevices);
   if (!devNorm.ok) {
-    return NextResponse.json(
-      { success: false, message: devNorm.message },
-      { status: 400 },
-    );
+    return apiJsonError(400, devNorm.message);
   }
   if (devNorm.devices.length > 0 && !mergedName) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Name is required when add-ons are present",
-      },
-      { status: 400 },
-    );
+    return apiJsonError(400, "Name is required when add-ons are present");
   }
 
   const existingRow = existing as SubscriptionRow;
@@ -104,13 +82,54 @@ export async function PATCH(
     { allowedCategories },
   );
   if (!parsed.ok) {
-    return NextResponse.json(
-      { success: false, message: parsed.message },
-      { status: 400 },
-    );
+    return apiJsonError(400, parsed.message);
   }
 
   if (isMarkPaidPatchBody(body)) {
+    if (subscriptionIsPrivateLoan(existingRow)) {
+      const dueIso = String(existingRow.next_payment_date ?? "").trim();
+      const currentPayments = coerceLoanPaymentsFromDb(existingRow.loan_payments).map(
+        (p) => ({
+          id: p.id,
+          date: p.date,
+          amount: p.amount,
+          paidOn: p.paidOn || null,
+        }),
+      );
+      const paidOn = parsePaidOnFromPatch(
+        body,
+        String(existingRow.next_payment_date ?? ""),
+      );
+      if (!paidOn) {
+        return apiJsonError(400, "paidOn must be YYYY-MM-DD");
+      }
+      const amountScheduled = resolvePrivateLoanScheduledAmount(existingRow, paidOn);
+      const override = parseAmountPaidOverride(body.amountPaid);
+      const amountPaid = override ?? amountScheduled;
+      const marked = markPrivateLoanPaymentPaid(
+        currentPayments,
+        dueIso,
+        paidOn,
+        amountPaid,
+      );
+      if (!marked.ok) {
+        return apiJsonError(400, marked.message);
+      }
+      const totalRepay = parseFloat(String(existingRow.loan_total_repay ?? ""));
+      let nextPayments = marked.payments;
+      if (Number.isFinite(totalRepay) && totalRepay > 0) {
+        nextPayments = appendNextLoanPaymentIfOwing(
+          nextPayments,
+          totalRepay,
+          dueIso,
+          amountPaid,
+        );
+      }
+      parsed.row.loan_payments = nextPayments;
+      syncPrivateLoanDerivedFields(parsed.row);
+      parsed.row.due_amount_override = null;
+      parsed.row.due_amount_override_for = null;
+    } else {
     const carryPrevious =
       existingRow.is_dynamic_amount === true &&
       existingRow.is_dynamic_carry_previous === true;
@@ -139,6 +158,7 @@ export async function PATCH(
       parsed.row.due_amount_override = null;
       parsed.row.due_amount_override_for = null;
     }
+    }
   }
 
   const { data, error } = await supabase
@@ -150,13 +170,7 @@ export async function PATCH(
     .single();
 
   if (error || !data) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: error?.message ?? "Update failed or not found",
-      },
-      { status: 404 },
-    );
+    return apiJsonError(404, error?.message ?? "Update failed or not found");
   }
 
   let paidCalendarDays: Record<string, number> | undefined;
@@ -167,13 +181,13 @@ export async function PATCH(
       String(existingRow.next_payment_date ?? ""),
     );
     if (!paidOn) {
-      return NextResponse.json(
-        { success: false, message: "paidOn must be YYYY-MM-DD" },
-        { status: 400 },
-      );
+      return apiJsonError(400, "paidOn must be YYYY-MM-DD");
     }
 
-    const amountScheduled = computeScheduledPaymentAmount(existingRow, paidOn);
+    const amountScheduled =
+      subscriptionIsPrivateLoan(existingRow)
+        ? resolvePrivateLoanScheduledAmount(existingRow, paidOn)
+        : computeScheduledPaymentAmount(existingRow, paidOn);
     const override = parseAmountPaidOverride(body.amountPaid);
     const amountPaid = override ?? amountScheduled;
 
@@ -183,15 +197,14 @@ export async function PATCH(
       paidOn,
       amountPaid,
       amountScheduled,
-      period: String(existingRow.period ?? "monthly"),
+      period: String(
+        subscriptionIsPrivateLoan(existingRow) ? "once" : (existingRow.period ?? "monthly"),
+      ),
       nextPaymentDateAfter: String(parsed.row.next_payment_date),
     });
 
     if (!payRes.ok) {
-      return NextResponse.json(
-        { success: false, message: payRes.message },
-        { status: 400 },
-      );
+      return apiJsonError(400, payRes.message);
     }
 
     paidCalendarDays = await fetchPaidCalendarDayCounts(supabase, user.id);
@@ -217,24 +230,13 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  if (!UUID_RE.test(id)) {
-    return NextResponse.json(
-      { success: false, message: "Invalid subscription id" },
-      { status: 400 },
-    );
+  if (!isValidUuid(id, true)) {
+    return apiJsonError(400, "Invalid subscription id");
   }
 
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json(
-      { success: false, message: "Unauthorized" },
-      { status: 401 },
-    );
-  }
+  const auth = await requireApiSession();
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
 
   const { error } = await supabase
     .from("subscriptions")
@@ -243,10 +245,7 @@ export async function DELETE(
     .eq("user_id", user.id);
 
   if (error) {
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 400 },
-    );
+    return apiJsonError(400, error.message);
   }
 
   return NextResponse.json({ success: true });

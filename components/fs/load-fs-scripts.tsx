@@ -41,6 +41,7 @@ const scriptInflight = new Map<string, Promise<void>>();
 
 /** Abonementu bootstrap (`#subtrack-subs-bootstrap-json` kā `<template>`) + palīgfunkcijas + augšējās joslas paziņojumi (ielādējas secīgi). */
 export const AUTHED_NOTIFY_SCRIPTS = [
+  "/fs/js/display-preferences-format.js",
   "/fs/js/subscriptions-data.js",
   "/fs/js/subscriptions-helpers.js",
   "/fs/js/dash-alerts.js",

@@ -1,6 +1,6 @@
 /**
- * H1: obligāto drošības migrāciju saraksts jaunām Supabase vidēm.
- * Izvade - SQL failu secība (pārējie 017+ pēc vajadzības atsevišķi README).
+ * Obligātās drošības migrācijas jaunām / atjauninātām Supabase vidēm.
+ * npm run security:migration-checklist
  */
 const CRITICAL = [
   "001_initial_schema.sql",
@@ -14,12 +14,31 @@ const CRITICAL = [
   "080_security_advisor_warnings.sql",
 ];
 
+/** Pēc H1: Pro trial, family, Advisor, Stripe, privātais aizdevums (secībā). */
+const POST_CRITICAL = [
+  "107_pro_trial.sql",
+  "116_security_advisor_pro_trial_rpc.sql",
+  "158_security_advisor_categories_last_seen_feedback.sql",
+  "159_stripe_billing_users.sql",
+  "160_site_translations_stripe_billing.sql",
+  "161_private_loan.sql",
+  "162_subscription_category_private_loan.sql",
+];
+
 console.log("SubTrack - obligātās drošības migrācijas (H1):\n");
 for (const f of CRITICAL) {
   console.log(`  database/supabase/${f}`);
 }
+
+console.log("\nPēc H1 (Stripe / Advisor / privātais aizdevums):\n");
+for (const f of POST_CRITICAL) {
+  console.log(`  database/supabase/${f}`);
+}
+
 console.log(
   "\nPēc 078: npm run security:smoke-system-settings",
   "\nH2: SECURITY_SMOKE_* -> npm run security:smoke-users-rls",
+  "\nPēc 159/161: npm run security:verify-migrations (ar SUPABASE_SERVICE_ROLE_KEY)",
+  "\nDeploy: npm run security:deploy-checklist",
   "\nSkatīt security_check.md un README Supabase sadaļu.",
 );

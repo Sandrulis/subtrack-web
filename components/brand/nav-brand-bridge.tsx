@@ -1,5 +1,6 @@
 "use client";
 
+import type { NavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
 import { DEFAULT_SYSTEM_NAME } from "@/lib/pwa/defaults";
 import {
   createContext,
@@ -8,10 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
-export type NavBrandSnapshot = {
-  label: string;
-  logoTopbar: string | null;
-};
+export type { NavBrandSnapshot };
 
 const NavBrandContext = createContext<NavBrandSnapshot | null>(null);
 

@@ -20,7 +20,11 @@ const RULES: Rule[] = [
   { prefix: "/api/subscriptions", max: 120, windowMs: 60_000 },
   { prefix: "/api/family-sharing", max: 80, windowMs: 60_000 },
   { prefix: "/api/push", max: 40, windowMs: 60_000 },
+  { prefix: "/api/billing", max: 40, windowMs: 60_000 },
   { prefix: "/api/admin", max: 30, windowMs: 60_000 },
+  { prefix: "/api/user", max: 60, windowMs: 60_000 },
+  /** Pārējie `/api/*` (izņemot cron/webhook – nav šajā matcher ceļā ar sesiju). */
+  { prefix: "/api", max: 180, windowMs: 60_000 },
 ];
 
 function clientIp(request: NextRequest): string {

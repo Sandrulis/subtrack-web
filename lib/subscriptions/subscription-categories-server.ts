@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
 import {
   getUiPhraseForRequest,
   resolveRequestUiLocales,
@@ -45,10 +46,13 @@ function phraseKeyForCategory(key: string): string {
   return `subscription.category.${key}`;
 }
 
-/** Admin: pārrēķina usage_count no visiem maksājumiem (SECURITY DEFINER RPC). */
+/** Admin: pārrēķina usage_count no visiem maksājumiem (RPC tikai service_role, skat. 158_*). */
 export async function refreshSubscriptionCategoryUsageCounts(): Promise<void> {
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.rpc("refresh_subscription_category_usage_counts");
+  const svc = createServiceRoleSupabaseClient();
+  if (!svc) {
+    return;
+  }
+  const { error } = await svc.rpc("refresh_subscription_category_usage_counts");
   if (error && !/function .* does not exist/i.test(error.message)) {
     console.warn("[categories] refresh usage_count:", error.message);
   }
