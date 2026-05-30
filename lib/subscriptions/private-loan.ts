@@ -129,9 +129,9 @@ export function normalizeLoanPaymentsForDb(
   return { ok: true, payments: filtered };
 }
 
-export function computeLoanPaidTotal(
-  payments: Pick<LoanPaymentClient, "amount" | "paidOn">[],
-): number {
+type LoanPaymentPaidRow = Pick<LoanPaymentDb, "amount" | "paidOn">;
+
+export function computeLoanPaidTotal(payments: LoanPaymentPaidRow[]): number {
   return payments.reduce((sum, p) => {
     if (!p.paidOn) return sum;
     const amt = parseAmount(p.amount);
@@ -141,7 +141,7 @@ export function computeLoanPaidTotal(
 
 export function computeLoanProgressPct(
   totalRepay: number,
-  payments: Pick<LoanPaymentClient, "amount" | "paidOn">[],
+  payments: LoanPaymentPaidRow[],
 ): number | null {
   const total = parseAmount(totalRepay);
   if (!Number.isFinite(total) || total <= 0) return null;
@@ -150,9 +150,9 @@ export function computeLoanProgressPct(
   return Math.max(0, Math.min(100, pct));
 }
 
-export function findFirstUnpaidLoanPayment(
-  payments: LoanPaymentClient[],
-): LoanPaymentClient | null {
+export function findFirstUnpaidLoanPayment<T extends { date: string; paidOn: string | null }>(
+  payments: T[],
+): T | null {
   const sorted = [...payments].sort((a, b) => a.date.localeCompare(b.date));
   for (const p of sorted) {
     if (!p.paidOn && p.date) return p;
