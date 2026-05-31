@@ -35,7 +35,7 @@ export function PwaDeferredInstallProvider({ children }: { children: React.React
 
   useEffect(() => {
     if (isNativeCapacitorApp()) return;
-    if (!pwa.enabled || (!pwa.installBannerEnabled && !pwa.installSettingsEnabled)) {
+    if (!pwa.enabled || !pwa.installBannerEnabled) {
       return;
     }
 
@@ -49,7 +49,7 @@ export function PwaDeferredInstallProvider({ children }: { children: React.React
 
     window.addEventListener("beforeinstallprompt", onBip);
     return () => window.removeEventListener("beforeinstallprompt", onBip);
-  }, [pwa.enabled, pwa.installBannerEnabled, pwa.installSettingsEnabled]);
+  }, [pwa.enabled, pwa.installBannerEnabled]);
 
   return (
     <PwaDeferredInstallContext.Provider value={{ deferredPrompt, clearDeferredPrompt }}>

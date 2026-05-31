@@ -12,23 +12,21 @@ export const PWA_INSTALL_BANNER_PATHS = new Set([
 /**
  * Vai drīkst `preventDefault()` uz `beforeinstallprompt` (vēlāk `prompt()` no pogas).
  * Ja false – pārlūks pats rāda (vai nerāda) noklusējuma instalācijas UI; nav Chrome brīdinājuma par neizsauktu `prompt()`.
+ *
+ * Plats ekrāns (≥961px, PC): nekad necapturējam – custom banneris un settings poga ir tikai mobilajā platumā.
  */
 export function shouldCaptureBeforeInstallPrompt(pwa: PublicPwaSettings): boolean {
   if (!pwa.enabled) return false;
   if (typeof window === "undefined") return false;
   if (isNativeCapacitorApp()) return false;
   if (isStandaloneDisplayMode()) return false;
+  if (window.matchMedia("(min-width: 961px)").matches) return false;
 
   const path = window.location.pathname;
-  const mobile = window.matchMedia("(max-width: 960px)").matches;
 
-  const canBanner =
+  return (
     pwa.installBannerEnabled &&
-    mobile &&
     PWA_INSTALL_BANNER_PATHS.has(path) &&
-    !readPwaBannerDismissed();
-
-  const canSettings = pwa.installSettingsEnabled && path === "/settings";
-
-  return canBanner || canSettings;
+    !readPwaBannerDismissed()
+  );
 }
