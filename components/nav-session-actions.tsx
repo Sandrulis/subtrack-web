@@ -6,6 +6,8 @@ import { NavUserMenu } from "@/components/nav-user-menu";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { signOutAction } from "@/lib/auth/actions";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
+import { useNativeCapacitorApp } from "@/lib/capacitor/use-native-capacitor-app";
+import { syncAppBadgeCount } from "@/lib/pwa/app-badge";
 
 type NavSessionActionsProps = {
   userDisplay: NavUserDisplay | null | undefined;
@@ -21,6 +23,7 @@ export function NavSessionActions({
   showDashboardInUserMenu = false,
 }: NavSessionActionsProps) {
   const { t } = useSubtrackIntl();
+  const isNativeApp = useNativeCapacitorApp();
   return (
     <div className="dash-actions">
       <NavUiLanguageSwitcher layout="topbar" />
@@ -38,7 +41,16 @@ export function NavSessionActions({
         aria-hidden="true"
       />
       <form action={signOutAction} className="dash-exit-form">
-        <button type="submit" className="dash-exit">
+        {isNativeApp ? (
+          <input type="hidden" name="native_app" value="1" />
+        ) : null}
+        <button
+          type="submit"
+          className="dash-exit"
+          onClick={() => {
+            void syncAppBadgeCount(0);
+          }}
+        >
           <svg
             className="dash-icon"
             width="16"

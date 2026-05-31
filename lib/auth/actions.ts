@@ -20,6 +20,7 @@ import {
   SIGNUP_EMAIL_TAKEN_MESSAGE,
 } from "@/lib/auth/signup-email-blocked";
 import { buildRegistrationGeoPayload } from "@/lib/auth/registration-country-payload";
+import { guestEntryPath } from "@/lib/capacitor/brand-home-href";
 
 /** Signup e-pasta pārbaude: max pieprasījumi uz IP minūtē (M2 enumerācijas mazināšana). */
 const SIGNUP_EMAIL_EXISTS_MAX_PER_MIN = 24;
@@ -260,16 +261,18 @@ export async function requestPasswordResetAction(
   return { ok: true };
 }
 
-export async function signOutAction() {
+export async function signOutAction(formData: FormData) {
+  const afterSignOut = guestEntryPath(formData.get("native_app") === "1");
+
   const cfg = getSupabasePublicConfig();
   if (!cfg) {
-    redirect("/");
+    redirect(afterSignOut);
   }
 
   const supabase = await createServerSupabaseClient();
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect(afterSignOut);
 }
 
 export async function changePasswordAction(formData: FormData) {
