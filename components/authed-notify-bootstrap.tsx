@@ -27,9 +27,7 @@ export function AuthedNotifyBootstrap({
     };
 
     const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        window.fsBootDashAlerts?.();
-      }
+      window.fsBootDashAlerts?.();
     };
     document.addEventListener("visibilitychange", onVisible);
     const onNativeShellReady = () => {

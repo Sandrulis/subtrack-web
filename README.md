@@ -1,6 +1,6 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.6.10` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**; native Android – **[Capacitor (Android)](#capacitor-android)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`). Lietotājam redzamais nosaukums – **`system_settings.system_name`** (admin **`/admin/system`**).
+**Versija:** `0.6.11` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**; native Android – **[Capacitor (Android)](#capacitor-android)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`). Lietotājam redzamais nosaukums – **`system_settings.system_name`** (admin **`/admin/system`**).
 
 **SubTrack** (repozitorijs `subtrack-web`; zīmols **repazy**) ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, **`public.subscription_payments`** maksājumu žurnālam, RLS); CRUD notiek caur **Route Handlers** (`app/(app)/api/subscriptions/*`) ar kopīgu **`lib/api/`** (sesija, JSON, atbildes) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`, datumi – **`display-preferences-format.js`**) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
@@ -223,8 +223,8 @@ lib/i18n/pwa-fallback-phrases.ts
 | Native projekts | **`android/`** (ģenerēts ar **`npx cap add android`**; **`MainActivity`** – `BridgeActivity`) |
 | Native čaula (web) | **`?native_shell=1`** + **`sessionStorage`** **`subtrack_native_shell`**; **`CapacitorNativeShellBootstrap`** (**`app/layout.tsx`**) → **`prepare-native-web-shell.ts`** (SW unregister, kešu tīrīšana, iespējama **viena** pārlāde) |
 | Atpazīšana webā | **`lib/capacitor/native-app.ts`** (tilts **`Capacitor.isNativePlatform()`** + native shell session), **`use-native-capacitor-app.ts`**, **`brand-home-href.ts`** – viesiem logo / back → **`/login`**, ne **`/`**; guest landing navigācija appā paslēpta (**`nav-landing.tsx`**); **PWA instalācijas banneris** un **SW reģistrācija** izslēgti native |
-| Atkarības | **`@capacitor/core`**, **`@capacitor/cli`**, **`@capacitor/android`**, **`@capawesome/capacitor-badge`** (`package.json`; `npx cap sync` pēc instalācijas) |
-| Ikonas badge | **`dash-alerts.js`** → **`subtrackSyncLauncherBadge`** → **`syncAppBadgeCount`** (**`lib/pwa/app-badge.ts`**); native → **`Badge.set` / `clear`**. Skaitlis atjauninās tikai **ielogotam** lietotājam ar paziņojumiem (kā zvans). |
+| Atkarības | **`@capacitor/core`**, **`@capacitor/cli`**, **`@capacitor/android`**, **`@capawesome/capacitor-badge`**, **`@capacitor/local-notifications`** (`package.json`; `npx cap sync` pēc instalācijas) |
+| Ikonas badge | **`dash-alerts.js`** → **`syncAppBadgeCount`** (**`lib/pwa/app-badge.ts`**): **`Badge.set`** (ShortcutBadger) + Android **fona** paziņojums (**`native-launcher-badge-notification.ts`**, Pixel/AOSP). App **atvērts** – tikai zvans; **Home** – jāparādās ikonas skaitlim, ja atļauti paziņojumi. |
 | Iziet | Native: **`signOutAction`** + `native_app=1` → **`/login?native_shell=1`**; pārlūkā → **`/`**; iziet notīra badge |
 | Launcher ikona (attēls) | **`android/app/src/main/res/mipmap-*`** – pagaidām **Capacitor default**; repazy logo → **`npx @capacitor/assets generate`** vai manuāla aizstāšana (atsevišķi no skaitļa badge) |
 
@@ -247,7 +247,7 @@ npx cap open android   # atver android/ Android Studio
 
 Studio: **Sync Project with Gradle Files**, tad **Run** ▶ uz emulatora vai USB telefona. Pirmais Gradle sync var ilgt **5–30 min**.
 
-**Pēc pull ar Badge plugin:** `npm install` → `npx cap sync android` (jāredz `@capawesome/capacitor-badge` sync izvadē).
+**Pēc pull ar native plugin:** `npm install` → `npx cap sync android` (jāredz `@capawesome/capacitor-badge` un `@capacitor/local-notifications` sync izvadē).
 
 **Gradle:** ja sync kļūst ar **`proguard-android.txt`**, **`android/app/build.gradle`** release tipam jālieto **`getDefaultProguardFile('proguard-android-optimize.txt')`** (jau labots repo).
 
@@ -255,11 +255,11 @@ Studio: **Sync Project with Gradle Files**, tad **Run** ▶ uz emulatora vai USB
 
 1. **Deploy** uz **repazy.com** (Vercel) – app ielādē JS no servera, ne no APK.
 2. **`npx cap sync android`** + Studio **Run**, ja mainīts **`capacitor.config.ts`** (piem. **`native_shell`** query).
-3. **Ielogojies** un atver **`/dashboard`** – jābūt skaitlim pie **zvana**; tad **Home** – uz ikonas vajadzētu parādīties tas pats skaitlis (ja launcher atbalsta [ShortcutBadger](https://github.com/leolin310148/ShortcutBadger)).
-4. **Pirmajā atvēršanā** pēc update app var **vienreiz automātiski pārlādēties** (SW notīrīšana) – normāli.
-5. **Emulators** (Pixel launcher) bieži **nerāda** skaitli pat, kad API izpildās – pārbaudi **fiziskā telefonā** (Samsung, Xiaomi u.c. atbalsts atšķiras).
+3. **Ielogojies** un atver **`/dashboard`** – jābūt skaitlim pie **zvana**; atļauj **paziņojumus**, ja Android prasa (Android 13+).
+4. Nospied **Home** (app fonā) – ikonā jāparādās skaitlis vai punkts (**≥ 0.6.11**: diskrēts paziņojums + ShortcutBadger).
+5. **Pirmajā atvēršanā** pēc update app var **vienreiz automātiski pārlādēties** (SW notīrīšana) – normāli.
 
-**Ja zvans rāda skaitli, bet ikonā nav:** pārliecinies, ka deploy ir **≥ 0.6.10**; pārstartē app; ja joprojām – ierīce/launchers, ne obligāti kļūda kodā.
+**Ja zvans rāda skaitli, bet ikonā nav:** deploy **≥ 0.6.11**, **`npx cap sync android`** + jauns **Run**; pārbaudi **paziņojumu atļauju**; pēc **Home** (ne tikai app atvērts). **Pixel/emulators** – galvenokārt no aktīvā paziņojuma skaita.
 
 ### Kas mainās kur
 
@@ -629,7 +629,7 @@ lib/api/                  # Route Handler boilerplate: `require-api-session`, `r
 lib/validation/           # `uuid.ts` – kopīga UUID validācija (API + admin)
 lib/admin/                # Server Actions, `form-helpers.ts`, `admin-*-data.ts` (SSR admin lapām), `run-cron-job.ts`, `format-user-last-seen-display.ts`
 lib/brand/                # Storage + `/brand/*` (`logo-assets.ts`, `process-logo.ts`); `nav-brand-snapshot.ts`; noklusējuma zīmols – `lib/pwa/brand-mark.tsx`
-lib/pwa/                  # `app-badge.ts`, `register-app-badge-bridge.ts`, `install-prompt-capture.ts`, …
+lib/pwa/                  # `app-badge.ts`, `native-launcher-badge-notification.ts`, `register-app-badge-bridge.ts`, …
 lib/capacitor/            # `native-app.ts`, `prepare-native-web-shell.ts`, `native-shell-storage.ts`, `brand-home-href.ts`
 components/capacitor/     # `capacitor-native-shell-bootstrap.tsx` – SW atslēgšana native appā
 capacitor.config.ts       # `server.url`, `plugins.Badge`, SplashScreen, `appId` `com.repazy.app`
@@ -1069,6 +1069,10 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 ## Izmaiņu žurnāls
 
 Šeit īss pieraksts par izlaistām izmaiņām. **PWA** – **[PWA (SubTrack)](#pwa-subtrack)**. **0.4.x** no **0.4.0** (= agrāk **0.3.54**).
+
+### 0.6.11 (2026-05-31)
+
+- **Capacitor – launcher badge (Pixel / AOSP)** – **`@capacitor/local-notifications`**: fona režīmā diskrēts paziņojums ar to pašu skaitli kā zvans (daudzi launcheri, ieskaitī emulatoru, rāda ikonas skaitli no **aktīvajiem** paziņojumiem, ne tikai ShortcutBadger). **`lib/pwa/native-launcher-badge-notification.ts`**, **`POST_NOTIFICATIONS`**, app priekšplānā paziņojums noņemts no joslas. Obligāti: **deploy** + **`npx cap sync android`** + **Run**; atļaut paziņojumus pirmajā reizē.
 
 ### 0.6.10 (2026-05-31)
 

@@ -1,4 +1,5 @@
 import { isNativeCapacitorApp } from "@/lib/capacitor/native-app";
+import { syncNativeLauncherBadgeNotification } from "@/lib/pwa/native-launcher-badge-notification";
 
 /** PWA sākuma ekrāna ikonas skaitītājs (Badging API). Native – `@capawesome/capacitor-badge`. */
 export function isAppBadgeSupported(): boolean {
@@ -30,9 +31,10 @@ async function syncNativeAppBadgeCount(count: number): Promise<void> {
     }
   } catch (err) {
     if (process.env.NODE_ENV === "development") {
-      console.warn("[subtrack] native launcher badge failed", err);
+      console.warn("[subtrack] native ShortcutBadger badge failed", err);
     }
   }
+  await syncNativeLauncherBadgeNotification(count);
 }
 
 async function syncWebAppBadgeCount(count: number): Promise<void> {
