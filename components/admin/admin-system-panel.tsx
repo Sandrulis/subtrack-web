@@ -9,6 +9,7 @@ import { pushDomToast } from "@/lib/push-dom-toast";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import { AdminSystemLogoUpload } from "@/components/admin/admin-system-logo-upload";
+import { AdminSystemTopbarLogoUpload } from "@/components/admin/admin-system-topbar-logo-upload";
 import {
   formatPaidPlanDiscountPercent,
   isValidPaidPlanAnnualPrice,
@@ -26,6 +27,7 @@ export type AdminSystemPanelProps = {
   initialSystemName: string;
   initialSupportContactEmail: string;
   initialLogoRevision: number;
+  initialTopbarLogoRevision: number;
   initialDefaults: DisplayPreferences;
   initialPaidPlan: {
     enabled: boolean;
@@ -153,6 +155,7 @@ export function AdminSystemPanel({
   initialSystemName,
   initialSupportContactEmail,
   initialLogoRevision,
+  initialTopbarLogoRevision,
   initialDefaults,
   initialPaidPlan,
   initialProTrial,
@@ -452,6 +455,11 @@ export function AdminSystemPanel({
 
           <AdminSystemLogoUpload
             initialLogoRevision={initialLogoRevision}
+            disabled={loadError !== null}
+          />
+
+          <AdminSystemTopbarLogoUpload
+            initialTopbarLogoRevision={initialTopbarLogoRevision}
             disabled={loadError !== null}
           />
 

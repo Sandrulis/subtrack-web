@@ -5,6 +5,12 @@ import {
   type LauncherBadgeNotificationCopy,
   type LauncherBadgeSummary,
 } from "@/lib/pwa/app-badge";
+import {
+  debugLauncherBadgeState,
+  refreshLauncherBadgeFromAlerts,
+  testLauncherBadge,
+  type TestLauncherBadgeOptions,
+} from "@/lib/pwa/test-launcher-badge";
 
 export type LauncherBadgeSyncPayload = {
   count: number;
@@ -16,16 +22,25 @@ export type LauncherBadgeSyncPayload = {
 if (typeof window !== "undefined") {
   const win = window as Window & {
     subtrackSyncAppBadge?: (payload: number | LauncherBadgeSyncPayload) => void;
+    subtrackTestLauncherBadge?: (opts?: TestLauncherBadgeOptions) => Promise<unknown>;
+    subtrackRefreshLauncherBadge?: () => void;
+    subtrackDebugLauncherBadge?: () => Promise<unknown>;
   };
+
   win.subtrackSyncAppBadge = (payload) => {
     if (typeof payload === "number") {
       void syncAppBadgeCount(payload);
       return;
     }
-    const count = payload?.count ?? 0;
+    const count = Number(payload?.count);
+    if (!Number.isFinite(count)) return;
     void syncAppBadgeCount(count, {
       copy: payload?.copy,
       summary: payload?.summary,
     });
   };
+
+  win.subtrackTestLauncherBadge = (opts) => testLauncherBadge(opts);
+  win.subtrackRefreshLauncherBadge = () => refreshLauncherBadgeFromAlerts();
+  win.subtrackDebugLauncherBadge = () => debugLauncherBadgeState();
 }

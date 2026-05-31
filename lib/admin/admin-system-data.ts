@@ -19,6 +19,7 @@ export type AdminSystemPageData = {
   initialSystemName: string;
   initialSupportContactEmail: string;
   initialLogoRevision: number;
+  initialTopbarLogoRevision: number;
   initialDefaults: DisplayPreferences;
   initialPaidPlan: SubtrackPublicPaidPlan;
   initialProTrial: ProTrialConfig;
@@ -30,7 +31,7 @@ export const loadAdminSystemPageData = cache(async (): Promise<AdminSystemPageDa
   const { data, error } = await supabase
     .from("system_settings")
     .select(
-      "system_name, logo_revision, support_contact_email, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, paid_plan_lifetime_enabled, paid_plan_lifetime_price_eur, paid_plan_lifetime_ends_at, paid_plan_lifetime_purchase_limit, paid_plan_lifetime_purchase_count, pro_trial_enabled, pro_trial_days",
+      "system_name, logo_revision, topbar_logo_revision, support_contact_email, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, paid_plan_lifetime_enabled, paid_plan_lifetime_price_eur, paid_plan_lifetime_ends_at, paid_plan_lifetime_purchase_limit, paid_plan_lifetime_purchase_count, pro_trial_enabled, pro_trial_days",
     )
     .eq("id", 1)
     .maybeSingle();
@@ -48,6 +49,12 @@ export const loadAdminSystemPageData = cache(async (): Promise<AdminSystemPageDa
       ? Math.max(0, Math.trunc(logoRevisionRaw))
       : Number.parseInt(String(logoRevisionRaw ?? "0"), 10) || 0;
 
+  const topbarLogoRevisionRaw = data?.topbar_logo_revision;
+  const initialTopbarLogoRevision =
+    typeof topbarLogoRevisionRaw === "number"
+      ? Math.max(0, Math.trunc(topbarLogoRevisionRaw))
+      : Number.parseInt(String(topbarLogoRevisionRaw ?? "0"), 10) || 0;
+
   return {
     loadError: error?.message ?? null,
     initialSystemName,
@@ -56,6 +63,7 @@ export const loadAdminSystemPageData = cache(async (): Promise<AdminSystemPageDa
         ? data.support_contact_email.trim()
         : "",
     initialLogoRevision,
+    initialTopbarLogoRevision,
     initialDefaults,
     initialPaidPlan: normalizePaidPlanRow(data),
     initialProTrial: normalizeProTrialConfig(data),

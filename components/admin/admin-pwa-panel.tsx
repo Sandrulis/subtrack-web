@@ -170,7 +170,7 @@ export function AdminPwaPanel({ loadError, initial, updatedAt }: AdminPwaPanelPr
             . {t("admin.pwa.logo_icons_after_change")}
           </p>
 
-          {brandLogo ? (
+          {brandLogo && brandLogo.revision > 0 ? (
             <div className="admin-pwa-logo-preview" aria-hidden="true">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={brandLogo.icon192} alt="" width={48} height={48} />

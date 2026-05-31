@@ -123,7 +123,7 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
   const { data, error } = await supabase
     .from("system_settings")
     .select(
-      "system_name, logo_revision, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, paid_plan_lifetime_enabled, paid_plan_lifetime_price_eur, paid_plan_lifetime_ends_at, paid_plan_lifetime_purchase_limit, paid_plan_lifetime_purchase_count, pwa_enabled, pwa_install_banner_enabled, pwa_install_settings_enabled, pwa_cache_revision, pwa_theme_color, pwa_background_color, pwa_short_name",
+      "system_name, logo_revision, topbar_logo_revision, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, paid_plan_lifetime_enabled, paid_plan_lifetime_price_eur, paid_plan_lifetime_ends_at, paid_plan_lifetime_purchase_limit, paid_plan_lifetime_purchase_count, pwa_enabled, pwa_install_banner_enabled, pwa_install_settings_enabled, pwa_cache_revision, pwa_theme_color, pwa_background_color, pwa_short_name",
     )
     .eq("id", 1)
     .maybeSingle();
@@ -145,7 +145,12 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
     typeof logoRevisionRaw === "number"
       ? Math.max(0, Math.trunc(logoRevisionRaw))
       : Number.parseInt(String(logoRevisionRaw ?? "0"), 10) || 0;
-  const brandLogo = resolvePublicBrandLogoAssets(logoRevision);
+  const topbarLogoRevisionRaw = (data as { topbar_logo_revision?: unknown }).topbar_logo_revision;
+  const topbarLogoRevision =
+    typeof topbarLogoRevisionRaw === "number"
+      ? Math.max(0, Math.trunc(topbarLogoRevisionRaw))
+      : Number.parseInt(String(topbarLogoRevisionRaw ?? "0"), 10) || 0;
+  const brandLogo = resolvePublicBrandLogoAssets(logoRevision, topbarLogoRevision);
   const partial = sanitizeDisplayPreferencesPartial(
     (data as { default_display_preferences?: unknown }).default_display_preferences,
   );
@@ -165,7 +170,7 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
  * Pēc `/admin/system` saglabāšanas: `revalidateTag("system-settings")`.
  */
 export async function getPublicSystemSettings(): Promise<PublicSystemSettings> {
-  return unstable_cache(fetchPublicSystemSettings, ["subtrack-system-settings-v9"], {
+  return unstable_cache(fetchPublicSystemSettings, ["subtrack-system-settings-v10"], {
     revalidate: 3600,
     tags: ["system-settings"],
   })();

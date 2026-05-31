@@ -29,7 +29,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     orientation: "portrait",
     theme_color: pwa.themeColor,
     background_color: pwa.backgroundColor,
-    icons: brandLogo
+    icons: brandLogo && brandLogo.revision > 0
       ? [
           { src: brandLogo.icon32, sizes: "32x32", type: "image/png" },
           { src: brandLogo.apple180, sizes: "180x180", type: "image/png" },

@@ -21,6 +21,7 @@ export default async function AdminSystemPage() {
         initialSystemName={data.initialSystemName}
         initialSupportContactEmail={data.initialSupportContactEmail}
         initialLogoRevision={data.initialLogoRevision}
+        initialTopbarLogoRevision={data.initialTopbarLogoRevision}
         initialDefaults={data.initialDefaults}
         initialPaidPlan={data.initialPaidPlan}
         initialProTrial={data.initialProTrial}

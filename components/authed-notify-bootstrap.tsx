@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { ensureAuthedNotifyScriptsLoaded } from "@/components/fs/load-fs-scripts";
 import "@/lib/pwa/register-app-badge-bridge";
-import { syncAppBadgeCount } from "@/lib/pwa/app-badge";
 
 type AuthedNotifyBootstrapProps = {
   enabled: boolean;
@@ -20,11 +19,6 @@ export function AuthedNotifyBootstrap({
 }: AuthedNotifyBootstrapProps) {
   useEffect(() => {
     if (!enabled) return;
-
-    const win = window as Window & { subtrackSyncAppBadge?: (count: number) => void };
-    win.subtrackSyncAppBadge = (count) => {
-      void syncAppBadgeCount(count);
-    };
 
     const onVisible = () => {
       window.fsBootDashAlerts?.();
@@ -51,7 +45,6 @@ export function AuthedNotifyBootstrap({
     })();
 
     return () => {
-      delete win.subtrackSyncAppBadge;
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("subtrack:native-shell-ready", onNativeShellReady);
     };

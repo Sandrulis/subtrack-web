@@ -44,7 +44,7 @@ export default async function OpenGraphImage() {
             marginBottom: 36,
           }}
         >
-          {brandLogo ? (
+          {brandLogo && brandLogo.revision > 0 ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={brandLogo.icon192}

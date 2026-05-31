@@ -59,6 +59,8 @@ export async function syncNativeLauncherBadgeNotification(
   count: number,
   copy?: LauncherBadgeNotificationCopy | null,
   summary?: LauncherBadgeSummary | null,
+  /** Tests: show shade notification even when app is open. */
+  forceShowInForeground = false,
 ): Promise<void> {
   if (!isAndroidNative()) return;
 
@@ -66,7 +68,12 @@ export async function syncNativeLauncherBadgeNotification(
   const inForeground =
     typeof document !== "undefined" && document.visibilityState === "visible";
 
-  if (safe <= 0 || inForeground) {
+  if (safe <= 0) {
+    await cancelLauncherBadgeNotification();
+    return;
+  }
+
+  if (inForeground && !forceShowInForeground) {
     await cancelLauncherBadgeNotification();
     return;
   }
@@ -100,6 +107,7 @@ export async function syncNativeLauncherBadgeNotification(
           smallIcon: "ic_launcher_foreground",
           autoCancel: false,
           silent: true,
+          schedule: { at: new Date() },
           extra: { subtrackLauncherBadge: true },
         },
       ],

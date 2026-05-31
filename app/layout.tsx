@@ -54,15 +54,16 @@ export async function generateMetadata(): Promise<Metadata> {
     title,
     description,
   });
-  const icons = brandLogo
-    ? {
-        icon: [
-          { url: brandLogo.icon32, sizes: "32x32", type: "image/png" },
-          { url: brandLogo.icon192, sizes: "192x192", type: "image/png" },
-        ],
-        apple: [{ url: brandLogo.apple180, sizes: "180x180", type: "image/png" }],
-      }
-    : undefined;
+  const icons =
+    brandLogo && brandLogo.revision > 0
+      ? {
+          icon: [
+            { url: brandLogo.icon32, sizes: "32x32", type: "image/png" },
+            { url: brandLogo.icon192, sizes: "192x192", type: "image/png" },
+          ],
+          apple: [{ url: brandLogo.apple180, sizes: "180x180", type: "image/png" }],
+        }
+      : undefined;
 
   return {
     metadataBase: getPublicSiteOrigin(),

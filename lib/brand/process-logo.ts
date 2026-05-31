@@ -1,4 +1,5 @@
 import sharp from "sharp";
+import { BRAND_TOPBAR_FILE } from "@/lib/brand/logo-assets";
 import type { BrandStorageFile } from "@/lib/brand/logo-assets";
 
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
@@ -80,5 +81,55 @@ export async function processLogoUpload(
     return { ok: true, files };
   } catch {
     return { ok: false, message: "Neizdevās sagatavot ikonu izmērus." };
+  }
+}
+
+const TOPBAR_MAX_WIDTH = 200;
+const TOPBAR_MAX_HEIGHT = 72;
+
+export type ProcessedTopbarLogoFile = {
+  filename: typeof BRAND_TOPBAR_FILE;
+  buffer: Buffer;
+  contentType: "image/png";
+};
+
+export async function processTopbarLogoUpload(
+  file: File,
+): Promise<{ ok: true; files: ProcessedTopbarLogoFile[] } | { ok: false; message: string }> {
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, message: "Izvēlies attēlu." };
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return { ok: false, message: "Attēls ir pārāk liels (maks. 5 MB)." };
+  }
+  const mime = (file.type || "").toLowerCase();
+  if (!ALLOWED_MIME.has(mime)) {
+    return { ok: false, message: "Atbalstīti formāti: PNG, JPEG, WebP." };
+  }
+
+  let source: Buffer;
+  try {
+    source = Buffer.from(await file.arrayBuffer());
+    await sharp(source).metadata();
+  } catch {
+    return { ok: false, message: "Neizdevās nolasīt attēlu." };
+  }
+
+  try {
+    const buffer = await sharp(source)
+      .rotate()
+      .resize(TOPBAR_MAX_WIDTH, TOPBAR_MAX_HEIGHT, {
+        fit: "inside",
+        withoutEnlargement: false,
+      })
+      .png({ compressionLevel: 9, adaptiveFiltering: true })
+      .toBuffer();
+
+    return {
+      ok: true,
+      files: [{ filename: BRAND_TOPBAR_FILE, buffer, contentType: "image/png" }],
+    };
+  } catch {
+    return { ok: false, message: "Neizdevās sagatavot topbar logo." };
   }
 }

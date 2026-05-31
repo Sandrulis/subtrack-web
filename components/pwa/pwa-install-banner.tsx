@@ -25,7 +25,7 @@ export function PwaInstallBanner({
     <div className="pwa-install-banner" role="region" aria-label={t("pwa.banner.aria")}>
       <div
         className="pwa-install-banner-inner"
-        style={brandLogo ? { backgroundColor: pwa.backgroundColor } : undefined}
+        style={brandLogo && brandLogo.revision > 0 ? { backgroundColor: pwa.backgroundColor } : undefined}
       >
         <button
           type="button"
@@ -38,7 +38,7 @@ export function PwaInstallBanner({
 
         <div className="pwa-install-banner-main">
           <div className="pwa-install-banner-icon" aria-hidden="true">
-            {brandLogo ? (
+            {brandLogo && brandLogo.revision > 0 ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={brandLogo.icon64}
