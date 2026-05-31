@@ -1,6 +1,6 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.6.9` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**; native Android – **[Capacitor (Android)](#capacitor-android)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`). Lietotājam redzamais nosaukums – **`system_settings.system_name`** (admin **`/admin/system`**).
+**Versija:** `0.6.10` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**; native Android – **[Capacitor (Android)](#capacitor-android)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`). Lietotājam redzamais nosaukums – **`system_settings.system_name`** (admin **`/admin/system`**).
 
 **SubTrack** (repozitorijs `subtrack-web`; zīmols **repazy**) ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, **`public.subscription_payments`** maksājumu žurnālam, RLS); CRUD notiek caur **Route Handlers** (`app/(app)/api/subscriptions/*`) ar kopīgu **`lib/api/`** (sesija, JSON, atbildes) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`, datumi – **`display-preferences-format.js`**) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
@@ -16,7 +16,7 @@
 - **Analītika** (`/analytics`) - kopsavilkumi, kategoriju joslas un **CSS donut** sadalījums (`demo-analytics-*`, kā demo; bez Chart.js CDN); **`FsI18nBootstrap`** + **`FsAnalyticsBootstrapTemplates`** (**`#subtrack-free-tier-gate-json`**) + **`public/fs/js/analytics.js`** (**`app/analytics/page.tsx`**). Ja **`paid_plan_enabled`** un nav Pro, **pirmās divas** stat kartītes redzamas, pārējais režģis **blur** + CTA (**`analytics-fs-view.tsx`**, **`ProFeaturePreviewCtaCard`** bez apakšteksta); pilna funkcionalitāte – **`canAccessAnalytics`** / **`navUserHasProEntitlement`**. Analītikas saite **vienmēr** navigācijā ielogotajiem (**`nav-dash.tsx`**, **`nav-landing.tsx`**). Publiskā **`/demo/analytics`** paliek viesiem; sākumlapas **„Explore”** analītikas kartē – **`landing.explore.pro_in_app_badge`** (**Pro**), **`landing.explore.analytics.pro_hint`** un **`/demo/analytics`**. Pirms FS boot – **`AppPageContentGate`** (spinner + **`app.page_loading`**), lai nerādītos **`€0,00`** placeholder.
 - **Lapas ielādes indikators** – **`AppPageContentGate`** (`components/app/app-page-content-gate.tsx`): spinneris + **`app.page_loading`**. **`/dashboard`**, **`/analytics`** – saturs pēc **`continueDashboardBoot` / `renderAnalytics`** ar SSR bootstrap (**0.6.5**; API sync fonā); **`subtrack-page-content-ready`**. **`/settings`** – pēc preferences hydrācijas; pārējās formas – pēc klienta mount. **[Panelis un Lighthouse](#panelis-un-lighthouse-mobilais)**. SQL **`139_*`**, **`2026-05-29.sql`**.
 - **PWA (Progressive Web App)** – instalējama **SubTrack** lietotne: Serwist SW, manifest, **`/offline`**, mobilais instalācijas banneris, admin **`/admin/pwa`**. Pilns apraksts: **[PWA (SubTrack)](#pwa-subtrack)**.
-- **Native Android (Capacitor)** – Play Store gatavs **WebView** čaulis: **`https://repazy.com/login`**. Viesiem logo / „mājas” → **`/login`**; **iziet** → **`/login`** (ne `/`); **PWA instalācijas banneris** appā **izslēgts**; **ikonas skaitlis** (launcher) = tas pats kā zvans (**`@capawesome/capacitor-badge`**, **`lib/pwa/app-badge.ts`**). **Launcher ikona** (mipmap) vēl Capacitor noklusējums – skat. **[Capacitor (Android)](#capacitor-android)**.
+- **Native Android (Capacitor)** – Play Store gatavs **WebView** čaulis: **`https://repazy.com/login?native_shell=1`** (**`capacitor.config.ts`**). Viesiem logo / „mājas” → **`/login`**; **iziet** → **`/login?native_shell=1`** (ne `/`); **PWA instalācijas banneris** un **service worker** appā **izslēgti** (lai Capacitor plugini, piem. **launcher badge**, strādātu); **ikonas skaitlis** = tas pats kā zvans (**`@capawesome/capacitor-badge`**, **`lib/pwa/app-badge.ts`**). **Launcher ikona** (mipmap) vēl Capacitor noklusējums – skat. **[Capacitor (Android)](#capacitor-android)**.
 - **Iestatījumi** (`/settings`) - preferences: **`public.users.display_preferences`** (JSON), DB sinhronizācija + dublējums `localStorage` (kad ir migrācija `006_*`). Forma **`components/fs/settings-fs-view-client.tsx`** ar **`useSubtrackIntl`**; saglabāšanas toast (**`pushDomToast`**) ar hover apturētu auto-aizvēršanu; **`app/settings/page.tsx`** kārto **`languages`** atlasi ar **`Intl.Collator`** pēc **`resolveRequestUiLocales`** (nevis fiksētu `lv-LV`). **Saskarnes valoda** – pēc izvēles tiek uzreiz **`applyUiLocaleInBrowser`** + **`writeDisplayPreferencesToLocalStorage`** + **`updateSessionDisplayPreferences`** (`lib/auth/display-preferences-client.ts`) + **`router.refresh()`**, lai **`app/layout.tsx`** (**`SubtrackIntlProvider`**, tulkošanas `dbMap`) atbilstu jaunajai lokālei. **Ielogots:** SSR lokāle no profila (`interface_language_code`), nevis sīkdatnes; **`mergeDisplayPreferencesFromSources`** ar **`prioritizeDbInterfaceLanguage`** – profila valoda pār **`localStorage`**. **Viesis:** sīkdatne **`subtrack_ui_locale`**. **Nav josla** (`NavUiLanguageSwitcher`) ielogotam lietotājam saglabā to pašu profila JSON. Bāzes noklusējumi no **`public.system_settings`** (`012`), ja nav lietotāja ieraksta; `/admin/system` ietekmē jaunos kontus un formas bāzi. **Mēneša budžets** (**`monthly_budget`**) – ja iestatīts, panelī rāda atlikumu (skatīt **Panelis**). **Pro abonements** – lietotāja izvēlnē (**`NavUserBillingMenuItem`**), ne šajā lapā. Lapā tikai preferences (valoda, valūta, budžets, datums/laiks, TZ); **nav** Google piesaistes, PWA instalācijas un push slēdžu (**`SettingsConnectGoogle`**, **`PwaSettingsInstall`**, **`PwaPushSettings`** komponenti repo paliek).
 - **E-pasta paziņojumi** (`/email-notifications`) – profila izvēlnē **E-pasta paziņojumi**; slēdži **`users.email_notification_preferences`** (šodienas maksājums, nedēļas kopsavilkums, izmēģinājuma beigas – pēdējais tikai aktīvam Pro trial, win-back pēc 7 / 30 dienām bez aktivitātes). Autosaglabāšana caur **`PATCH /api/user/email-notification-preferences`**. UI: **`components/email-notifications/email-notifications-view.tsx`**, stili **`styles/subtrack.css`** (`.email-notif-*`). Nedēļas e-pastā saite atslēgt: **`/email-notifications?disable=weekly`**. Pilns apraksts: **[E-pasta paziņojumi (cron)](#e-pasta-paziņojumi-cron)**.
 - **Ģimenes dalīšana** (`/family-sharing`) – tikai ja admin **`/admin/integrations`** ieslēdz **`family_sharing`** (**`093_*`** SELECT obligāts). **`POST /api/family-sharing`**: ja adresāts **ir** `public.users` – `family_sharing_links` ar `partner_user_id`, pending tikai aplikācijā; ja **nav** – tā pati tabula ar `partner_user_id` null, ieraksts **Tavi uzaicinājumi** (statuss Gaida) + Resend **`invite_user`** no **`/admin/email-design`** (saite **`/signup?email=…`**). Ja e-pasta sūtīšana neizdodas, pending ieraksts tiek atcelts. Bez **`RESEND_API_KEY`** / **`EMAIL_FROM`** ārējam uzaicinājumam – **`family_sharing.err_email_not_configured`**. Accept/decline/revoke/leave, krāsa, **„saskaitīt kopā”** (**`095`**). Lasīšana: **RLS** (`family-sharing-server.ts`); **`PATCH`** stāvokļiem – sesija, tad **`service_role`** fallback. **`components/family-sharing/family-sharing-view.tsx`**, **`lib/family-sharing/send-family-invite-email.ts`**. **`/dashboard`**: kopīgotie ieraksti lasāmi. DB shēma **`084`–`095`** (bez jaunas migrācijas ārējam uzaicinājumam). Tulkošanas **`085_*`**, **`140_*`**.
@@ -81,7 +81,7 @@ Produkta **Progressive Web App** slānis (pamats **0.3.51**–**0.3.53**; **0.4.
 |----------|-----|
 | Manifest | **`app/manifest.ts`** → **`/manifest.webmanifest`** |
 | Service worker | **`app/sw.ts`**, build **`serwist.config.js`** → **`public/sw.js`** |
-| SW reģistrācija | **`components/pwa/pwa-sw-register.tsx`** (saknes layout) |
+| SW reģistrācija | **`components/pwa/pwa-sw-register.tsx`** (saknes layout); **ne** Capacitor native (**`isNativeCapacitorApp`**) |
 | Middleware | **`proxy.ts`** – **`sw.js`** un manifest **nav** sesijas redirect ceļā |
 | Offline | **`app/offline/page.tsx`**, **`components/pwa/offline-page-view.tsx`** |
 | Ikonas / favicon | Storage **`brand`** (augšupielāde); publiski **`/brand/{filename}?v=`** (**`app/brand/[filename]/route.ts`**, **`lib/brand/logo-assets.ts`**); citādi **`app/icon.tsx`**, **`app/apple-icon.tsx`** |
@@ -168,8 +168,8 @@ Pēc **Execute now** cron-job.org **History** jāredz **200** (ne 401/404). **Ne
 
 ### Sākuma ekrāna ikonas badge (0.4.10)
 
-- **Zvana skaitītājs lietotnē** (`#dash-notify-badge`) un **ikonas skaitlis uz sākuma ekrāna** ir saistīti: **`dash-alerts.js`** → **`syncAppBadgeCount`** (**`lib/pwa/app-badge.ts`**) – kavētie + šodien + gaidāmie 7 d. + ģimenes uzaicinājumi (**bez** partnera kopīgotajiem abonementiem – **`subtrackSubscriptionsForNotifyList`**). **Pārlūks / PWA:** Badging API (`navigator.setAppBadge`). **Capacitor native:** **`@capawesome/capacitor-badge`** (Android launcher – atkarīgs no ražotāja). Iziet native app → **`/login`** (ne `/`).
-- **Kad atjauninās:** panelī ielādējot abonementus, pārslēdzoties atpakaļ uz lietotni (`visibilitychange`), un **Web Push** cron (`badgeCount` → **`app/sw.ts`**).
+- **Zvana skaitītājs lietotnē** (`#dash-notify-badge`) un **ikonas skaitlis uz sākuma ekrāna** ir saistīti: **`dash-alerts.js`** → **`subtrackSyncLauncherBadge`** → **`window.subtrackSyncAppBadge`** → **`syncAppBadgeCount`** (**`lib/pwa/app-badge.ts`**, agrīna reģistrācija – **`lib/pwa/register-app-badge-bridge.ts`**) – kavētie + šodien + gaidāmie 7 d. + ģimenes uzaicinājumi (**bez** partnera kopīgotajiem abonementiem – **`subtrackSubscriptionsForNotifyList`**). **Pārlūks / PWA:** Badging API (`navigator.setAppBadge`). **Capacitor native:** **`@capawesome/capacitor-badge`** (**`Badge.set` / `clear`**); launcher atbalsts atkarīgs no ražotāja (emulators bieži nerāda skaitli). Iziet native app → **`/login?native_shell=1`** (ne `/`).
+- **Kad atjauninās:** panelī ielādējot abonementus, pārslēdzoties atpakaļ uz lietotni (`visibilitychange`), **`subtrack:native-shell-ready`** (pēc SW notīrīšanas native čaulā), un **Web Push** cron (`badgeCount` → **`app/sw.ts`** – tikai PWA, ne native app).
 - **iOS:** strādā tikai **instalētai** PWA (atvērt no sākuma ekrāna ikonas, ne Safari cilne); **iOS 16.4+**. Bez push un bez atvēršanas lietotnes ikona var palikt bez skaitļa.
 
 **Bannera uzvedība (0.4.7; instalācijas prompt 0.4.44):**
@@ -178,13 +178,13 @@ Pēc **Execute now** cron-job.org **History** jāredz **200** (ne 401/404). **Ne
 - Pēc veiksmīgas instalācijas vai atteikuma dialogā – tā pati noraidīšanas atzīme (kamēr nav standalone, banneris vairs nerāda).
 - **Hidrācija:** host renderē banneri tikai pēc **`mounted`** (**`pwa-install-host.tsx`**), lai serveris un klients nesadalītos.
 - **Chrome konsole:** „Banner not shown… `preventDefault()`… must call `prompt()`” – samazināts: **`shouldCaptureBeforeInstallPrompt`** (**`lib/pwa/install-prompt-capture.ts`**) neuztur deferred prompt uz citām lapām / desktop; **`prompt()`** tikai no pogas; viens provider, ne divi klausītāji.
-- **Capacitor native app (0.6.7):** **`isNativeCapacitorApp()`** – banneris un **`beforeinstallprompt`** uztveršana izslēgta (**`pwa-install-host.tsx`**, **`pwa-deferred-install-provider.tsx`**, **`shouldShowPwaBanner`**); pārlūkā / instalētā PWA nemainās.
+- **Capacitor native app (0.6.7+):** **`isNativeCapacitorApp()`** – banneris un **`beforeinstallprompt`** izslēgti (**`pwa-install-host.tsx`**, **`pwa-deferred-install-provider.tsx`**). **0.6.10:** **`PwaSwRegister`** nereģistrē SW; **`CapacitorNativeShellBootstrap`** atslēdz esošo SW un kešu (**`prepare-native-web-shell.ts`**) – PWA SW ar **`server.url`** bloķēja Capacitor tiltu un **launcher badge**. Pārlūkā / instalētā PWA nemainās.
 - **UI:** logo no **`brandLogo`**, fons no **`pwa.background_color`** (admin; ja logo balts kvadrāts – iestati **`#ffffff`** **`/admin/pwa`**), bez atsevišķas logo ēnas; izteiktāka kartes **apmale un ēna**; stili **`styles/subtrack.css`** (`.pwa-install-*`).
 
 ### Faili (īsumā)
 
 ```
-app/layout.tsx              # PwaDeferredInstallProvider, PwaInstallHost, PwaSwRegister, SubtrackIntlProvider
+app/layout.tsx              # CapacitorNativeShellBootstrap, PwaDeferredInstallProvider, PwaInstallHost, PwaSwRegister, SubtrackIntlProvider
 app/manifest.ts, app/sw.ts, app/offline/page.tsx
 components/pwa/pwa-deferred-install-provider.tsx
 components/pwa/pwa-sw-register.tsx
@@ -194,7 +194,9 @@ components/pwa/pwa-settings-install.tsx
 components/pwa/pwa-push-settings.tsx
 components/pwa/offline-page-view.tsx, offline-wifi-icon.tsx
 lib/pwa/install-prompt.ts, install-prompt-capture.ts, install-banner-dismiss.ts
-lib/pwa/defaults.ts, public-pwa-settings.ts, brand-mark.tsx, app-badge.ts
+lib/pwa/defaults.ts, public-pwa-settings.ts, brand-mark.tsx, app-badge.ts, register-app-badge-bridge.ts
+components/capacitor/capacitor-native-shell-bootstrap.tsx
+lib/capacitor/prepare-native-web-shell.ts, native-shell-storage.ts
 lib/push/push-client.ts, payment-due-alerts.ts, send-web-push.ts, vapid-config.ts
 lib/subscriptions/due-active.ts
 app/api/push/subscribe, app/api/push/unsubscribe
@@ -217,12 +219,13 @@ lib/i18n/pwa-fallback-phrases.ts
 
 | Kas | Kur / vērtība |
 |-----|----------------|
-| Konfigurācija | **`capacitor.config.ts`** – `appId` **`com.repazy.app`**, `appName` **repazy**, `webDir` **`public`**, **`server.url`** **`https://repazy.com/login`**, SplashScreen (**`#00a38d`**) |
+| Konfigurācija | **`capacitor.config.ts`** – `appId` **`com.repazy.app`**, `appName` **repazy**, `webDir` **`public`**, **`server.url`** **`https://repazy.com/login?native_shell=1`**, `plugins.Badge` (`persist: true`, `autoClear: false`), SplashScreen (**`#00a38d`**) |
 | Native projekts | **`android/`** (ģenerēts ar **`npx cap add android`**; **`MainActivity`** – `BridgeActivity`) |
-| Atpazīšana webā | **`lib/capacitor/native-app.ts`**, **`use-native-capacitor-app.ts`**, **`brand-home-href.ts`** – viesiem logo / back → **`/login`**, ne **`/`**; guest landing navigācija appā paslēpta (**`nav-landing.tsx`**); **PWA instalācijas banneris** izslēgts (**`lib/pwa/install-prompt-capture.ts`**, **`components/pwa/pwa-install-host.tsx`**) |
+| Native čaula (web) | **`?native_shell=1`** + **`sessionStorage`** **`subtrack_native_shell`**; **`CapacitorNativeShellBootstrap`** (**`app/layout.tsx`**) → **`prepare-native-web-shell.ts`** (SW unregister, kešu tīrīšana, iespējama **viena** pārlāde) |
+| Atpazīšana webā | **`lib/capacitor/native-app.ts`** (tilts **`Capacitor.isNativePlatform()`** + native shell session), **`use-native-capacitor-app.ts`**, **`brand-home-href.ts`** – viesiem logo / back → **`/login`**, ne **`/`**; guest landing navigācija appā paslēpta (**`nav-landing.tsx`**); **PWA instalācijas banneris** un **SW reģistrācija** izslēgti native |
 | Atkarības | **`@capacitor/core`**, **`@capacitor/cli`**, **`@capacitor/android`**, **`@capawesome/capacitor-badge`** (`package.json`; `npx cap sync` pēc instalācijas) |
-| Ikonas badge | **`syncAppBadgeCount`** – tas pats skaits kā zvans; native → **`Badge.set` / `clear`** |
-| Iziet | Native: **`signOutAction`** + `native_app=1` → **`/login`** (**`guestEntryPath`**); pārlūkā → **`/`**; iziet notīra badge |
+| Ikonas badge | **`dash-alerts.js`** → **`subtrackSyncLauncherBadge`** → **`syncAppBadgeCount`** (**`lib/pwa/app-badge.ts`**); native → **`Badge.set` / `clear`**. Skaitlis atjauninās tikai **ielogotam** lietotājam ar paziņojumiem (kā zvans). |
+| Iziet | Native: **`signOutAction`** + `native_app=1` → **`/login?native_shell=1`**; pārlūkā → **`/`**; iziet notīra badge |
 | Launcher ikona (attēls) | **`android/app/src/main/res/mipmap-*`** – pagaidām **Capacitor default**; repazy logo → **`npx @capacitor/assets generate`** vai manuāla aizstāšana (atsevišķi no skaitļa badge) |
 
 ### Prasības (vienreiz)
@@ -248,15 +251,25 @@ Studio: **Sync Project with Gradle Files**, tad **Run** ▶ uz emulatora vai USB
 
 **Gradle:** ja sync kļūst ar **`proguard-android.txt`**, **`android/app/build.gradle`** release tipam jālieto **`getDefaultProguardFile('proguard-android-optimize.txt')`** (jau labots repo).
 
+### Launcher badge – pārbaude un ierobežojumi
+
+1. **Deploy** uz **repazy.com** (Vercel) – app ielādē JS no servera, ne no APK.
+2. **`npx cap sync android`** + Studio **Run**, ja mainīts **`capacitor.config.ts`** (piem. **`native_shell`** query).
+3. **Ielogojies** un atver **`/dashboard`** – jābūt skaitlim pie **zvana**; tad **Home** – uz ikonas vajadzētu parādīties tas pats skaitlis (ja launcher atbalsta [ShortcutBadger](https://github.com/leolin310148/ShortcutBadger)).
+4. **Pirmajā atvēršanā** pēc update app var **vienreiz automātiski pārlādēties** (SW notīrīšana) – normāli.
+5. **Emulators** (Pixel launcher) bieži **nerāda** skaitli pat, kad API izpildās – pārbaudi **fiziskā telefonā** (Samsung, Xiaomi u.c. atbalsts atšķiras).
+
+**Ja zvans rāda skaitli, bet ikonā nav:** pārliecinies, ka deploy ir **≥ 0.6.10**; pārstartē app; ja joprojām – ierīce/launchers, ne obligāti kļūda kodā.
+
 ### Kas mainās kur
 
 | Izmaiņu veids | Ko darīt |
 |---------------|----------|
-| **React/Next, logo, auth UX** (`components/`, `lib/capacitor/`, u.c.) | **Deploy** uz **repazy.com** (Vercel); APK **nav** obligāti pārbūvēt – app ielādē attālo URL |
-| **`capacitor.config.ts`**, native plugin, **`android/`** | **`npx cap sync`** → Studio **Sync** → **Run** |
+| **React/Next, badge, native shell, logo, auth UX** (`components/`, `lib/capacitor/`, `lib/pwa/`, `public/fs/js/dash-alerts.js`) | **Deploy** uz **repazy.com** (Vercel); APK **nav** obligāti pārbūvēt – app ielādē attālo URL |
+| **`capacitor.config.ts`** (`server.url`, `native_shell`), native plugin, **`android/`** | **`npx cap sync`** → Studio **Sync** → **Run** |
 | Jaunā mašīna / SDK | Studio SDK instalācija, **`Select SDKs`** → **`…\Android\Sdk`** |
 
-**Lokālais web test appā (reti):** īslaicīgi `server.url` uz **`http://<LAN-IP>:3000/login`**, **`npx cap sync`**, `npm run dev` tīklā; produkcijā atgriezt **`https://repazy.com/login`**.
+**Lokālais web test appā (reti):** īslaicīgi `server.url` uz **`http://<LAN-IP>:3000/login?native_shell=1`**, **`npx cap sync`**, `npm run dev` tīklā; produkcijā atgriezt **`https://repazy.com/login?native_shell=1`**.
 
 **Repo:** **`android/`** commitots; **`android/.gitignore`** izslēdz kešu / ģenerētos assets. **iOS** šajā izlaidumā nav.
 
@@ -273,7 +286,7 @@ Studio: **Sync Project with Gradle Files**, tad **Run** ▶ uz emulatora vai USB
 | Backend (pamats) | [Supabase](https://supabase.com) - `lib/supabase/*`, `proxy.ts`, `database/supabase/*.sql` |
 | Kļūdu uzskaite | [Sentry](https://sentry.io) – org **`repazy`**, projekts **`javascript-nextjs`** (EU **`ingest.de.sentry.io`**). Pilns ceļvedis: **[Sentry (kļūdu uzskaite)](#sentry-kļūdu-uzskaite)** |
 | PWA / logo | [Serwist](https://serwist.pages.dev) (`serwist.config.js`, `app/sw.ts` → `public/sw.js`); instalācijas UX – **`components/pwa/*`** (**`PwaDeferredInstallProvider`**); logo – **`sharp`** + Storage **`brand`**, URL **`/brand/*`**. Skatīt **[PWA (SubTrack)](#pwa-subtrack)** |
-| Native Android | [Capacitor](https://capacitorjs.com) 8 + [**Badge**](https://capawesome.io/plugins/badge/) – **`capacitor.config.ts`**, **`android/`**, WebView → **`https://repazy.com/login`**. Skatīt **[Capacitor (Android)](#capacitor-android)** |
+| Native Android | [Capacitor](https://capacitorjs.com) 8 + [**Badge**](https://capawesome.io/plugins/badge/) – **`capacitor.config.ts`**, **`android/`**, WebView → **`https://repazy.com/login?native_shell=1`**, bez PWA SW native čaulā. Skatīt **[Capacitor (Android)](#capacitor-android)** |
 
 ## Sentry (kļūdu uzskaite)
 
@@ -616,8 +629,9 @@ lib/api/                  # Route Handler boilerplate: `require-api-session`, `r
 lib/validation/           # `uuid.ts` – kopīga UUID validācija (API + admin)
 lib/admin/                # Server Actions, `form-helpers.ts`, `admin-*-data.ts` (SSR admin lapām), `run-cron-job.ts`, `format-user-last-seen-display.ts`
 lib/brand/                # Storage + `/brand/*` (`logo-assets.ts`, `process-logo.ts`); `nav-brand-snapshot.ts`; noklusējuma zīmols – `lib/pwa/brand-mark.tsx`
-lib/pwa/                  # `app-badge.ts` (PWA Badging API + native Badge), `install-prompt-capture.ts`, …
-lib/capacitor/            # `native-app.ts`, `use-native-capacitor-app.ts`, `brand-home-href.ts`, `guestEntryPath`
+lib/pwa/                  # `app-badge.ts`, `register-app-badge-bridge.ts`, `install-prompt-capture.ts`, …
+lib/capacitor/            # `native-app.ts`, `prepare-native-web-shell.ts`, `native-shell-storage.ts`, `brand-home-href.ts`
+components/capacitor/     # `capacitor-native-shell-bootstrap.tsx` – SW atslēgšana native appā
 capacitor.config.ts       # `server.url`, `plugins.Badge`, SplashScreen, `appId` `com.repazy.app`
 android/                  # Gradle projekts (`npx cap add android`); sync ar `npx cap sync`
 components/brand/         # `site-brand-logo.tsx`, `dash-brand-link.tsx`
@@ -700,7 +714,7 @@ npm run dev
 
 **PWA:** izstrādē **`npm run dev`** ģenerē/uzrauga **`public/sw.js`**; pilnai instalācijas plūsmai pirms deploy – **`npm run build`**. Detalizēti – **[PWA (SubTrack)](#pwa-subtrack)**.
 
-**Capacitor Android:** pēc **`git pull`**, ja mainīts **`capacitor.config.ts`**, **`package.json`** vai **`android/`** – no mapes **`subtrack-web`**: **`npm install`**, **`npx cap sync android`**, Studio **Sync** + **Run**. Tikai web izmaiņām (badge, iziet, logo) pietiek ar **deploy** uz **repazy.com** + app restart (badge/iziet); jaunam plugin – arī **sync** + **Run**.
+**Capacitor Android:** pēc **`git pull`**, ja mainīts **`capacitor.config.ts`** (piem. **`native_shell`**), **`package.json`** vai **`android/`** – no mapes **`subtrack-web`**: **`npm install`**, **`npx cap sync android`**, Studio **Sync** + **Run**. Tikai web izmaiņām (badge, native shell, iziet, logo) pietiek ar **deploy** uz **repazy.com** + app restart; jaunam plugin vai **`server.url`** – arī **sync** + **Run**. Badge: **[Capacitor → Launcher badge](#launcher-badge--pārbaude-un-ierobežojumi)**.
 
 **Ja izstrādē konsolē vai pārlūkā parādās:** `Router action dispatched before initialization` (**`use-action-queue`**, **`hmrRefresh`**) vai **`ChunkLoadError` / `Failed to load chunk`** (`/_next/static/chunks/...`) – tipiska **Next.js 16 Turbopack** HMR / fragmentu sacīkste (parasti tikai **`next dev`** bez **`--webpack`**). **Risinājums:** apturēt serveri, izdzēst mapi **`.next`**, palaist **`npm run dev`** no jauna un **cietā pārlādēšana**; ja atkārtojas – **`npm run dev:webpack`** (stabilāks izstrādes serveris).
 
@@ -980,7 +994,7 @@ Propagācija: parasti **15–60 min**, retāk līdz **48 h**. Kamēr `*.vercel.a
 3. **Supabase un ENV** – salīdzināt **`database/supabase/`** (līdz **`162_*`**: privātais aizdevums **`161`–`162`**, Stripe **`159`–`160`**, Advisor **`158`**, lifetime Pro **`156`–`157`**, win-back **`155_*`**, blogs **`153`–`154`**, u.c.) un **`supabase.env.template`** ar **`.env.local`**. **Stripe (ja ieslēgts maksas plāns):** **`159_*`**, **`160_*`**, ENV **`STRIPE_SECRET_KEY`**, **`STRIPE_WEBHOOK_SECRET`** – skatīt **[Stripe (norēķini)](#stripe-norēķini)**. **Privātais aizdevums:** **`161_private_loan.sql`**, **`162_subscription_category_private_loan.sql`**, tulkojumi **`database/translations_daily/2026-05-30-private-loan.sql`**. **Lifetime Pro:** **`156_paid_plan_lifetime.sql`**, tulkošanas **`157_*`** vai **`database/translations_daily/2026-05-29.sql`** (lifetime bloks). **Blogs:** **`153_blog_posts.sql`**, **`154_blog_storage.sql`**; attēlu augšupielādei – **`SUPABASE_SERVICE_ROLE_KEY`** (kā logo **`072`**). **Pro trial:** **`107`–`116`**. **Drošība:** **`078`–`080`**, **`022`**, **`023`**, **`158`**. **`SUPABASE_SERVICE_ROLE_KEY`** obligāts: signup/confirm e-pasti, Pro trial RPC, VIP, cron, admin user delete, admin kategoriju usage refresh, daļa family **`PATCH`**, blog/storage (ieteicams). **Resend:** `RESEND_API_KEY`, `EMAIL_FROM`. **Cron:** `CRON_SECRET` (`.env.local` + Vercel ENV; skat. **[E-pasta paziņojumi (cron)](#e-pasta-paziņojumi-cron)** → CRON_SECRET un cron-job.org). Pēc SQL: **`npm run security:check`**. Ja mainīts **`styles/subtrack.css`**: **`npm run css:split`**. Tulkošanas: **`database/translations_daily/2026-05-29.sql`**, **`2026-05-30.sql`**, **`2026-05-30-pro-track-prompt.sql`**, **`2026-05-30-billing-portal.sql`**, **`2026-05-30-private-loan.sql`**, **`2026-05-30-missing-locales.sql`** – **vienmēr 7 valodas** (`lv`, `en`, `fr`, `de`, `es`, `pt`, `ru`; skat. **`.cursor/rules/translations-all-locales.mdc`**). Migrācijas: **Supabase iestatīšana**, **`npm run security:migration-checklist`**, **`security_check.md`**.
 4. **Pārbaude** – **`npm run lint`** un **`npm run build`** pēc lielākām izmaiņām; ikdienas **`npm run dev`**. Ja mainīta drošība/DB: **`npm run security:check`**. Mobilā: PWA banneris + **`/offline`** (**[PWA](#pwa-subtrack)**). **≥0.4.22:** pēc pull pārbaudīt **Font Awesome** ikonas (admin todos ✓/rediģēt, panelis, landing); ja tukšas – **`app/layout.tsx`** nedrīkst lietot atlikto FA ielādi (`media="print"`). Turbopack **`CssSyntaxError`** uz **`landing.css`** (piem. `Unexpected }`) – vispirms **`npm run css:split`**, tad dzēst **`.next`** un restartēt dev (**0.4.38**).
 5. **Produkcija (Vercel)** – ja mainīts domēns vai ENV: Vercel **Redeploy**; pārbaudīt **`NEXT_PUBLIC_SITE_URL`**, **`CRON_SECRET`**, **`STRIPE_*`** (ja Stripe), Supabase **Redirect URLs** un Porkbun DNS (skatīt **[Vercel un produkcijas domēns](#vercel-un-produkcijas-domēns)**). Cron stundai: **cron-job.org** ar Bearer header (**[E-pasta paziņojumi (cron)](#e-pasta-paziņojumi-cron)**). Ja pieslēdz **Google Search Console** – TXT **Porkbun**, pēc tam **sitemap.xml** GSC (skatīt **[Google Search Console](#google-search-console-pēc-verifikācijas)**).
-6. **Capacitor Android** – ja pull satur **`@capawesome/capacitor-badge`**, **`capacitor.config.ts`**, **`lib/capacitor/`**, **`lib/pwa/app-badge.ts`**, **`android/`**: no **`subtrack-web`** – **`npm install`**, **`npx cap sync android`**, Studio **Run**; tikai web (badge, iziet) – **deploy** + app restart (**[Capacitor (Android)](#capacitor-android)**).
+6. **Capacitor Android** – ja pull satur **`capacitor.config.ts`** (`native_shell`), **`CapacitorNativeShellBootstrap`**, **`prepare-native-web-shell.ts`**, badge labojumus, **`android/`**: no **`subtrack-web`** – **`npm install`**, **`npx cap sync android`**, Studio **Run**; tikai web (badge, native shell) – **deploy** + app restart (**[Capacitor (Android)](#capacitor-android)** → **[Launcher badge](#launcher-badge--pārbaude-un-ierobežojumi)**).
 
 ### Ko „pateikt’’ / kā īsi atbildēt pēc jauna Git atjauninājuma
 
@@ -1055,6 +1069,10 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 ## Izmaiņu žurnāls
 
 Šeit īss pieraksts par izlaistām izmaiņām. **PWA** – **[PWA (SubTrack)](#pwa-subtrack)**. **0.4.x** no **0.4.0** (= agrāk **0.3.54**).
+
+### 0.6.10 (2026-05-31)
+
+- **Capacitor – badge + PWA SW** – **`server.url`** → **`https://repazy.com/login?native_shell=1`**; **`CapacitorNativeShellBootstrap`** + **`prepare-native-web-shell.ts`** atslēdz **service worker** un PWA kešu native čaulā (SW ar **`server.url`** bloķēja Capacitor tiltu → **`Badge`** nestrādāja). **`PwaSwRegister`** nerēģistrē SW native; **`lib/pwa/register-app-badge-bridge.ts`**, **`dash-alerts.js`** **`subtrackSyncLauncherBadge`** (retry). Iziet → **`/login?native_shell=1`**. README **[Capacitor → Launcher badge](#launcher-badge--pārbaude-un-ierobežojumi)**. Pēc pull: **Vercel deploy** + **`npx cap sync android`** + Studio **Run**; pirmajā atvēršanā iespējama **viena automātiska pārlāde**.
 
 ### 0.6.9 (2026-05-31)
 

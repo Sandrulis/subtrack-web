@@ -1,5 +1,6 @@
 "use client";
 
+import { isNativeCapacitorApp } from "@/lib/capacitor/native-app";
 import { PWA_CACHE_REVISION_KEY } from "@/lib/pwa/defaults";
 import type { PublicPwaSettings } from "@/lib/pwa/public-pwa-settings";
 import { useEffect } from "react";
@@ -8,6 +9,7 @@ export function PwaSwRegister({ pwa }: { pwa: PublicPwaSettings }) {
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") return;
     if (!pwa.enabled) return;
+    if (isNativeCapacitorApp()) return;
     if (!("serviceWorker" in navigator)) return;
 
     const revisionKey = String(pwa.cacheRevision);

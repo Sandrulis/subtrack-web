@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { ensureAuthedNotifyScriptsLoaded } from "@/components/fs/load-fs-scripts";
+import "@/lib/pwa/register-app-badge-bridge";
 import { syncAppBadgeCount } from "@/lib/pwa/app-badge";
 
 type AuthedNotifyBootstrapProps = {
@@ -31,6 +32,10 @@ export function AuthedNotifyBootstrap({
       }
     };
     document.addEventListener("visibilitychange", onVisible);
+    const onNativeShellReady = () => {
+      window.fsBootDashAlerts?.();
+    };
+    window.addEventListener("subtrack:native-shell-ready", onNativeShellReady);
 
     (async () => {
       try {
@@ -50,6 +55,7 @@ export function AuthedNotifyBootstrap({
     return () => {
       delete win.subtrackSyncAppBadge;
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("subtrack:native-shell-ready", onNativeShellReady);
     };
   }, [enabled, reloadSubscriptionsFromBootstrap]);
 

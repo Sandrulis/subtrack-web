@@ -262,17 +262,19 @@ export async function requestPasswordResetAction(
 }
 
 export async function signOutAction(formData: FormData) {
-  const afterSignOut = guestEntryPath(formData.get("native_app") === "1");
+  const isNative = formData.get("native_app") === "1";
+  const afterSignOut = guestEntryPath(isNative);
+  const redirectPath = isNative ? `${afterSignOut}?native_shell=1` : afterSignOut;
 
   const cfg = getSupabasePublicConfig();
   if (!cfg) {
-    redirect(afterSignOut);
+    redirect(redirectPath);
   }
 
   const supabase = await createServerSupabaseClient();
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
-  redirect(afterSignOut);
+  redirect(redirectPath);
 }
 
 export async function changePasswordAction(formData: FormData) {

@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'repazy',
   webDir: 'public',
   server: {
-    url: 'https://repazy.com/login',
+    url: 'https://repazy.com/login?native_shell=1',
     cleartext: true
   },
   plugins: {

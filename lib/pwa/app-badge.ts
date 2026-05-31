@@ -28,8 +28,10 @@ async function syncNativeAppBadgeCount(count: number): Promise<void> {
     } else {
       await Badge.clear();
     }
-  } catch {
-    /* launcher neatbalsta badge – klusām */
+  } catch (err) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[subtrack] native launcher badge failed", err);
+    }
   }
 }
 

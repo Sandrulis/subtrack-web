@@ -2,6 +2,24 @@
    SubTrack - augšējās joslas paziņojumi (kavētie / gaidāmie)
    ============================================= */
 
+/** Launcher / PWA ikonas skaitlis – gaida `window.subtrackSyncAppBadge` no React bundle. */
+function subtrackSyncLauncherBadge(count) {
+    if (typeof window.subtrackSyncAppBadge === 'function') {
+        window.subtrackSyncAppBadge(count);
+        return;
+    }
+    var attempts = 0;
+    var timer = setInterval(function () {
+        attempts += 1;
+        if (typeof window.subtrackSyncAppBadge === 'function') {
+            window.subtrackSyncAppBadge(count);
+            clearInterval(timer);
+        } else if (attempts >= 48) {
+            clearInterval(timer);
+        }
+    }, 250);
+}
+
 function notifyOverdueDays(dateStr) {
     var dIso = normalizeSubscriptionDateIso(dateStr);
     if (!dIso) return 0;
@@ -555,9 +573,7 @@ function refreshDashNotifications() {
         if (badge) {
             badge.classList.add('hidden');
         }
-        if (typeof window.subtrackSyncAppBadge === 'function') {
-            window.subtrackSyncAppBadge(0);
-        }
+        subtrackSyncLauncherBadge(0);
         setBellSolid(false);
         if (secT) {
             secT.classList.add('hidden');
@@ -651,9 +667,7 @@ function refreshDashNotifications() {
         }
     }
 
-    if (typeof window.subtrackSyncAppBadge === 'function') {
-        window.subtrackSyncAppBadge(count);
-    }
+    subtrackSyncLauncherBadge(count);
 
     setBellSolid(count > 0);
 
