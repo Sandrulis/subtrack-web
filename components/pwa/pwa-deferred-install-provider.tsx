@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import { isNativeCapacitorApp } from "@/lib/capacitor/native-app";
 import type { BeforeInstallPromptEvent } from "@/lib/pwa/install-prompt";
 import { shouldCaptureBeforeInstallPrompt } from "@/lib/pwa/install-prompt-capture";
 
@@ -33,6 +34,7 @@ export function PwaDeferredInstallProvider({ children }: { children: React.React
   }, []);
 
   useEffect(() => {
+    if (isNativeCapacitorApp()) return;
     if (!pwa.enabled || (!pwa.installBannerEnabled && !pwa.installSettingsEnabled)) {
       return;
     }

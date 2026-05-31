@@ -1,3 +1,4 @@
+import { isNativeCapacitorApp } from "@/lib/capacitor/native-app";
 import type { PublicPwaSettings } from "@/lib/pwa/public-pwa-settings";
 import { readPwaBannerDismissed } from "@/lib/pwa/install-banner-dismiss";
 import { isStandaloneDisplayMode } from "@/lib/pwa/install-prompt";
@@ -15,6 +16,7 @@ export const PWA_INSTALL_BANNER_PATHS = new Set([
 export function shouldCaptureBeforeInstallPrompt(pwa: PublicPwaSettings): boolean {
   if (!pwa.enabled) return false;
   if (typeof window === "undefined") return false;
+  if (isNativeCapacitorApp()) return false;
   if (isStandaloneDisplayMode()) return false;
 
   const path = window.location.pathname;

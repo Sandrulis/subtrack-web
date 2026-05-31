@@ -8,6 +8,7 @@ import {
 } from "@/components/pwa/pwa-install-banner";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { usePwaDeferredInstall } from "@/components/pwa/pwa-deferred-install-provider";
+import { isNativeCapacitorApp } from "@/lib/capacitor/native-app";
 import { PWA_INSTALL_BANNER_PATHS } from "@/lib/pwa/install-prompt-capture";
 import { isStandaloneDisplayMode } from "@/lib/pwa/install-prompt";
 import { usePathname } from "next/navigation";
@@ -31,6 +32,7 @@ export function PwaInstallHost() {
 
   const visible =
     mounted &&
+    !isNativeCapacitorApp() &&
     PWA_INSTALL_BANNER_PATHS.has(pathname) &&
     shouldShowPwaBanner({
       installBannerEnabled: pwa.installBannerEnabled,

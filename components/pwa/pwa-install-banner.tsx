@@ -1,6 +1,7 @@
 "use client";
 
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import { isNativeCapacitorApp } from "@/lib/capacitor/native-app";
 import {
   isIosSafariInstallable,
   isStandaloneDisplayMode,
@@ -88,6 +89,7 @@ export function shouldShowPwaBanner({
 }): boolean {
   if (!installBannerEnabled) return false;
   if (dismissed) return false;
+  if (isNativeCapacitorApp()) return false;
   if (isStandaloneDisplayMode()) return false;
   if (window.matchMedia("(min-width: 961px)").matches) return false;
   return true;
