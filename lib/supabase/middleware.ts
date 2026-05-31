@@ -61,6 +61,9 @@ function copyCookies(from: NextResponse, to: NextResponse) {
 function nextWithPathname(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", request.nextUrl.pathname);
+  if (request.nextUrl.searchParams.get("native_shell") === "1") {
+    requestHeaders.set("x-native-shell", "1");
+  }
   return NextResponse.next({
     request: { headers: requestHeaders },
   });
@@ -119,7 +122,10 @@ export async function updateSession(request: NextRequest) {
   if (user && isGuestOnlyPath(path)) {
     const dash = request.nextUrl.clone();
     dash.pathname = "/dashboard";
-    dash.search = "";
+    dash.search =
+      request.nextUrl.searchParams.get("native_shell") === "1"
+        ? "native_shell=1"
+        : "";
     const redirectRes = NextResponse.redirect(dash);
     copyCookies(supabaseResponse, redirectRes);
     return redirectRes;

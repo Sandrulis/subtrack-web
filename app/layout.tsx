@@ -12,7 +12,9 @@ import { CapacitorNativeAppLoading } from "@/components/capacitor/capacitor-nati
 import { CapacitorNativeAuthPersist } from "@/components/capacitor/capacitor-native-auth-persist";
 import { CapacitorNativeShellBootstrap } from "@/components/capacitor/capacitor-native-shell-bootstrap";
 import { NativeShellBootLayer } from "@/components/capacitor/native-shell-boot-layer";
+import { NativeShellCriticalStyles } from "@/components/capacitor/native-shell-critical-styles";
 import { NativeShellPaintGuard } from "@/components/capacitor/native-shell-paint-guard";
+import { isNativeShellRequestHeader } from "@/lib/capacitor/native-shell-request";
 import { PwaSwRegister } from "@/components/pwa/pwa-sw-register";
 import { FontAwesomeDeferredHead } from "@/components/font-awesome-deferred-head";
 import { FONT_AWESOME_DEFERRED_INJECT } from "@/lib/icons/font-awesome-deferred-inject";
@@ -105,19 +107,31 @@ export default async function RootLayout({
   ]);
   const systemSiteName = publicSettings.systemName;
   const brandLogo = publicSettings.brandLogo;
-  const pathname = (await headers()).get("x-pathname") ?? "";
+  const requestHeaders = await headers();
+  const pathname = requestHeaders.get("x-pathname") ?? "";
+  const nativeShellSsr = isNativeShellRequestHeader(
+    requestHeaders.get("x-native-shell"),
+  );
   const bodyClassName =
     pathname === "/" ? `${inter.className} landing-page` : inter.className;
   const nativeBootLoadingText =
     dbMap["app.page_loading"]?.trim() || "Loading…";
+  const htmlClassName = [
+    inter.variable,
+    nativeShellSsr ? "native-shell native-shell-pending" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <html
       lang={lang}
-      className={inter.variable}
+      className={htmlClassName}
       data-scroll-behavior="smooth"
+      style={nativeShellSsr ? { backgroundColor: "#050510" } : undefined}
     >
       <head>
+        {nativeShellSsr ? <NativeShellCriticalStyles /> : null}
         <NativeShellPaintGuard />
         <FontAwesomeDeferredHead />
         <Script id="subtrack-fa-defer" strategy="afterInteractive">
@@ -125,7 +139,10 @@ export default async function RootLayout({
         </Script>
       </head>
       <body className={bodyClassName}>
-        <NativeShellBootLayer loadingText={nativeBootLoadingText} />
+        <NativeShellBootLayer
+          loadingText={nativeBootLoadingText}
+          activeOnLoad={nativeShellSsr}
+        />
         <div className="native-shell-app-root">
         <HtmlLangBridge
           serverUiLocaleCode={uiLocaleCode}

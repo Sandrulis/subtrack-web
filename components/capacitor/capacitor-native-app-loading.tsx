@@ -22,6 +22,13 @@ async function hideNativeSplash(): Promise<void> {
   }
 }
 
+function isBootOverlayVisible(): boolean {
+  const boot = document.getElementById(BOOT_ID);
+  if (!boot || boot.hidden) return false;
+  const display = boot.style.display || getComputedStyle(boot).display;
+  return display !== "none";
+}
+
 function hasNativeShellContent(): boolean {
   return Boolean(
     document.querySelector(".auth-card") ||
@@ -31,7 +38,7 @@ function hasNativeShellContent(): boolean {
 }
 
 function showBootOverlay(): void {
-  document.documentElement.classList.add(PENDING_CLASS);
+  document.documentElement.classList.add("native-shell", PENDING_CLASS);
   const boot = document.getElementById(BOOT_ID);
   if (!boot) return;
   boot.hidden = false;
@@ -52,8 +59,16 @@ function setBootProgress(percent: number): void {
   fill.style.width = `${Math.min(100, percent)}%`;
 }
 
+function hideSplashAfterBootPainted(): void {
+  const tick = () => {
+    if (!isBootOverlayVisible()) return;
+    void hideNativeSplash();
+  };
+  requestAnimationFrame(() => requestAnimationFrame(tick));
+}
+
 /**
- * Native ielāde – kontrolē SSR boot overlay (#subtrack-native-boot), nevis jaunu React slāni.
+ * Native ielāde – kontrolē SSR boot overlay (#subtrack-native-boot).
  */
 export function CapacitorNativeAppLoading() {
   const isNative = useNativeCapacitorApp();
@@ -61,17 +76,20 @@ export function CapacitorNativeAppLoading() {
   useLayoutEffect(() => {
     if (!isNative) return;
     showBootOverlay();
-    void hideNativeSplash();
+    hideSplashAfterBootPainted();
   }, [isNative]);
 
   useEffect(() => {
     if (!isNative) {
-      hideBootOverlay();
+      if (!document.documentElement.classList.contains(PENDING_CLASS)) {
+        hideBootOverlay();
+      }
       return;
     }
 
-    if (typeof window !== "undefined" && isNativeCapacitorApp()) {
+    if (isNativeCapacitorApp()) {
       showBootOverlay();
+      hideSplashAfterBootPainted();
     }
 
     const started = Date.now();

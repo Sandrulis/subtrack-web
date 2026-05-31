@@ -3,12 +3,18 @@ import {
   NATIVE_SHELL_LOGO_PATH,
 } from "@/lib/capacitor/native-shell-brand";
 
-/** SSR boot overlay – rāda NativeShellPaintGuard, kamēr gaida React. */
-export function NativeShellBootLayer({ loadingText }: { loadingText: string }) {
+/** SSR boot overlay – `activeOnLoad` = redzams jau pirmajā HTML (pirms login). */
+export function NativeShellBootLayer({
+  loadingText,
+  activeOnLoad = false,
+}: {
+  loadingText: string;
+  activeOnLoad?: boolean;
+}) {
   return (
     <div
       id="subtrack-native-boot"
-      hidden
+      hidden={!activeOnLoad}
       className="cap-native-loading"
       role="status"
       aria-live="polite"
@@ -17,7 +23,7 @@ export function NativeShellBootLayer({ loadingText }: { loadingText: string }) {
         position: "fixed",
         inset: 0,
         zIndex: 100000,
-        display: "none",
+        display: activeOnLoad ? "flex" : "none",
         alignItems: "center",
         justifyContent: "center",
         background: NATIVE_SHELL_BACKGROUND,
