@@ -118,7 +118,7 @@ export default async function RootLayout({
     dbMap["app.page_loading"]?.trim() || "Loading…";
   const htmlClassName = [
     inter.variable,
-    nativeShellSsr ? "native-shell native-shell-pending" : "",
+    nativeShellSsr ? "native-shell-pending" : "",
   ]
     .filter(Boolean)
     .join(" ");

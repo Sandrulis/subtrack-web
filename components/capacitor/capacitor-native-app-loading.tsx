@@ -38,7 +38,7 @@ function hasNativeShellContent(): boolean {
 }
 
 function showBootOverlay(): void {
-  document.documentElement.classList.add("native-shell", PENDING_CLASS);
+  document.documentElement.classList.add(PENDING_CLASS);
   const boot = document.getElementById(BOOT_ID);
   if (!boot) return;
   boot.hidden = false;
@@ -46,7 +46,11 @@ function showBootOverlay(): void {
 }
 
 function hideBootOverlay(): void {
-  document.documentElement.classList.remove(PENDING_CLASS);
+  document.documentElement.classList.remove("native-shell", PENDING_CLASS);
+  document.documentElement.style.backgroundColor = "";
+  if (document.body) {
+    document.body.style.backgroundColor = "";
+  }
   const boot = document.getElementById(BOOT_ID);
   if (!boot) return;
   boot.hidden = true;

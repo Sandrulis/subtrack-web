@@ -1,9 +1,9 @@
 /* Pilns panelis/admin/auth CSS: `app/(app)/layout.tsx` → subtrack-app.bundle.css */
 /* Sākumlapa `/`: `app/(marketing)/layout.tsx` → landing.css */
 
-/* Capacitor WebView – tumšs fons pirms React (skat. NativeShellPaintGuard) */
-html.native-shell,
-html.native-shell body {
+/* Capacitor – tumšs fons tikai boot overlay (ne visa app) */
+html.native-shell-pending,
+html.native-shell-pending body {
     background-color: #050510 !important;
 }
 
