@@ -9009,6 +9009,12 @@ html.subtrack-modal-open body {
     }
 }
 
+@media (max-width: 960px) {
+    .mobile-bottom-nav {
+        display: flex;
+    }
+}
+
 /* Admin – e-pasta dizains (/admin/email-design) */
 .admin-email-design {
     display: flex;

@@ -2967,3 +2967,9 @@ button.dash-exit {
     }
 }
 
+@media (max-width: 960px) {
+    .mobile-bottom-nav {
+        display: flex;
+    }
+}
+
