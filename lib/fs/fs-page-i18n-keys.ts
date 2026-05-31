@@ -135,6 +135,11 @@ export const FS_DASHBOARD_DEMO_EXTRA_KEYS = [
   "fs.dashboard.name_suggest.internet",
   "fs.dashboard.name_suggest.rent",
   "fs.dashboard.name_suggest.insurance",
+  "session.notify_title",
+  "native.launcher_notify.line_overdue",
+  "native.launcher_notify.line_today",
+  "native.launcher_notify.line_upcoming",
+  "native.launcher_notify.line_family",
 ] as const;
 
 /** Tikai augšējās joslas paziņojumi (`dash-alerts.js` + `formatOverdueLabel`), ja nav pilnā paneļa bootstrap. Ietver arī „atzīmēt samaksāts” un toast tekstu vienam maksājumam. */

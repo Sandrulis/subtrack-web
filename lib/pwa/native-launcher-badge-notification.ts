@@ -1,5 +1,10 @@
 import { Capacitor } from "@capacitor/core";
 import { isNativeCapacitorApp } from "@/lib/capacitor/native-app";
+import {
+  buildLauncherBadgeNotificationCopy,
+  type LauncherBadgeNotificationCopy,
+  type LauncherBadgeSummary,
+} from "@/lib/pwa/launcher-badge-notification-copy";
 
 /** Viena “spoguļa” paziņojuma ID – Pixel / daudzi launcheri rāda ikonas skaitli no aktīvajiem paziņojumiem. */
 export const LAUNCHER_BADGE_NOTIFICATION_ID = 9001;
@@ -50,7 +55,11 @@ async function cancelLauncherBadgeNotification(): Promise<void> {
  * Android: diskrēts paziņojums, lai launcher rādītu skaitli (īpaši Pixel / AOSP).
  * App priekšplānā – noņem no joslas; fons – atjauno.
  */
-export async function syncNativeLauncherBadgeNotification(count: number): Promise<void> {
+export async function syncNativeLauncherBadgeNotification(
+  count: number,
+  copy?: LauncherBadgeNotificationCopy | null,
+  summary?: LauncherBadgeSummary | null,
+): Promise<void> {
   if (!isAndroidNative()) return;
 
   const safe = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
@@ -61,6 +70,18 @@ export async function syncNativeLauncherBadgeNotification(count: number): Promis
     await cancelLauncherBadgeNotification();
     return;
   }
+
+  const text =
+    copy?.title && copy?.body
+      ? copy
+      : summary
+        ? buildLauncherBadgeNotificationCopy(summary)
+        : buildLauncherBadgeNotificationCopy({
+            overdue: 0,
+            dueToday: 0,
+            upcoming: 0,
+            familyInvites: safe,
+          });
 
   try {
     const allowed = await ensureNotificationPermission();
@@ -73,8 +94,8 @@ export async function syncNativeLauncherBadgeNotification(count: number): Promis
       notifications: [
         {
           id: LAUNCHER_BADGE_NOTIFICATION_ID,
-          title: "Repazy",
-          body: String(safe),
+          title: text.title,
+          body: text.body,
           channelId: LAUNCHER_BADGE_CHANNEL_ID,
           smallIcon: "ic_launcher_foreground",
           autoCancel: false,

@@ -2,19 +2,76 @@
    SubTrack - augšējās joslas paziņojumi (kavētie / gaidāmie)
    ============================================= */
 
+function subtrackFormatNotifyCountLine(key, count, fallback) {
+    if (!count || count < 1) return '';
+    var raw = typeof FsT === 'function' ? FsT(key) : '';
+    if (!raw || raw === key) raw = fallback;
+    return String(raw).replace(/\{count\}/g, String(count));
+}
+
+/** Android paziņojuma joslas teksts (kavētie / šodien / gaidāmie / uzaicinājumi). */
+function subtrackBuildLauncherNotifyCopy(overdueLen, dueTodayLen, upcomingLen, familyLen) {
+    var title =
+        typeof FsT === 'function' ? FsT('session.notify_title') : '';
+    if (!title || title === 'session.notify_title') title = 'Paziņojumi';
+
+    var parts = [
+        subtrackFormatNotifyCountLine(
+            'native.launcher_notify.line_overdue',
+            overdueLen,
+            'Kavētie: {count}'
+        ),
+        subtrackFormatNotifyCountLine(
+            'native.launcher_notify.line_today',
+            dueTodayLen,
+            'Šodien jāmaksā: {count}'
+        ),
+        subtrackFormatNotifyCountLine(
+            'native.launcher_notify.line_upcoming',
+            upcomingLen,
+            'Gaidāmie (7 d.): {count}'
+        ),
+        subtrackFormatNotifyCountLine(
+            'native.launcher_notify.line_family',
+            familyLen,
+            'Uzaicinājumi: {count}'
+        ),
+    ].filter(Boolean);
+
+    var body = parts.length ? parts.join(' \u00b7 ') : String(overdueLen + dueTodayLen + upcomingLen + familyLen);
+    return { title: title, body: body };
+}
+
 /** Launcher / PWA ikonas skaitlis – gaida `window.subtrackSyncAppBadge` no React bundle. */
-function subtrackSyncLauncherBadge(count) {
-    if (typeof window.subtrackSyncAppBadge === 'function') {
-        window.subtrackSyncAppBadge(count);
-        return;
+function subtrackSyncLauncherBadge(count, overdueLen, dueTodayLen, upcomingLen, familyLen) {
+    var payload = {
+        count: count,
+        copy: subtrackBuildLauncherNotifyCopy(
+            overdueLen || 0,
+            dueTodayLen || 0,
+            upcomingLen || 0,
+            familyLen || 0
+        ),
+        summary: {
+            overdue: overdueLen || 0,
+            dueToday: dueTodayLen || 0,
+            upcoming: upcomingLen || 0,
+            familyInvites: familyLen || 0,
+        },
+    };
+
+    function pushBadge() {
+        if (typeof window.subtrackSyncAppBadge !== 'function') return false;
+        window.subtrackSyncAppBadge(payload);
+        return true;
     }
+
+    if (pushBadge()) return;
+
     var attempts = 0;
     var timer = setInterval(function () {
         attempts += 1;
-        if (typeof window.subtrackSyncAppBadge === 'function') {
-            window.subtrackSyncAppBadge(count);
-            clearInterval(timer);
-        } else if (attempts >= 48) {
+        if (pushBadge() || attempts >= 48) {
             clearInterval(timer);
         }
     }, 250);
@@ -573,7 +630,7 @@ function refreshDashNotifications() {
         if (badge) {
             badge.classList.add('hidden');
         }
-        subtrackSyncLauncherBadge(0);
+        subtrackSyncLauncherBadge(0, 0, 0, 0, 0);
         setBellSolid(false);
         if (secT) {
             secT.classList.add('hidden');
@@ -667,7 +724,13 @@ function refreshDashNotifications() {
         }
     }
 
-    subtrackSyncLauncherBadge(count);
+    subtrackSyncLauncherBadge(
+        count,
+        overdue.length,
+        dueToday.length,
+        upcoming.length,
+        familyInvites.length
+    );
 
     setBellSolid(count > 0);
 

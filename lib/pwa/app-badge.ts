@@ -1,5 +1,16 @@
 import { isNativeCapacitorApp } from "@/lib/capacitor/native-app";
+import type {
+  LauncherBadgeNotificationCopy,
+  LauncherBadgeSummary,
+} from "@/lib/pwa/launcher-badge-notification-copy";
 import { syncNativeLauncherBadgeNotification } from "@/lib/pwa/native-launcher-badge-notification";
+
+export type { LauncherBadgeNotificationCopy, LauncherBadgeSummary };
+
+export type SyncAppBadgeOptions = {
+  copy?: LauncherBadgeNotificationCopy | null;
+  summary?: LauncherBadgeSummary | null;
+};
 
 /** PWA sākuma ekrāna ikonas skaitītājs (Badging API). Native – `@capawesome/capacitor-badge`. */
 export function isAppBadgeSupported(): boolean {
@@ -20,7 +31,10 @@ async function ensureNativeBadgePermissions(
   }
 }
 
-async function syncNativeAppBadgeCount(count: number): Promise<void> {
+async function syncNativeAppBadgeCount(
+  count: number,
+  options?: SyncAppBadgeOptions,
+): Promise<void> {
   try {
     const { Badge } = await import("@capawesome/capacitor-badge");
     await ensureNativeBadgePermissions(Badge);
@@ -34,7 +48,11 @@ async function syncNativeAppBadgeCount(count: number): Promise<void> {
       console.warn("[subtrack] native ShortcutBadger badge failed", err);
     }
   }
-  await syncNativeLauncherBadgeNotification(count);
+  await syncNativeLauncherBadgeNotification(
+    count,
+    options?.copy,
+    options?.summary,
+  );
 }
 
 async function syncWebAppBadgeCount(count: number): Promise<void> {
@@ -51,10 +69,13 @@ async function syncWebAppBadgeCount(count: number): Promise<void> {
 }
 
 /** Tas pats skaits kā `#dash-notify-badge` (kavētie + šodien + 7 d. + uzaicinājumi). */
-export async function syncAppBadgeCount(count: number): Promise<void> {
+export async function syncAppBadgeCount(
+  count: number,
+  options?: SyncAppBadgeOptions,
+): Promise<void> {
   const safe = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
   if (isNativeCapacitorApp()) {
-    await syncNativeAppBadgeCount(safe);
+    await syncNativeAppBadgeCount(safe, options);
     return;
   }
   await syncWebAppBadgeCount(safe);
