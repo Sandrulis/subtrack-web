@@ -155,7 +155,7 @@ export function AdminSystemLogoUpload({
         )}
         <span className="admin-logo-dropzone-text">
           {pending
-            ? t("admin.forms.hud_saving")
+            ? t("admin.forms.toast_saving")
             : dragOver
               ? t("admin.forms.logo_drop_release")
               : t("admin.forms.logo_drop_idle")}

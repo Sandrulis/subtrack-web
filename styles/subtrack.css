@@ -207,6 +207,55 @@ a:hover { text-decoration: underline; }
     letter-spacing: 0.01em;
 }
 
+/* Capacitor WebView – ielāde kamēr ielādējas repazy.com */
+.cap-native-loading-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: min(100%, 18rem);
+    text-align: center;
+    color: #f8fafc;
+}
+
+.cap-native-loading-logo {
+    width: 5.5rem;
+    height: 5.5rem;
+    object-fit: contain;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.12);
+    padding: 0.5rem;
+    box-sizing: border-box;
+}
+
+.cap-native-loading-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.cap-native-loading-text {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    opacity: 0.92;
+}
+
+.cap-native-loading-bar {
+    width: 100%;
+    height: 0.35rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.28);
+    overflow: hidden;
+}
+
+.cap-native-loading-bar-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: #ffffff;
+    transition: width 0.15s ease-out;
+}
+
 .auth-card {
     background: var(--bg-white);
     border-radius: var(--radius-lg);

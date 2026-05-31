@@ -79,7 +79,7 @@ export async function syncNativeLauncherBadgeNotification(
   }
 
   const text =
-    copy?.title && copy?.body
+    copy?.title && copy.body?.trim()
       ? copy
       : summary
         ? buildLauncherBadgeNotificationCopy(summary)

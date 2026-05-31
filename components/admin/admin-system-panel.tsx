@@ -416,9 +416,9 @@ export function AdminSystemPanel({
 
   const saveStatusText =
     saveHud === "saving"
-      ? t("admin.forms.hud_saving")
+      ? t("admin.forms.toast_saving")
       : saveHud === "saved"
-        ? t("admin.forms.hud_saved")
+        ? t("admin.forms.toast_saved")
         : "";
 
   return (

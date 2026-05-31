@@ -8,6 +8,7 @@ import { NavBrandBridge } from "@/components/brand/nav-brand-bridge";
 import { CookieConsentRoot } from "@/components/legal/cookie-consent-root";
 import { PwaDeferredInstallProvider } from "@/components/pwa/pwa-deferred-install-provider";
 import { PwaInstallHost } from "@/components/pwa/pwa-install-host";
+import { CapacitorNativeAppLoading } from "@/components/capacitor/capacitor-native-app-loading";
 import { CapacitorNativeShellBootstrap } from "@/components/capacitor/capacitor-native-shell-bootstrap";
 import { PwaSwRegister } from "@/components/pwa/pwa-sw-register";
 import { FontAwesomeDeferredHead } from "@/components/font-awesome-deferred-head";
@@ -139,6 +140,7 @@ export default async function RootLayout({
               logoTopbar={brandLogo?.topbar ?? null}
             >
               <CapacitorNativeShellBootstrap />
+              <CapacitorNativeAppLoading />
               <PwaSwRegister pwa={publicSettings.pwa} />
               <UmamiAnalytics />
               {children}

@@ -7,6 +7,7 @@
     "dev:next-only": "next dev",
     "dev:webpack": "next dev --webpack",
     "css:split": "node scripts/split-landing-css.mjs",
+    "cap:assets": "capacitor-assets generate --android",
     "build": "node scripts/split-landing-css.mjs && next build && serwist build",
     "start": "next start",
     "lint": "eslint",
@@ -25,6 +26,7 @@
     "@capacitor/cli": "^8.3.4",
     "@capacitor/core": "^8.3.4",
     "@capacitor/local-notifications": "^8.2.0",
+    "@capacitor/splash-screen": "^8.0.1",
     "@capawesome/capacitor-badge": "^8.0.2",
     "@sentry/nextjs": "^10.55.0",
     "@supabase/ssr": "^0.10.3",
@@ -39,6 +41,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@serwist/cli": "^9.5.11",
     "@serwist/next": "^9.5.11",
     "@tailwindcss/postcss": "^4",

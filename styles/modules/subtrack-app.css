@@ -161,13 +161,6 @@
     box-shadow: 0 2px 12px rgba(15, 23, 42, 0.08);
 }
 
-.admin-logo-dropzone-preview--topbar {
-    width: auto;
-    max-width: 160px;
-    height: 36px;
-    border-radius: 8px;
-}
-
 .admin-logo-dropzone-placeholder {
     color: var(--text-muted);
     opacity: 0.75;

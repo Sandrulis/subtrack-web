@@ -4,7 +4,6 @@ import {
   urlHasNativeShellFlag,
 } from "@/lib/capacitor/native-shell-storage";
 import { isNativeCapacitorApp } from "@/lib/capacitor/native-app";
-
 const PWA_CACHE_PREFIXES = ["subtrack-", "repazy-", "serwist-"];
 
 async function unregisterServiceWorkers(): Promise<boolean> {

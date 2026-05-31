@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { ensureAuthedNotifyScriptsLoaded } from "@/components/fs/load-fs-scripts";
+import { requestNativeAppPermissions } from "@/lib/capacitor/request-native-permissions";
 import "@/lib/pwa/register-app-badge-bridge";
 
 type AuthedNotifyBootstrapProps = {
@@ -31,6 +32,7 @@ export function AuthedNotifyBootstrap({
 
     (async () => {
       try {
+        await requestNativeAppPermissions();
         await ensureAuthedNotifyScriptsLoaded();
         if (reloadSubscriptionsFromBootstrap) {
           const reload = (

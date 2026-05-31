@@ -5,7 +5,9 @@ import { isNativeCapacitorApp } from "@/lib/capacitor/native-app";
 
 /** Pēc hydrācijas – lai SSR un klients nesaskanētu. */
 export function useNativeCapacitorApp(): boolean {
-  const [native, setNative] = useState(false);
+  const [native, setNative] = useState(() =>
+    typeof window !== "undefined" ? isNativeCapacitorApp() : false,
+  );
   useEffect(() => {
     setNative(isNativeCapacitorApp());
   }, []);
