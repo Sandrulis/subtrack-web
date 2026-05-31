@@ -4,6 +4,9 @@ const config: CapacitorConfig = {
   appId: 'com.repazy.app',
   appName: 'repazy',
   webDir: 'public',
+  android: {
+    backgroundColor: '#050510',
+  },
   server: {
     url: 'https://repazy.com/login?native_shell=1',
     cleartext: true
@@ -18,8 +21,8 @@ const config: CapacitorConfig = {
       launchShowDuration: 0,
       backgroundColor: '#050510',
       showSpinner: false,
-      splashFullScreen: true,
-      splashImmersive: true,
+      splashFullScreen: false,
+      splashImmersive: false,
       androidSplashResourceName: 'splash',
     },
   }

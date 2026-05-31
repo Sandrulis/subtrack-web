@@ -1,6 +1,12 @@
 /* Pilns panelis/admin/auth CSS: `app/(app)/layout.tsx` → subtrack-app.bundle.css */
 /* Sākumlapa `/`: `app/(marketing)/layout.tsx` → landing.css */
 
+/* Capacitor WebView – tumšs fons pirms React (skat. NativeShellPaintGuard) */
+html.native-shell,
+html.native-shell body {
+    background-color: #050510 !important;
+}
+
 /*
  * Login: noņem pārlūka noklusējuma button izskatu un nostiprina sociālo pogu krāsas.
  * (Safari/Chrome dažkārt rāda pelēku "native" pogu pat ar mūsu klasēm.)

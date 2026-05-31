@@ -9,12 +9,6 @@ import { useEffect } from "react";
 export function CapacitorNativeShellBootstrap() {
   useEffect(() => {
     void (async () => {
-      try {
-        const { SplashScreen } = await import("@capacitor/splash-screen");
-        await SplashScreen.show({ autoHide: false });
-      } catch {
-        /* ignore */
-      }
       const result = await prepareNativeWebShell();
       if (result !== "reload") {
         await requestNativeAppPermissions();

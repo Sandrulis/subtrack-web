@@ -10,6 +10,7 @@ import { PwaDeferredInstallProvider } from "@/components/pwa/pwa-deferred-instal
 import { PwaInstallHost } from "@/components/pwa/pwa-install-host";
 import { CapacitorNativeAppLoading } from "@/components/capacitor/capacitor-native-app-loading";
 import { CapacitorNativeShellBootstrap } from "@/components/capacitor/capacitor-native-shell-bootstrap";
+import { NativeShellPaintGuard } from "@/components/capacitor/native-shell-paint-guard";
 import { PwaSwRegister } from "@/components/pwa/pwa-sw-register";
 import { FontAwesomeDeferredHead } from "@/components/font-awesome-deferred-head";
 import { FONT_AWESOME_DEFERRED_INJECT } from "@/lib/icons/font-awesome-deferred-inject";
@@ -113,6 +114,7 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
     >
       <head>
+        <NativeShellPaintGuard />
         <FontAwesomeDeferredHead />
         <Script id="subtrack-fa-defer" strategy="afterInteractive">
           {FONT_AWESOME_DEFERRED_INJECT}

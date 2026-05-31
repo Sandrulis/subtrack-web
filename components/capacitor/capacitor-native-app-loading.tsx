@@ -5,13 +5,15 @@ import {
   NATIVE_SHELL_BACKGROUND,
   NATIVE_SHELL_LOGO_PATH,
 } from "@/lib/capacitor/native-shell-brand";
+import { isNativeCapacitorApp } from "@/lib/capacitor/native-app";
 import { useNativeCapacitorApp } from "@/lib/capacitor/use-native-capacitor-app";
 import { SUBTRACK_PAGE_CONTENT_READY_EVENT } from "@/lib/app/page-content-ready";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 
-const MIN_VISIBLE_MS = 500;
-const MAX_VISIBLE_MS = 20000;
+const MIN_VISIBLE_MS = 600;
+const MAX_VISIBLE_MS = 25000;
 const PROGRESS_TICK_MS = 120;
+const CONTENT_POLL_MS = 200;
 
 async function hideNativeSplash(): Promise<void> {
   try {
@@ -22,14 +24,29 @@ async function hideNativeSplash(): Promise<void> {
   }
 }
 
+function hasNativeShellContent(): boolean {
+  return Boolean(
+    document.querySelector(".auth-card") ||
+      document.querySelector(".dash-topbar-shell") ||
+      document.getElementById("main"),
+  );
+}
+
 /**
  * Kamēr WebView ielādē repazy.com – logo, teksts un progress (ne tukša balta lapa).
  */
 export function CapacitorNativeAppLoading() {
   const isNative = useNativeCapacitorApp();
   const { t, systemSiteName } = useSubtrackIntl();
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(
+    () => typeof window !== "undefined" && isNativeCapacitorApp(),
+  );
   const [progress, setProgress] = useState(8);
+
+  useLayoutEffect(() => {
+    if (!isNative || !visible) return;
+    void hideNativeSplash();
+  }, [isNative, visible]);
 
   useEffect(() => {
     if (!isNative) {
@@ -41,18 +58,19 @@ export function CapacitorNativeAppLoading() {
     const started = Date.now();
     let dismissed = false;
     let progressTimer: number | undefined;
+    let contentPoll: number | undefined;
 
     const dismiss = () => {
       if (dismissed) return;
+      if (!hasNativeShellContent()) return;
+      if (document.readyState !== "complete") return;
+
       dismissed = true;
       const elapsed = Date.now() - started;
       const wait = Math.max(0, MIN_VISIBLE_MS - elapsed);
       window.setTimeout(() => {
         setProgress(100);
-        window.setTimeout(() => {
-          setVisible(false);
-          void hideNativeSplash();
-        }, 180);
+        window.setTimeout(() => setVisible(false), 200);
       }, wait);
     };
 
@@ -63,29 +81,22 @@ export function CapacitorNativeAppLoading() {
       });
     }, PROGRESS_TICK_MS);
 
-    const onReady = () => dismiss();
-    window.addEventListener(SUBTRACK_PAGE_CONTENT_READY_EVENT, onReady);
-    window.addEventListener("load", onReady, { once: true });
-    window.addEventListener("subtrack:native-shell-ready", onReady);
+    contentPoll = window.setInterval(dismiss, CONTENT_POLL_MS);
 
-    const domTimer = window.setTimeout(() => {
-      if (document.readyState === "complete" || document.readyState === "interactive") {
-        const hasMain =
-          document.getElementById("main") ||
-          document.querySelector(".auth-card") ||
-          document.querySelector(".dash-topbar-shell");
-        if (hasMain) dismiss();
-      }
-    }, 800);
+    const onPageReady = () => dismiss();
+    window.addEventListener(SUBTRACK_PAGE_CONTENT_READY_EVENT, onPageReady);
 
-    const maxTimer = window.setTimeout(dismiss, MAX_VISIBLE_MS);
+    const maxTimer = window.setTimeout(() => {
+      dismissed = true;
+      setProgress(100);
+      window.setTimeout(() => setVisible(false), 200);
+    }, MAX_VISIBLE_MS);
 
     return () => {
       if (progressTimer) window.clearInterval(progressTimer);
-      window.clearTimeout(domTimer);
+      if (contentPoll) window.clearInterval(contentPoll);
       window.clearTimeout(maxTimer);
-      window.removeEventListener(SUBTRACK_PAGE_CONTENT_READY_EVENT, onReady);
-      window.removeEventListener("subtrack:native-shell-ready", onReady);
+      window.removeEventListener(SUBTRACK_PAGE_CONTENT_READY_EVENT, onPageReady);
     };
   }, [isNative]);
 
