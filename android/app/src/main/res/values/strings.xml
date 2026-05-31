@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">repazy</string>
+    <string name="title_activity_main">repazy</string>
+    <string name="package_name">com.repazy.app</string>
+    <string name="custom_url_scheme">com.repazy.app</string>
+</resources>

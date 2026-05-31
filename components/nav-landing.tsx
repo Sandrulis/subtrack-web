@@ -9,6 +9,8 @@ import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { AuthedNotifyBootstrap } from "@/components/authed-notify-bootstrap";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { NavSessionActions } from "@/components/nav-session-actions";
+import { brandHomeHref } from "@/lib/capacitor/brand-home-href";
+import { useNativeCapacitorApp } from "@/lib/capacitor/use-native-capacitor-app";
 
 export type NavLandingActive = "" | "login" | "signup";
 
@@ -21,8 +23,14 @@ type NavLandingProps = {
 export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
   const { t } = useSubtrackIntl();
   const pathname = usePathname() ?? "";
+  const isNativeApp = useNativeCapacitorApp();
   const showAuthedAnalytics = Boolean(userDisplay);
   const authedAnalyticsPathActive = pathname.startsWith("/analytics");
+  const homeHref = brandHomeHref({
+    authed: Boolean(userDisplay),
+    isNative: isNativeApp,
+  });
+  const guestNativeApp = isNativeApp && !userDisplay;
 
   return (
     <>
@@ -31,7 +39,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
       <div className="dash-topbar-shell">
         <div className="dash-topbar-inner">
           <div className="dash-topbar-left">
-            <DashBrandLink href={userDisplay ? "/dashboard" : "/"} />
+            <DashBrandLink href={homeHref} />
             <span className="dash-topbar-rule" aria-hidden="true" />
             <nav
               className="dash-nav-links"
@@ -117,7 +125,7 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
                     </Link>
                   ) : null}
                 </>
-              ) : (
+              ) : guestNativeApp ? null : (
                 <>
                   <Link
                     href="/#features"
@@ -248,12 +256,14 @@ export function NavLanding({ active = "", userDisplay }: NavLandingProps) {
         </div>
       </div>
     </header>
-    <MobileBottomNav
-      mode={userDisplay ? "authed" : "guest"}
-      isAdmin={Boolean(userDisplay?.isAdmin)}
-      showAnalytics={showAuthedAnalytics}
-      analyticsHref="/analytics"
-    />
+    {!guestNativeApp ? (
+      <MobileBottomNav
+        mode={userDisplay ? "authed" : "guest"}
+        isAdmin={Boolean(userDisplay?.isAdmin)}
+        showAnalytics={showAuthedAnalytics}
+        analyticsHref="/analytics"
+      />
+    ) : null}
     </>
   );
 }

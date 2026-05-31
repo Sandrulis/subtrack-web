@@ -8,6 +8,8 @@ import type { BlogPostListItem } from "@/lib/blog/blog-types";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
+import { brandHomeHref } from "@/lib/capacitor/brand-home-href";
+import { useNativeCapacitorApp } from "@/lib/capacitor/use-native-capacitor-app";
 
 export function BlogIndexView({
   posts,
@@ -17,7 +19,9 @@ export function BlogIndexView({
   userDisplay?: NavUserDisplay | null;
 }) {
   const { t, locale } = useSubtrackIntl();
+  const isNativeApp = useNativeCapacitorApp();
   const authed = Boolean(userDisplay);
+  const homeHref = brandHomeHref({ authed, isNative: isNativeApp });
   const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
 
   function formatDate(iso: string | null): string {
@@ -37,7 +41,7 @@ export function BlogIndexView({
       <main id="main" className="auth-page-inner legal-page-inner blog-page-inner">
         <article className="auth-card auth-card--legal blog-index-card">
           <p className="legal-document-back">
-            <Link href={authed ? "/dashboard" : "/"}>
+            <Link href={homeHref}>
               {authed
                 ? t("auth.change_password.back_dashboard")
                 : t("legal.back_home")}

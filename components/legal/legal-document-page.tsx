@@ -12,6 +12,8 @@ import {
   legalDocUpdatedKey,
   type LegalDocId,
 } from "@/lib/legal/legal-sections";
+import { brandHomeHref } from "@/lib/capacitor/brand-home-href";
+import { useNativeCapacitorApp } from "@/lib/capacitor/use-native-capacitor-app";
 
 export function LegalDocumentPage({
   doc,
@@ -21,8 +23,10 @@ export function LegalDocumentPage({
   userDisplay?: NavUserDisplay | null;
 }) {
   const { t } = useSubtrackIntl();
+  const isNativeApp = useNativeCapacitorApp();
   const sections = LEGAL_DOC_SECTIONS[doc];
   const authed = Boolean(userDisplay);
+  const homeHref = brandHomeHref({ authed, isNative: isNativeApp });
 
   return (
     <div className="auth-page legal-page">
@@ -34,7 +38,7 @@ export function LegalDocumentPage({
       <main id="main" className="auth-page-inner legal-page-inner">
         <article className="auth-card auth-card--legal legal-document">
           <p className="legal-document-back">
-            <Link href={authed ? "/dashboard" : "/"}>
+            <Link href={homeHref}>
               {authed
                 ? t("auth.change_password.back_dashboard")
                 : t("legal.back_home")}
