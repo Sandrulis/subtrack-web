@@ -221,13 +221,10 @@ a:hover { text-decoration: underline; }
 }
 
 .cap-native-loading-logo {
-    width: 5.5rem;
-    height: 5.5rem;
+    width: 6rem;
+    height: 6rem;
     object-fit: contain;
-    border-radius: 1rem;
-    background: rgba(255, 255, 255, 0.12);
-    padding: 0.5rem;
-    box-sizing: border-box;
+    display: block;
 }
 
 .cap-native-loading-name {
