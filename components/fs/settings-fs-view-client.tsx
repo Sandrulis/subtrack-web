@@ -186,7 +186,10 @@ export function SettingsFsViewClient({
           languageOptions,
           preferenceBase.interface_language_code,
         );
-        next = mergeDisplayPreferences({ ...next, interface_language_code: picked }, preferenceBase);
+        next = mergeDisplayPreferences(
+          { ...next, interface_language_code: picked, interface_language_user_set: true },
+          preferenceBase,
+        );
         applyUiLocaleInBrowser(next.interface_language_code);
         writeDisplayPreferencesToLocalStorage(next);
         queueMicrotask(() => {

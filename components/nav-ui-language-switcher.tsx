@@ -88,7 +88,10 @@ export function NavUiLanguageSwitcher({ layout = "topbar" }: { layout?: Layout }
       readDisplayPreferencesFromLocalStorage(),
       DISPLAY_PREFERENCES_DEFAULTS,
     );
-    const next = mergeDisplayPreferences({ interface_language_code: norm }, merged);
+    const next = mergeDisplayPreferences(
+      { interface_language_code: norm, interface_language_user_set: true },
+      merged,
+    );
     if (!writeDisplayPreferencesToLocalStorage(next)) return;
     applyUiLocaleInBrowser(norm);
     setOpen(false);

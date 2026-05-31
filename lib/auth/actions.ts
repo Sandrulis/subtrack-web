@@ -188,6 +188,9 @@ export async function signUpAction(
           ? { registration_country: registrationGeo.registration_country }
           : {}),
         billing_currency: registrationGeo.billing_currency,
+        ...(registrationGeo.interface_language_code
+          ? { interface_language_code: registrationGeo.interface_language_code }
+          : {}),
       },
     },
   });

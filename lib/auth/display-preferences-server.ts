@@ -24,3 +24,9 @@ export async function getSessionInterfaceLanguageCode(): Promise<string | null> 
   const partial = sanitizeDisplayPreferencesPartial(raw);
   return partial.interface_language_code ?? null;
 }
+
+export async function getSessionInterfaceLanguageUserSet(): Promise<boolean> {
+  const raw = await getSessionDisplayPreferencesRow();
+  const partial = sanitizeDisplayPreferencesPartial(raw);
+  return partial.interface_language_user_set === true;
+}

@@ -2,7 +2,9 @@ import {
   countryCodeToBillingCurrency,
   normalizeCountryCode,
 } from "@/lib/billing/country-to-billing-currency";
+import { pickUiLocaleFromCountryForCatalog } from "@/lib/geo/country-code-to-ui-locale";
 import { resolveCountryFromHeaders } from "@/lib/geo/resolve-request-country";
+import { getLanguagesCatalog } from "@/lib/languages-catalog";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
 import {
   mergeDisplayPreferences,
@@ -37,10 +39,17 @@ export async function backfillUserRegistrationCountry(
   }
 
   const billingCurrency = countryCodeToBillingCurrency(country);
-  const merged = mergeDisplayPreferences({
-    ...sanitizeDisplayPreferencesPartial(row.display_preferences),
+  const partial = sanitizeDisplayPreferencesPartial(row.display_preferences);
+  const catalog = await getLanguagesCatalog();
+  const geoLocale = pickUiLocaleFromCountryForCatalog(country, catalog);
+  const prefsPatch = {
+    ...partial,
     currency: billingCurrency,
-  });
+  };
+  if (geoLocale && partial.interface_language_user_set !== true) {
+    prefsPatch.interface_language_code = geoLocale;
+  }
+  const merged = mergeDisplayPreferences(prefsPatch);
 
   const { error: updErr } = await svc
     .from("users")

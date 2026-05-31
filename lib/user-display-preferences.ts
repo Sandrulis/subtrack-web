@@ -10,6 +10,8 @@ export const DISPLAY_PREFS_STORAGE_KEY = "subtrack_fs_user_prefs";
 export type DisplayPreferences = {
   /** `public.languages.code` - saskarnes valoda (kopā ar `<html lang>` un sīkdatni `subtrack_ui_locale`). */
   interface_language_code: string;
+  /** `true` = lietotājs izvēlējās valodu Iestatījumos / topbar; ģeo to vairs nepārraksta. */
+  interface_language_user_set?: boolean;
   currency: "EUR" | "USD" | "GBP" | "SEK" | "PLN" | "CHF";
   /** Mēneša budžets panelim; `null` = nav iestatīts. */
   monthly_budget: number | null;
@@ -97,6 +99,9 @@ export function sanitizeDisplayPreferencesPartial(
     if (isValidPreferredLanguageCode(trimmed)) {
       out.interface_language_code = trimmed;
     }
+  }
+  if (o.interface_language_user_set === true) {
+    out.interface_language_user_set = true;
   }
   if (typeof o.currency === "string" && ALLOWED_CURRENCY.has(o.currency as DisplayPreferences["currency"])) {
     out.currency = o.currency as DisplayPreferences["currency"];

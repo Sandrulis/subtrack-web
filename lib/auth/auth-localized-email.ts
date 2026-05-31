@@ -100,6 +100,11 @@ export async function registerUserWithLocalizedConfirmEmail(input: {
             }
           : {}),
         billing_currency: input.registrationGeo?.billing_currency ?? "USD",
+        ...(input.registrationGeo?.interface_language_code
+          ? {
+              interface_language_code: input.registrationGeo.interface_language_code,
+            }
+          : {}),
       },
     },
   });

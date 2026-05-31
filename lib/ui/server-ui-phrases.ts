@@ -1,6 +1,10 @@
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
-import { getSessionInterfaceLanguageCode } from "@/lib/auth/display-preferences-server";
+import {
+  getSessionInterfaceLanguageCode,
+  getSessionInterfaceLanguageUserSet,
+} from "@/lib/auth/display-preferences-server";
+import { resolveRequestCountryCode } from "@/lib/geo/resolve-request-country";
 import { loadAuthContext } from "@/lib/auth/load-auth-context";
 import { pickFallbackPhrase } from "@/lib/i18n/fallback-lookup";
 import { SUBTRACK_UI_LOCALE_COOKIE } from "@/lib/html-lang";
@@ -18,14 +22,21 @@ export const resolveRequestUiLocales = cache(async (): Promise<{
   const catalog = await getLanguagesCatalog();
   const { user } = await loadAuthContext();
   const isAuthenticated = !!user;
-  const sessionInterfaceLanguageCode = isAuthenticated
-    ? await getSessionInterfaceLanguageCode()
-    : null;
+  const [sessionInterfaceLanguageCode, sessionInterfaceLanguageUserSet, countryCode] =
+    isAuthenticated
+      ? await Promise.all([
+          getSessionInterfaceLanguageCode(),
+          getSessionInterfaceLanguageUserSet(),
+          resolveRequestCountryCode(),
+        ])
+      : [null, false, await resolveRequestCountryCode()] as const;
   const locale = resolveUiLocaleCodeForRequest({
     isAuthenticated,
     sessionInterfaceLanguageCode,
+    sessionInterfaceLanguageUserSet,
     cookieVal: cookieStore.get(SUBTRACK_UI_LOCALE_COOKIE)?.value ?? null,
     acceptLanguage: h.get("accept-language"),
+    countryCode,
     catalog,
   });
   return {
