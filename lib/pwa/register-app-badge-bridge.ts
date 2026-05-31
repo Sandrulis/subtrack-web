@@ -5,6 +5,7 @@ import {
   type LauncherBadgeNotificationCopy,
   type LauncherBadgeSummary,
 } from "@/lib/pwa/app-badge";
+import { registerNativeLauncherBadgeResync } from "@/lib/pwa/native-launcher-badge-resync";
 import {
   debugLauncherBadgeState,
   refreshLauncherBadgeFromAlerts,
@@ -43,4 +44,6 @@ if (typeof window !== "undefined") {
   win.subtrackTestLauncherBadge = (opts) => testLauncherBadge(opts);
   win.subtrackRefreshLauncherBadge = () => refreshLauncherBadgeFromAlerts();
   win.subtrackDebugLauncherBadge = () => debugLauncherBadgeState();
+
+  registerNativeLauncherBadgeResync();
 }

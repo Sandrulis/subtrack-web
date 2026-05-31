@@ -3,6 +3,7 @@ import type {
   LauncherBadgeNotificationCopy,
   LauncherBadgeSummary,
 } from "@/lib/pwa/launcher-badge-notification-copy";
+import { setNativeLauncherBadgeCache } from "@/lib/pwa/native-launcher-badge-cache";
 import { syncNativeLauncherBadgeNotification } from "@/lib/pwa/native-launcher-badge-notification";
 
 export type { LauncherBadgeNotificationCopy, LauncherBadgeSummary };
@@ -75,6 +76,7 @@ export async function syncAppBadgeCount(
 ): Promise<void> {
   const safe = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
   if (isNativeCapacitorApp()) {
+    setNativeLauncherBadgeCache(safe, options);
     await syncNativeAppBadgeCount(safe, options);
     return;
   }
