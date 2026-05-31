@@ -7,10 +7,20 @@ function isAndroidNative(): boolean {
   return isNativeCapacitorApp() && Capacitor.getPlatform() === "android";
 }
 
+export type NativePermissionDisplay = "granted" | "denied" | "prompt" | "unknown";
+
 export type NativePermissionsResult = {
-  notifications: "granted" | "denied" | "prompt" | "unknown";
-  badge: "granted" | "denied" | "prompt" | "unknown";
+  notifications: NativePermissionDisplay;
+  badge: NativePermissionDisplay;
 };
+
+function normalizePermissionDisplay(display: string | undefined): NativePermissionDisplay {
+  if (display === "granted" || display === "denied" || display === "prompt") {
+    return display;
+  }
+  if (display === "prompt-with-rationale") return "prompt";
+  return "unknown";
+}
 
 /**
  * Android 13+: lūdz paziņojumu atļauju app atvēršanā (badge + joslas teksts).
@@ -44,7 +54,7 @@ export async function requestNativeAppPermissions(
     const check = await LocalNotifications.checkPermissions();
     if (check.display !== "granted") {
       const req = await LocalNotifications.requestPermissions();
-      result.notifications = req.display ?? "unknown";
+      result.notifications = normalizePermissionDisplay(req.display);
     } else {
       result.notifications = "granted";
     }
@@ -57,7 +67,7 @@ export async function requestNativeAppPermissions(
     const check = await Badge.checkPermissions();
     if (check.display !== "granted") {
       const req = await Badge.requestPermissions();
-      result.badge = req.display ?? "unknown";
+      result.badge = normalizePermissionDisplay(req.display);
     } else {
       result.badge = "granted";
     }

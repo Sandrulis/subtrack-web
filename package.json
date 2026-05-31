@@ -7,7 +7,7 @@
     "dev:next-only": "next dev",
     "dev:webpack": "next dev --webpack",
     "css:split": "node scripts/split-landing-css.mjs",
-    "cap:assets": "capacitor-assets generate --android",
+    "cap:assets": "npx --yes @capacitor/assets@3 generate --android",
     "build": "node scripts/split-landing-css.mjs && next build && serwist build",
     "start": "next start",
     "lint": "eslint",
@@ -41,7 +41,6 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
     "@serwist/cli": "^9.5.11",
     "@serwist/next": "^9.5.11",
     "@tailwindcss/postcss": "^4",

@@ -40,7 +40,7 @@ export function CapacitorNativeAppLoading() {
 
     const started = Date.now();
     let dismissed = false;
-    let progressTimer: ReturnType<typeof setInterval> | undefined;
+    let progressTimer: number | undefined;
 
     const dismiss = () => {
       if (dismissed) return;

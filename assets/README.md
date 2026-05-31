@@ -6,6 +6,10 @@ Pēc logo maiņas:
 
 ```bash
 npm run cap:assets
+```
+(palaiž `npx @capacitor/assets` – nav repo atkarības, lai CI audit paliek tīrs)
+
+```bash
 npx cap sync android
 ```
 

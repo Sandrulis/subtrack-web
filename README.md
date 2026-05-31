@@ -1088,7 +1088,7 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 
 ### 0.6.14 (2026-05-31)
 
-- **Capacitor – repazy „R” ikona un splash** – avots **`assets/icon.png`** / **`assets/splash.png`** (no **`styles/Untitled-2_1024.png`**); **`npm run cap:assets`**; tumšs fons **`#050510`**; WebView ielāde **`/native-shell-logo.png`**. **`@capacitor/assets`** devDependency.
+- **Capacitor – repazy „R” ikona un splash** – avots **`assets/icon.png`** / **`assets/splash.png`**; **`npm run cap:assets`** (`npx @capacitor/assets`, nav repo deps – CI audit); tumšs fons **`#050510`**; WebView ielāde **`/native-shell-logo.png`**.
 - **Capacitor – ielāde, atļaujas, logo ceļi** – **`CapacitorNativeAppLoading`** (logo + progress, **`@capacitor/splash-screen`**, **`launchAutoHide: false`**); **`requestNativeAppPermissions`** pēc shell gatavs (login + dashboard). README: kur likt logo (**`/admin/system`**, mipmap).
 
 ### 0.6.13 (2026-05-31)
