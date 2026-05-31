@@ -6,11 +6,23 @@ export function isAppBadgeSupported(): boolean {
   return typeof navigator !== "undefined" && "setAppBadge" in navigator;
 }
 
+async function ensureNativeBadgePermissions(
+  Badge: typeof import("@capawesome/capacitor-badge").Badge,
+): Promise<void> {
+  try {
+    const { display } = await Badge.checkPermissions();
+    if (display !== "granted") {
+      await Badge.requestPermissions();
+    }
+  } catch {
+    /* Android: tukšs permission alias – turpinām */
+  }
+}
+
 async function syncNativeAppBadgeCount(count: number): Promise<void> {
   try {
     const { Badge } = await import("@capawesome/capacitor-badge");
-    const { supported } = await Badge.isSupported();
-    if (!supported) return;
+    await ensureNativeBadgePermissions(Badge);
     if (count > 0) {
       await Badge.set({ count });
     } else {

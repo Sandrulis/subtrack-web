@@ -1,6 +1,6 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.6.8` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**; native Android – **[Capacitor (Android)](#capacitor-android)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`). Lietotājam redzamais nosaukums – **`system_settings.system_name`** (admin **`/admin/system`**).
+**Versija:** `0.6.9` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**; native Android – **[Capacitor (Android)](#capacitor-android)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`). Lietotājam redzamais nosaukums – **`system_settings.system_name`** (admin **`/admin/system`**).
 
 **SubTrack** (repozitorijs `subtrack-web`; zīmols **repazy**) ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, **`public.subscription_payments`** maksājumu žurnālam, RLS); CRUD notiek caur **Route Handlers** (`app/(app)/api/subscriptions/*`) ar kopīgu **`lib/api/`** (sesija, JSON, atbildes) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`, datumi – **`display-preferences-format.js`**) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
@@ -1055,6 +1055,10 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 ## Izmaiņu žurnāls
 
 Šeit īss pieraksts par izlaistām izmaiņām. **PWA** – **[PWA (SubTrack)](#pwa-subtrack)**. **0.4.x** no **0.4.0** (= agrāk **0.3.54**).
+
+### 0.6.9 (2026-05-31)
+
+- **Capacitor – launcher badge labojums** – **`lib/pwa/app-badge.ts`**: kļūda **`supported`** vietā **`isSupported`** no **`Badge.isSupported()`** – native skaitlis nekad netika iestatīts; tagad vienmēr **`Badge.set` / `clear`** (ar **`checkPermissions` / `requestPermissions`** kur pieejams). **Deploy** uz **repazy.com** + app restart (WebView ielādē JS no servera).
 
 ### 0.6.8 (2026-05-31)
 
