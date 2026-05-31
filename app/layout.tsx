@@ -9,6 +9,7 @@ import { CookieConsentRoot } from "@/components/legal/cookie-consent-root";
 import { PwaDeferredInstallProvider } from "@/components/pwa/pwa-deferred-install-provider";
 import { PwaInstallHost } from "@/components/pwa/pwa-install-host";
 import { CapacitorNativeAppLoading } from "@/components/capacitor/capacitor-native-app-loading";
+import { CapacitorNativeAuthPersist } from "@/components/capacitor/capacitor-native-auth-persist";
 import { CapacitorNativeShellBootstrap } from "@/components/capacitor/capacitor-native-shell-bootstrap";
 import { NativeShellBootLayer } from "@/components/capacitor/native-shell-boot-layer";
 import { NativeShellPaintGuard } from "@/components/capacitor/native-shell-paint-guard";
@@ -147,6 +148,7 @@ export default async function RootLayout({
               logoTopbar={brandLogo?.topbar ?? null}
             >
               <CapacitorNativeShellBootstrap />
+              <CapacitorNativeAuthPersist />
               <CapacitorNativeAppLoading />
               <PwaSwRegister pwa={publicSettings.pwa} />
               <UmamiAnalytics />

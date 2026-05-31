@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { CookieSettingsModal } from "@/components/legal/cookie-settings-modal";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
+import { useNativeCapacitorApp } from "@/lib/capacitor/use-native-capacitor-app";
+import { ensureNativeCookieConsent } from "@/lib/capacitor/native-cookie-consent";
 import {
   OPEN_COOKIE_SETTINGS_EVENT,
   readCookieConsentFromDocument,
@@ -17,6 +19,7 @@ const DEFAULT_CHOICE: CookieConsentChoice = {
 };
 
 export function CookieConsentRoot() {
+  const isNativeApp = useNativeCapacitorApp();
   const { t } = useSubtrackIntl();
   const [bannerVisible, setBannerVisible] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -34,10 +37,15 @@ export function CookieConsentRoot() {
   }, []);
 
   useEffect(() => {
+    if (isNativeApp) {
+      ensureNativeCookieConsent();
+      return;
+    }
     syncFromCookie();
-  }, [syncFromCookie]);
+  }, [syncFromCookie, isNativeApp]);
 
   useEffect(() => {
+    if (isNativeApp) return;
     const onOpenSettings = () => {
       const stored = readCookieConsentFromDocument();
       setDraft(
@@ -50,7 +58,7 @@ export function CookieConsentRoot() {
     window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, onOpenSettings);
     return () =>
       window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, onOpenSettings);
-  }, []);
+  }, [isNativeApp]);
 
   const applyChoice = useCallback((choice: CookieConsentChoice) => {
     writeCookieConsent(choice);
@@ -68,6 +76,10 @@ export function CookieConsentRoot() {
     );
     setModalOpen(true);
   }, []);
+
+  if (isNativeApp) {
+    return null;
+  }
 
   return (
     <>

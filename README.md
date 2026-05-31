@@ -1089,6 +1089,7 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 ### 0.6.14 (2026-05-31)
 
 - **Capacitor – repazy „R” ikona un splash** – avots **`assets/icon.png`** / **`assets/splash.png`**; **`npm run cap:assets`** (`npx @capacitor/assets`, nav repo deps – CI audit); tumšs fons **`#050510`**; WebView ielāde **`/native-shell-logo.png`**. **0.6.14+:** bez **`splashImmersive`** (Android „Viewing full screen” dialogs), tumšs WebView fons, overlay līdz login formai.
+- **Capacitor – sesija + bez cookie bannera** – native app: **`@capacitor/preferences`** sesijas backup, auto cookie consent, nav GDPR modāļa; pēc restart → **`/dashboard`** ja ielogots. **`cap sync`** obligāti.
 - **Capacitor – ielāde, atļaujas, logo ceļi** – **`CapacitorNativeAppLoading`** (logo + progress, **`@capacitor/splash-screen`**, **`launchAutoHide: false`**); **`requestNativeAppPermissions`** pēc shell gatavs (login + dashboard). README: kur likt logo (**`/admin/system`**, mipmap).
 
 ### 0.6.13 (2026-05-31)

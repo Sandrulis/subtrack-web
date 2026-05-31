@@ -6,6 +6,7 @@ import { NavUserMenu } from "@/components/nav-user-menu";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { signOutAction } from "@/lib/auth/actions";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
+import { clearNativeAuthSession } from "@/lib/capacitor/native-auth-session";
 import { useNativeCapacitorApp } from "@/lib/capacitor/use-native-capacitor-app";
 import { syncAppBadgeCount } from "@/lib/pwa/app-badge";
 
@@ -49,6 +50,7 @@ export function NavSessionActions({
           className="dash-exit"
           onClick={() => {
             void syncAppBadgeCount(0);
+            if (isNativeApp) void clearNativeAuthSession();
           }}
         >
           <svg
