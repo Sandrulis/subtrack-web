@@ -1,19 +1,17 @@
 "use client";
 
-import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
-import {
-  NATIVE_SHELL_BACKGROUND,
-  NATIVE_SHELL_LOGO_PATH,
-} from "@/lib/capacitor/native-shell-brand";
 import { isNativeCapacitorApp } from "@/lib/capacitor/native-app";
 import { useNativeCapacitorApp } from "@/lib/capacitor/use-native-capacitor-app";
 import { SUBTRACK_PAGE_CONTENT_READY_EVENT } from "@/lib/app/page-content-ready";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect } from "react";
 
 const MIN_VISIBLE_MS = 600;
 const MAX_VISIBLE_MS = 25000;
 const PROGRESS_TICK_MS = 120;
 const CONTENT_POLL_MS = 200;
+const BOOT_ID = "subtrack-native-boot";
+const BOOT_PROGRESS_ID = "subtrack-native-boot-progress";
+const PENDING_CLASS = "native-shell-pending";
 
 async function hideNativeSplash(): Promise<void> {
   try {
@@ -32,31 +30,53 @@ function hasNativeShellContent(): boolean {
   );
 }
 
+function showBootOverlay(): void {
+  document.documentElement.classList.add(PENDING_CLASS);
+  const boot = document.getElementById(BOOT_ID);
+  if (!boot) return;
+  boot.hidden = false;
+  boot.style.display = "flex";
+}
+
+function hideBootOverlay(): void {
+  document.documentElement.classList.remove(PENDING_CLASS);
+  const boot = document.getElementById(BOOT_ID);
+  if (!boot) return;
+  boot.hidden = true;
+  boot.style.display = "none";
+}
+
+function setBootProgress(percent: number): void {
+  const fill = document.getElementById(BOOT_PROGRESS_ID);
+  if (!fill) return;
+  fill.style.width = `${Math.min(100, percent)}%`;
+}
+
 /**
- * Kamēr WebView ielādē repazy.com – logo, teksts un progress (ne tukša balta lapa).
+ * Native ielāde – kontrolē SSR boot overlay (#subtrack-native-boot), nevis jaunu React slāni.
  */
 export function CapacitorNativeAppLoading() {
   const isNative = useNativeCapacitorApp();
-  const { t, systemSiteName } = useSubtrackIntl();
-  const [visible, setVisible] = useState(
-    () => typeof window !== "undefined" && isNativeCapacitorApp(),
-  );
-  const [progress, setProgress] = useState(8);
 
   useLayoutEffect(() => {
-    if (!isNative || !visible) return;
+    if (!isNative) return;
+    showBootOverlay();
     void hideNativeSplash();
-  }, [isNative, visible]);
+  }, [isNative]);
 
   useEffect(() => {
     if (!isNative) {
-      setVisible(false);
+      hideBootOverlay();
       return;
     }
-    setVisible(true);
+
+    if (typeof window !== "undefined" && isNativeCapacitorApp()) {
+      showBootOverlay();
+    }
 
     const started = Date.now();
     let dismissed = false;
+    let progress = 12;
     let progressTimer: number | undefined;
     let contentPoll: number | undefined;
 
@@ -69,16 +89,14 @@ export function CapacitorNativeAppLoading() {
       const elapsed = Date.now() - started;
       const wait = Math.max(0, MIN_VISIBLE_MS - elapsed);
       window.setTimeout(() => {
-        setProgress(100);
-        window.setTimeout(() => setVisible(false), 200);
+        setBootProgress(100);
+        window.setTimeout(hideBootOverlay, 200);
       }, wait);
     };
 
     progressTimer = window.setInterval(() => {
-      setProgress((p) => {
-        if (p >= 92) return p;
-        return p + 2 + Math.random() * 4;
-      });
+      progress = progress >= 92 ? progress : progress + 2 + Math.random() * 4;
+      setBootProgress(progress);
     }, PROGRESS_TICK_MS);
 
     contentPoll = window.setInterval(dismiss, CONTENT_POLL_MS);
@@ -88,8 +106,8 @@ export function CapacitorNativeAppLoading() {
 
     const maxTimer = window.setTimeout(() => {
       dismissed = true;
-      setProgress(100);
-      window.setTimeout(() => setVisible(false), 200);
+      setBootProgress(100);
+      window.setTimeout(hideBootOverlay, 200);
     }, MAX_VISIBLE_MS);
 
     return () => {
@@ -100,49 +118,5 @@ export function CapacitorNativeAppLoading() {
     };
   }, [isNative]);
 
-  if (!visible) return null;
-
-  const logoSrc = NATIVE_SHELL_LOGO_PATH;
-
-  return (
-    <div
-      className="cap-native-loading"
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 100000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: NATIVE_SHELL_BACKGROUND,
-        padding: "1.5rem",
-      }}
-    >
-      <div className="cap-native-loading-card">
-        {logoSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={logoSrc}
-            alt=""
-            className="cap-native-loading-logo"
-            width={96}
-            height={96}
-            decoding="async"
-          />
-        ) : (
-          <span className="cap-native-loading-name">{systemSiteName}</span>
-        )}
-        <p className="cap-native-loading-text">{t("app.page_loading")}</p>
-        <div className="cap-native-loading-bar" aria-hidden="true">
-          <div
-            className="cap-native-loading-bar-fill"
-            style={{ width: `${Math.min(100, progress)}%` }}
-          />
-        </div>
-      </div>
-    </div>
-  );
+  return null;
 }

@@ -10,6 +10,7 @@ import { PwaDeferredInstallProvider } from "@/components/pwa/pwa-deferred-instal
 import { PwaInstallHost } from "@/components/pwa/pwa-install-host";
 import { CapacitorNativeAppLoading } from "@/components/capacitor/capacitor-native-app-loading";
 import { CapacitorNativeShellBootstrap } from "@/components/capacitor/capacitor-native-shell-bootstrap";
+import { NativeShellBootLayer } from "@/components/capacitor/native-shell-boot-layer";
 import { NativeShellPaintGuard } from "@/components/capacitor/native-shell-paint-guard";
 import { PwaSwRegister } from "@/components/pwa/pwa-sw-register";
 import { FontAwesomeDeferredHead } from "@/components/font-awesome-deferred-head";
@@ -106,6 +107,8 @@ export default async function RootLayout({
   const pathname = (await headers()).get("x-pathname") ?? "";
   const bodyClassName =
     pathname === "/" ? `${inter.className} landing-page` : inter.className;
+  const nativeBootLoadingText =
+    dbMap["app.page_loading"]?.trim() || "Loading…";
 
   return (
     <html
@@ -121,6 +124,8 @@ export default async function RootLayout({
         </Script>
       </head>
       <body className={bodyClassName}>
+        <NativeShellBootLayer loadingText={nativeBootLoadingText} />
+        <div className="native-shell-app-root">
         <HtmlLangBridge
           serverUiLocaleCode={uiLocaleCode}
           preferLocalStorageLocale={!isAuthenticated}
@@ -152,6 +157,7 @@ export default async function RootLayout({
             </NavBrandBridge>
           </PwaDeferredInstallProvider>
         </SubtrackIntlProvider>
+        </div>
       </body>
     </html>
   );

@@ -7,6 +7,20 @@ html.native-shell body {
     background-color: #050510 !important;
 }
 
+/* Kamēr boot overlay aktīvs – nerādīt login/paneli zem tā */
+html.native-shell-pending .native-shell-app-root {
+    visibility: hidden !important;
+    pointer-events: none;
+}
+
+html.native-shell-pending #subtrack-native-boot {
+    display: flex !important;
+}
+
+#subtrack-native-boot[hidden] {
+    display: none !important;
+}
+
 /*
  * Login: noņem pārlūka noklusējuma button izskatu un nostiprina sociālo pogu krāsas.
  * (Safari/Chrome dažkārt rāda pelēku "native" pogu pat ar mūsu klasēm.)
