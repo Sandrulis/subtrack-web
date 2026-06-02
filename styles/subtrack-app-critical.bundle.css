@@ -5186,6 +5186,11 @@ button.dash-exit {
     margin-bottom: 24px;
 }
 
+/* Critical path: slēpt modāļus pirms deferred CSS (novērš FOUC uz refresh) */
+.modal-overlay:not(.open) {
+    display: none;
+}
+
 /* Apakšējā navigācija (panelis, admin mobilā) */
 
 /* =============================================
