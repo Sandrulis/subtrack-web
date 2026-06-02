@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AuthFormPendingFieldset } from "@/components/auth/auth-form-pending-fieldset";
 import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
@@ -44,8 +44,30 @@ export function SignupForm({
   const [email, setEmail] = useState(initialEmail.trim());
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const passwordConfirmRef = useRef<HTMLInputElement>(null);
 
   const debouncedEmail = useDebounced(email, 450);
+
+  /** Pārlūka/aizpildītāja autofill bieži nemaina React stāvokli – sinhronizē no DOM. */
+  useEffect(() => {
+    const syncPasswordFieldsFromDom = () => {
+      const p = passwordRef.current?.value ?? "";
+      const c = passwordConfirmRef.current?.value ?? "";
+      setPassword((prev) => (p !== prev ? p : prev));
+      setPasswordConfirm((prev) => (c !== prev ? c : prev));
+    };
+
+    document.addEventListener("focusin", syncPasswordFieldsFromDom);
+    const t1 = window.setTimeout(syncPasswordFieldsFromDom, 0);
+    const t2 = window.setTimeout(syncPasswordFieldsFromDom, 500);
+
+    return () => {
+      document.removeEventListener("focusin", syncPasswordFieldsFromDom);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, []);
 
   const [emailCheck, setEmailCheck] = useState<{
     email: string;
@@ -146,7 +168,7 @@ export function SignupForm({
         : undefined;
 
   return (
-    <form action={formAction} noValidate>
+    <form action={formAction} noValidate autoComplete="on">
       <AuthFormPendingFieldset>
       <div className="form-row">
         <div className="form-group">
@@ -184,7 +206,7 @@ export function SignupForm({
           id="email"
           name="email"
           placeholder={t("auth.login.email_placeholder")}
-          autoComplete="email"
+          autoComplete="username"
           required
           value={email}
           onChange={(e) => {
@@ -239,6 +261,7 @@ export function SignupForm({
         <label htmlFor="password">{t("auth.field.password")}</label>
         <div className="form-password-wrap">
           <input
+            ref={passwordRef}
             type="password"
             id="password"
             name="password"
@@ -249,6 +272,7 @@ export function SignupForm({
             className="input-has-password-toggle"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onInput={(e) => setPassword(e.currentTarget.value)}
           />
           <button
             type="button"
@@ -296,6 +320,7 @@ export function SignupForm({
           }
         >
           <input
+            ref={passwordConfirmRef}
             type="password"
             id="password_confirm"
             name="password_confirm"
@@ -306,6 +331,7 @@ export function SignupForm({
             className={`input-has-password-toggle${confirmMismatch ? " input--signup-invalid" : ""}`}
             value={passwordConfirm}
             onChange={(e) => setPasswordConfirm(e.target.value)}
+            onInput={(e) => setPasswordConfirm(e.currentTarget.value)}
             aria-invalid={confirmMismatch}
           />
           <button
