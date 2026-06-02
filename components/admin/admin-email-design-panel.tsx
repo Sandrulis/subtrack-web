@@ -12,6 +12,7 @@ import {
   buildPreviewRenderContext,
   overduePreviewContext,
   trialEndingPreviewContext,
+  accountDeletionPreviewContext,
   winBackPreviewContext,
 } from "@/lib/emails/preview-context";
 import type { DisplayPreferences } from "@/lib/user-display-preferences";
@@ -54,6 +55,7 @@ const TEMPLATE_LABEL_KEYS: Record<
   | "admin.email_design.template.trial_ending"
   | "admin.email_design.template.win_back_7d"
   | "admin.email_design.template.win_back_30d"
+  | "admin.email_design.template.account_deletion_notice"
 > = {
   confirm_signup: "admin.email_design.template.confirm_signup",
   reset_password: "admin.email_design.template.reset_password",
@@ -66,6 +68,7 @@ const TEMPLATE_LABEL_KEYS: Record<
   trial_ending: "admin.email_design.template.trial_ending",
   win_back_7d: "admin.email_design.template.win_back_7d",
   win_back_30d: "admin.email_design.template.win_back_30d",
+  account_deletion_notice: "admin.email_design.template.account_deletion_notice",
 };
 
 export type EmailDesignLocaleOption = {
@@ -124,6 +127,7 @@ export function AdminEmailDesignPanel({
 
   const isAuthTemplate = SUPABASE_AUTH_TEMPLATE_MAP[templateId] !== null;
   const isPaymentTemplate = templateId === "payment_due_today";
+  const isAccountDeletionTemplate = templateId === "account_deletion_notice";
 
   const reloadDraft = useCallback(
     (tid: EmailTemplateId, loc: EmailPreviewLocale, nextStore: EmailTemplatesStore) => {
@@ -172,6 +176,10 @@ export function AdminEmailDesignPanel({
       templateId === "win_back_7d" || templateId === "win_back_30d"
         ? winBackPreviewContext(templateId, locale, systemPrefs)
         : undefined;
+    const accountDeletionCtx =
+      templateId === "account_deletion_notice"
+        ? accountDeletionPreviewContext()
+        : undefined;
     return resolveEmailCopy(
       templateId,
       locale,
@@ -181,6 +189,7 @@ export function AdminEmailDesignPanel({
       weekRange ? { weekRangeLabel: weekRange } : undefined,
       trialCtx,
       winBackCtx,
+      accountDeletionCtx,
     );
   }, [storeForPreview, templateId, locale, initialSystemName, isPaymentTemplate, systemPrefs]);
 
@@ -394,7 +403,9 @@ export function AdminEmailDesignPanel({
           <p className="admin-email-design-hint">
             {isAuthTemplate
               ? t("admin.email_design.editor_hint_auth")
-              : t("admin.email_design.editor_hint_cron")}
+              : isAccountDeletionTemplate
+                ? t("admin.email_design.editor_hint_account_deletion")
+                : t("admin.email_design.editor_hint_cron")}
           </p>
 
           <div className="form-group">
@@ -451,6 +462,10 @@ export function AdminEmailDesignPanel({
             ) : templateId === "win_back_7d" || templateId === "win_back_30d" ? (
               <p className="form-hint">
                 {t("admin.email_design.placeholders_win_back")}
+              </p>
+            ) : isAccountDeletionTemplate ? (
+              <p className="form-hint">
+                {t("admin.email_design.placeholders_account_deletion")}
               </p>
             ) : (
               <p className="form-hint">

@@ -112,6 +112,24 @@ function subtrackIsProAnalyticsPreviewLocked() {
     return true;
 }
 
+function subtrackSyncAnalyticsEmptyState(isEmpty) {
+    var grid = document.querySelector('.analytics-grid');
+    var hint = document.getElementById('analytics-empty-hint');
+    var overlay = document.querySelector('.analytics-preview-overlay');
+    if (grid) {
+        if (isEmpty) grid.classList.add('hidden');
+        else grid.classList.remove('hidden');
+    }
+    if (hint) {
+        if (isEmpty) hint.classList.remove('hidden');
+        else hint.classList.add('hidden');
+    }
+    if (overlay) {
+        if (isEmpty) overlay.classList.add('hidden');
+        else overlay.classList.remove('hidden');
+    }
+}
+
 function subtrackSyncAnalyticsPreviewOverlay() {
     var wrap = document.querySelector('.analytics-preview-wrap--locked');
     if (!wrap) return;
@@ -131,6 +149,15 @@ function subtrackSyncAnalyticsPreviewOverlay() {
 
 function renderAnalytics() {
     if (typeof subscriptions === 'undefined') return;
+
+    var isEmpty = !subscriptions.length;
+    subtrackSyncAnalyticsEmptyState(isEmpty);
+    if (isEmpty) {
+        if (typeof refreshDashNotifications === 'function') {
+            refreshDashNotifications();
+        }
+        return;
+    }
 
     var totalMonthly = subscriptions.reduce(function (sum, s) {
         return sum + subscriptionMonthlyTotal(s);

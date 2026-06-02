@@ -282,7 +282,115 @@ a:hover { text-decoration: underline; }
 }
 
 .auth-card--settings {
-    max-width: 560px;
+    max-width: none;
+}
+
+.auth-page-inner--settings-hub {
+    flex: 1;
+    align-items: stretch;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: var(--app-shell-max);
+    margin: 0 auto;
+    padding: 28px var(--app-shell-pad-x) 40px;
+    box-sizing: border-box;
+}
+
+.settings-hub {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+    width: 100%;
+}
+
+.settings-hub__primary,
+.settings-hub__secondary {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.settings-hub-panel {
+    max-width: none;
+    width: 100%;
+    padding: 28px 24px 24px;
+    box-sizing: border-box;
+}
+
+.settings-hub-panel-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    border-radius: 12px;
+    background: linear-gradient(145deg, var(--primary-light) 0%, rgba(0, 163, 141, 0.12) 100%);
+    color: var(--primary-dark);
+    font-size: 18px;
+}
+
+.settings-hub-panel-title {
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.35px;
+    line-height: 1.25;
+    color: var(--text);
+}
+
+.settings-hub-panel-lead {
+    margin: 0 0 20px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text-muted);
+}
+
+.settings-hub-panel--password .auth-card-icon {
+    display: none;
+}
+
+.settings-hub-panel--email.auth-card--email-notif {
+    padding: 28px 24px 16px;
+}
+
+.settings-hub-panel--email .email-notif-header {
+    margin-bottom: 22px;
+}
+
+.settings-hub-panel--email .email-notif-section {
+    margin-bottom: 14px;
+}
+
+.settings-hub-panel--email .email-notif-footnote {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.settings-hub-panel--email .email-notif-title {
+    font-size: 22px;
+}
+
+.settings-hub-dashboard-link {
+    margin-top: 8px;
+}
+
+@media (max-width: 960px) {
+    .settings-hub {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-page-inner--settings-hub {
+        padding-top: 24px;
+    }
+}
+
+@media (min-width: 961px) {
+    .auth-page-inner--settings-hub .auth-card--settings {
+        height: 100%;
+    }
 }
 
 .settings-autosave-status {
@@ -497,6 +605,22 @@ a:hover { text-decoration: underline; }
 
 .settings-google-connect-btn {
     margin-top: 12px;
+}
+
+.settings-hub-panel-icon--danger {
+    background: linear-gradient(145deg, #fee2e2 0%, rgba(239, 68, 68, 0.12) 100%);
+    color: #b91c1c;
+}
+
+.settings-hub-panel--delete .settings-delete-account-btn {
+    margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+    .settings-hub-panel--delete .settings-delete-account-btn {
+        width: 100%;
+        box-sizing: border-box;
+    }
 }
 
 .settings-google-connect-linked {
@@ -5017,6 +5141,17 @@ a.dash-nav-link--cta.is-active .dash-icon {
 }
 
 /* Analītikas lapa */
+.analytics-empty-hint {
+    margin: 48px auto 56px;
+    padding: 0 24px;
+    max-width: 28rem;
+    text-align: center;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
 .analytics-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5657,9 +5792,11 @@ button.dash-exit {
 }
 
 .dashboard-overview-stats-row > .stat-card .stat-value {
-    font-size: clamp(1.125rem, 1.6vw + 0.65rem, 1.625rem);
-    letter-spacing: -0.4px;
-    line-height: 1.15;
+    /* Tāds pats izmērs kā „Kavētie maksājumi” (.stat-value--next) */
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.1;
     max-width: 100%;
 }
 
@@ -5668,15 +5805,19 @@ button.dash-exit {
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    min-height: 58px;
+    min-height: 44px;
     min-width: 0;
     width: 100%;
-    margin-top: 6px;
+    margin-top: 4px;
 }
 
 .dashboard-overview-stats-row > .stat-card .stat-card-foot {
     flex-shrink: 0;
-    margin-top: 6px;
+    margin-top: 2px;
+}
+
+.dashboard-overview-stats-row > .stat-card .stat-note {
+    line-height: 1.25;
 }
 
 .dashboard-overview-stats-row > .stat-card.stat-card--total .stat-card-main .stat-value-row {
@@ -5838,6 +5979,7 @@ button.dash-exit {
 .pay-calendar-body {
     position: relative;
     min-width: 0;
+    min-height: 10rem;
 }
 
 .pay-calendar-card--preview-locked {
@@ -5942,6 +6084,7 @@ button.dash-exit {
 .pay-calendar {
     font-size: 13px;
     user-select: none;
+    min-height: 11.5rem;
 }
 
 .pay-cal-weekdays {
@@ -6487,10 +6630,23 @@ button.dash-exit {
     margin-top: 14px;
 }
 
+.dashboard-sub-list-empty-hint {
+    margin: 20px 0 32px;
+    padding: 0 16px;
+    text-align: center;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.section-header.section-header--subscriptions-list ~ .dashboard-sub-list-empty-hint:not(.hidden) {
+    display: block;
+}
+
 /* Panelis ≤960px: abonementu saraksts zem kalendāra – lazy paint (Speed Index) */
 @media (max-width: 960px) {
     .section-header.section-header--subscriptions-list,
-    .section-header.section-header--subscriptions-list ~ .dashboard-category-bar,
     .section-header.section-header--subscriptions-list ~ .sub-list,
     .section-header.section-header--subscriptions-list ~ .empty-state {
         content-visibility: auto;
@@ -7921,8 +8077,10 @@ html.subtrack-modal-open body {
         font-size: 24px;
     }
 
-    .stat-value--next {
+    .stat-value--next,
+    .dashboard-overview-stats-row > .stat-card .stat-value {
         font-size: 24px;
+        letter-spacing: -0.5px;
     }
 }
 
@@ -11272,8 +11430,119 @@ html.subtrack-modal-open body {
         min-height: 0;
     }
 
+    /* Kopējā summa + aktīvie maksājumi – divās kolonās */
     .app-layout .dashboard-overview-stats-row {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    /* Ar budžetu: budžeta atlikums | kavētie vienā rindā (display:contents uz wrapperiem) */
+    .app-layout
+        .dashboard-overview-right-col--has-budget:has(
+            .stat-next-pay-col--overdue
+        ) {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .app-layout
+        .dashboard-overview-right-col--has-budget:has(
+            .stat-next-pay-col--overdue
+        )
+        .dashboard-overview-head-col {
+        grid-column: 1 / -1;
+    }
+
+    .app-layout
+        .dashboard-overview-right-col--has-budget:has(
+            .stat-next-pay-col--overdue
+        )
+        .dashboard-overview-stats-row {
+        display: contents;
+    }
+
+    .app-layout
+        .dashboard-overview-right-col--has-budget:has(
+            .stat-next-pay-col--overdue
+        )
+        .dashboard-overview-next-slot {
+        display: contents;
+    }
+
+    .app-layout
+        .dashboard-overview-right-col--has-budget:has(
+            .stat-next-pay-col--overdue
+        )
+        .stat-next-pay-grid {
+        display: contents;
+    }
+
+    .app-layout
+        .dashboard-overview-right-col--has-budget:has(
+            .stat-next-pay-col--overdue
+        )
+        .stat-next-pay-col--today,
+    .app-layout
+        .dashboard-overview-right-col--has-budget:has(
+            .stat-next-pay-col--overdue
+        )
+        .stat-next-pay-col--next,
+    .app-layout
+        .dashboard-overview-right-col--has-budget:has(
+            .stat-next-pay-col--overdue
+        )
+        .stat-next-pay-col--next-compact {
+        grid-column: 1 / -1;
+    }
+
+    /* Bez kavēto: budžets pilnā platumā zem kopējās / aktīvo rindas */
+    .app-layout
+        .dashboard-overview-right-col--has-budget:not(
+            :has(.stat-next-pay-col--overdue)
+        )
+        .dashboard-overview-stats-row--has-budget
+        > .stat-card:nth-child(3) {
+        grid-column: 1 / -1;
+    }
+
+    .app-layout
+        .dashboard-overview-right-col--has-budget:has(
+            .stat-next-pay-col--overdue
+        )
+        #stat-budget-card {
+        grid-column: 1;
+        min-height: 0;
+        padding: 16px 12px;
+    }
+
+    .app-layout
+        .dashboard-overview-right-col--has-budget:has(
+            .stat-next-pay-col--overdue
+        )
+        .stat-next-pay-col--overdue {
+        grid-column: 2;
+        min-height: 0;
+        padding: 16px 12px;
+    }
+
+    .app-layout .dashboard-overview-stats-row > .stat-card {
+        padding: 16px 12px;
+    }
+
+    .app-layout .dashboard-overview-stats-row > .stat-card .stat-card-main {
+        min-height: 0;
+        margin-top: 4px;
+    }
+
+    .app-layout .dashboard-overview-stats-row > .stat-card .stat-card-foot {
+        margin-top: 0;
+    }
+
+    /* Kategoriju sadalījums virs abonementu saraksta – tikai desktop */
+    .app-layout .dashboard-category-bar {
+        display: none !important;
     }
 
     .app-layout .dashboard-overview-head-col .page-header {
@@ -11312,7 +11581,8 @@ html.subtrack-modal-open body {
     }
 
     .landing-hero-dashboard-mock .dashboard-overview-stats-row {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
         width: 100%;
     }
 

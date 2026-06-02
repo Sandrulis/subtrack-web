@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { DashboardPayCalendarInitial } from "@/components/fs/dashboard-pay-calendar-initial";
+import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import { NavDash } from "@/components/nav-dash";
 import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
 import { loadDashboardPageScripts } from "@/components/fs/load-fs-scripts";
@@ -48,7 +50,19 @@ export function DashboardFsView({
   /** Publiskais `/demo/dashboard`: bez API, navigācija paliek demo maršrutos. */
   demoMode?: boolean;
 }) {
-  const { t, paidPlan } = useSubtrackIntl();
+  const { t, paidPlan, signupEnabled, locale } = useSubtrackIntl();
+  const intlLocale = useMemo(() => uiLocaleCodeToBcp47ForIntl(locale), [locale]);
+  const payCalendarMonthTitle = useMemo(() => {
+    const now = new Date();
+    try {
+      return new Intl.DateTimeFormat(intlLocale, {
+        month: "long",
+        year: "numeric",
+      }).format(new Date(now.getFullYear(), now.getMonth(), 15));
+    } catch {
+      return `${now.getMonth() + 1}.${now.getFullYear()}`;
+    }
+  }, [intlLocale]);
   const calPaidToggleLabel = t("fs.dashboard.cal_toggle_all_payments_label");
   const calPaidToggleHint = t("fs.dashboard.cal_toggle_all_payments_hint");
   const calPaidToggleTitle = [calPaidToggleLabel, calPaidToggleHint]
@@ -105,13 +119,15 @@ export function DashboardFsView({
             <div className="subtrack-demo-banner-inner">
               <i className="fa-solid fa-circle-info" aria-hidden="true" />
               <p>{t("demo.banner")}</p>
-              <Link
-                href="/signup"
-                className="btn btn-primary btn-sm subtrack-demo-banner-cta"
-              >
-                {t("landing.hero.cta_signup")}
-                <i className="fa-solid fa-arrow-right" aria-hidden="true" />
-              </Link>
+              {signupEnabled ? (
+                <Link
+                  href="/signup"
+                  className="btn btn-primary btn-sm subtrack-demo-banner-cta"
+                >
+                  {t("landing.hero.cta_signup")}
+                  <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+                </Link>
+              ) : null}
             </div>
           </div>
         ) : null}
@@ -149,7 +165,7 @@ export function DashboardFsView({
                         <i className="fa-solid fa-chevron-left" aria-hidden="true" />
                       </button>
                       <h2 className="pay-calendar-title" id="pay-calendar-title">
-                        &nbsp;
+                        {payCalendarMonthTitle}
                       </h2>
                       <button
                         type="button"
@@ -166,7 +182,9 @@ export function DashboardFsView({
                         className="pay-calendar"
                         role="region"
                         aria-labelledby="pay-calendar-title"
-                      />
+                      >
+                        <DashboardPayCalendarInitial previewLocked={calendarPreviewLocked} />
+                      </div>
                       {calendarPreviewLocked ? (
                         <div
                           className="pay-calendar-preview-overlay"
@@ -217,7 +235,14 @@ export function DashboardFsView({
                 </div>
               </div>
 
-            <div className="dashboard-overview-right-col">
+            <div
+              className={
+                "dashboard-overview-right-col" +
+                (monthlyBudget != null
+                  ? " dashboard-overview-right-col--has-budget"
+                  : "")
+              }
+            >
                 <div className="dashboard-overview-head-col">
                   <div className="page-header">
                     <div className="page-header-title-stack">
@@ -355,9 +380,21 @@ export function DashboardFsView({
 
           <div id="sub-list" className="sub-list" />
 
+          <p
+            id="dashboard-sub-list-empty-hint"
+            className={
+              "dashboard-sub-list-empty-hint" +
+              (initialSubscriptions.length === 0 ? "" : " hidden")
+            }
+            role="status"
+          >
+            {t("fs.dashboard.empty_list_hint")}
+          </p>
+
           <div
             id="empty-state"
             className="empty-state empty-state--dashboard hidden"
+            aria-hidden="true"
             aria-live="polite"
           >
             <div className="empty-state-card">

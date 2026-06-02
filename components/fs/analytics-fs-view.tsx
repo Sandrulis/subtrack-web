@@ -36,6 +36,7 @@ export function AnalyticsFsView({
   const trialProgress: ProTrialProgress | null = userDisplay?.proTrialProgress ?? null;
   const analyticsPreviewLocked = isProFeaturePreviewLocked(freeTierGate);
   const contentReady = useFsPageContentReady();
+  const hasSubscriptions = initialSubscriptions.length > 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +76,17 @@ export function AnalyticsFsView({
               (analyticsPreviewLocked ? " analytics-preview-wrap--locked" : "")
             }
           >
-          <div className="analytics-grid">
+          <p
+            id="analytics-empty-hint"
+            className={
+              "analytics-empty-hint" + (hasSubscriptions ? " hidden" : "")
+            }
+          >
+            {t("fs.analytics.empty_no_data")}
+          </p>
+          <div
+            className={"analytics-grid" + (hasSubscriptions ? "" : " hidden")}
+          >
             <div className="stat-card analytics-card">
               <div className="stat-label">{t("fs.analytics.stat_monthly_total")}</div>
               <div className="stat-value" id="analytics-monthly-total">

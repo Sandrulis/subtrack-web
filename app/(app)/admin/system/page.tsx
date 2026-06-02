@@ -23,6 +23,7 @@ export default async function AdminSystemPage() {
         initialLogoRevision={data.initialLogoRevision}
         initialTopbarLogoRevision={data.initialTopbarLogoRevision}
         initialDefaults={data.initialDefaults}
+        initialSignupEnabled={data.initialSignupEnabled}
         initialPaidPlan={data.initialPaidPlan}
         initialProTrial={data.initialProTrial}
         initialPaidPlanLifetime={data.initialPaidPlanLifetime}

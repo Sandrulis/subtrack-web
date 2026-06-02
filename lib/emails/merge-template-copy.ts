@@ -3,6 +3,7 @@ import {
   applyPaymentPlaceholders,
   applySystemNameToCopy,
   applyTrialPlaceholders,
+  applyAccountDeletionPlaceholders,
   applyWinBackPlaceholders,
   applyWeeklySubjectPlaceholders,
   getDefaultEmailCopy,
@@ -53,6 +54,12 @@ export function resolveEmailCopy(
   weeklyCtx?: { weekRangeLabel: string },
   trialCtx?: { trialDaysRemaining: number; trialEndDateFormatted: string },
   winBackCtx?: { inactiveDays: number; lastSeenFormatted: string },
+  accountDeletionCtx?: {
+    userEmail: string;
+    userDisplayName: string;
+    userId: string;
+    deletionReason: string;
+  },
 ): EmailTemplateCopy {
   const merged = mergeEmailTemplateCopy(templateId, locale, store);
   const name = systemName.trim();
@@ -74,6 +81,12 @@ export function resolveEmailCopy(
     winBackCtx
   ) {
     return applyWinBackPlaceholders(merged, { systemName: name, ...winBackCtx });
+  }
+  if (templateId === "account_deletion_notice" && accountDeletionCtx) {
+    return applyAccountDeletionPlaceholders(merged, {
+      systemName: name,
+      ...accountDeletionCtx,
+    });
   }
   return applySystemNameToCopy(merged, name);
 }

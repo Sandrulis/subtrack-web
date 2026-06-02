@@ -262,7 +262,8 @@ window.subtrackEnrichAllSubscriptionsFamilyShare = subtrackEnrichAllSubscription
 function renderList(scrollToItemId) {
     var list = document.getElementById('sub-list');
     var empty = document.getElementById('empty-state');
-    if (!list || !empty) {
+    var emptyHint = document.getElementById('dashboard-sub-list-empty-hint');
+    if (!list) {
         subtrackRefreshFreeTierAddButtons();
         return;
     }
@@ -275,7 +276,8 @@ function renderList(scrollToItemId) {
         }
         renderPaymentCalendar();
         list.innerHTML = '';
-        empty.classList.remove('hidden');
+        if (empty) empty.classList.add('hidden');
+        if (emptyHint) emptyHint.classList.remove('hidden');
         if (typeof refreshDashNotifications === 'function') {
             refreshDashNotifications();
         }
@@ -285,7 +287,8 @@ function renderList(scrollToItemId) {
 
     renderPaymentCalendar();
 
-    empty.classList.add('hidden');
+    if (empty) empty.classList.add('hidden');
+    if (emptyHint) emptyHint.classList.add('hidden');
     var sorted = subscriptions.slice().sort(function (a, b) {
         return new Date(a.date + 'T00:00:00') - new Date(b.date + 'T00:00:00');
     });

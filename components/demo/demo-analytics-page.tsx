@@ -62,7 +62,7 @@ export function DemoAnalyticsPage({
   userDisplay?: NavUserDisplay | null;
   analyticsSnapshot: DemoAnalyticsSnapshot;
 }) {
-  const { t, paidPlan } = useSubtrackIntl();
+  const { t, paidPlan, signupEnabled } = useSubtrackIntl();
   const snap = analyticsSnapshot;
   const pieRows = snap.pieRows;
   const pieTotal = pieRows.reduce((s, x) => s + x.amount, 0);
@@ -82,10 +82,12 @@ export function DemoAnalyticsPage({
         <div className="subtrack-demo-banner-inner">
           <i className="fa-solid fa-circle-info" aria-hidden="true" />
           <p>{t("demo.banner")}</p>
-          <Link href="/signup" className="btn btn-primary btn-sm subtrack-demo-banner-cta">
-            {t("landing.hero.cta_signup")}
-            <i className="fa-solid fa-arrow-right" aria-hidden="true" />
-          </Link>
+          {signupEnabled ? (
+            <Link href="/signup" className="btn btn-primary btn-sm subtrack-demo-banner-cta">
+              {t("landing.hero.cta_signup")}
+              <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+            </Link>
+          ) : null}
         </div>
       </div>
       <main className="main-content demo-main">

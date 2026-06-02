@@ -14,6 +14,7 @@ const SUPABASE_CTA_URL: Record<EmailTemplateId, string> = {
   trial_ending: "{{ .SiteURL }}/subscribe",
   win_back_7d: "{{ .SiteURL }}/dashboard",
   win_back_30d: "{{ .SiteURL }}/dashboard",
+  account_deletion_notice: "{{ .SiteURL }}/admin/users",
 };
 
 /** Supabase Auth šabloniem: teksts ar Go mainīgajiem (bez pilna HTML wrapper, ja vēlies vienkāršāku) */

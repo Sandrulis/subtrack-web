@@ -48,6 +48,7 @@ export function buildPreviewRenderContext(
     trial_ending: `${baseUrl}/subscribe`,
     win_back_7d: `${baseUrl}/dashboard`,
     win_back_30d: `${baseUrl}/dashboard`,
+    account_deletion_notice: `${baseUrl}/admin/users`,
   };
 
   return {
@@ -81,6 +82,21 @@ export function trialEndingPreviewContext(
       locale,
       systemDefaults,
     ),
+  };
+}
+
+export function accountDeletionPreviewContext(): {
+  userEmail: string;
+  userDisplayName: string;
+  userId: string;
+  deletionReason: string;
+} {
+  return {
+    userEmail: "lietotajs@example.com",
+    userDisplayName: "Anna Bērziņa",
+    userId: "00000000-0000-4000-8000-000000000001",
+    deletionReason:
+      "Pārāk daudz manuālas ievades – vēlos vienkāršāku risinājumu citur.",
   };
 }
 

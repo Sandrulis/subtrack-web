@@ -122,9 +122,11 @@
 }
 
 .dashboard-overview-stats-row > .stat-card .stat-value {
-    font-size: clamp(1.125rem, 1.6vw + 0.65rem, 1.625rem);
-    letter-spacing: -0.4px;
-    line-height: 1.15;
+    /* Tāds pats izmērs kā „Kavētie maksājumi” (.stat-value--next) */
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.1;
     max-width: 100%;
 }
 
@@ -133,15 +135,19 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    min-height: 58px;
+    min-height: 44px;
     min-width: 0;
     width: 100%;
-    margin-top: 6px;
+    margin-top: 4px;
 }
 
 .dashboard-overview-stats-row > .stat-card .stat-card-foot {
     flex-shrink: 0;
-    margin-top: 6px;
+    margin-top: 2px;
+}
+
+.dashboard-overview-stats-row > .stat-card .stat-note {
+    line-height: 1.25;
 }
 
 .dashboard-overview-stats-row > .stat-card.stat-card--total .stat-card-main .stat-value-row {
@@ -303,6 +309,7 @@
 .pay-calendar-body {
     position: relative;
     min-width: 0;
+    min-height: 10rem;
 }
 
 .pay-calendar-card--preview-locked {
@@ -407,6 +414,7 @@
 .pay-calendar {
     font-size: 13px;
     user-select: none;
+    min-height: 11.5rem;
 }
 
 .pay-cal-weekdays {
@@ -952,10 +960,23 @@
     margin-top: 14px;
 }
 
+.dashboard-sub-list-empty-hint {
+    margin: 20px 0 32px;
+    padding: 0 16px;
+    text-align: center;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.section-header.section-header--subscriptions-list ~ .dashboard-sub-list-empty-hint:not(.hidden) {
+    display: block;
+}
+
 /* Panelis ≤960px: abonementu saraksts zem kalendāra – lazy paint (Speed Index) */
 @media (max-width: 960px) {
     .section-header.section-header--subscriptions-list,
-    .section-header.section-header--subscriptions-list ~ .dashboard-category-bar,
     .section-header.section-header--subscriptions-list ~ .sub-list,
     .section-header.section-header--subscriptions-list ~ .empty-state {
         content-visibility: auto;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { NavDash } from "@/components/nav-dash";
 import type { NavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
@@ -24,6 +24,10 @@ import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import {
   AppPageContentGate,
 } from "@/components/app/app-page-content-gate";
+import { FlashParamToast } from "@/components/flash-param-toast";
+import { SettingsChangePasswordPanel } from "@/components/settings/settings-change-password-panel";
+import { SettingsDeleteAccountPanel } from "@/components/settings/settings-delete-account-panel";
+import { SettingsEmailNotificationsPanel } from "@/components/settings/settings-email-notifications-panel";
 
 function pickInterfaceLanguageAgainstCatalog(
   code: string,
@@ -42,16 +46,24 @@ const AUTOSAVE_DEBOUNCE_MS = 450;
 export function SettingsFsViewClient({
   brand = null,
   userDisplay,
+  accountEmail = "",
   dbPreferencesRaw,
   languageOptions,
   preferenceBase,
+  emailNotificationPreferencesRaw,
+  flashError,
+  flashMessage,
 }: {
   brand?: NavBrandSnapshot | null;
   userDisplay?: NavUserDisplay | null;
+  accountEmail?: string;
   /** No servera: `users.display_preferences` vai null */
   dbPreferencesRaw: unknown | null;
   languageOptions: SettingsLanguageOption[];
   preferenceBase: DisplayPreferences;
+  emailNotificationPreferencesRaw: unknown;
+  flashError?: string;
+  flashMessage?: string;
 }) {
   const [prefs, setPrefs] = useState<DisplayPreferences>(() =>
     mergeDisplayPreferences({}, preferenceBase),
@@ -206,20 +218,22 @@ export function SettingsFsViewClient({
     <>
       <NavDash active="" userDisplay={userDisplay} brand={brand} />
       <AppPageContentGate ready={hydrated}>
-        <div className="auth-page-inner">
-        <div className="auth-card auth-card--settings auth-card--form">
-          <div className="auth-card-icon">
-            <i className="fa-solid fa-sliders fa-xl" aria-hidden="true" />
-          </div>
-          <h1>{t("settings.page_heading")}</h1>
+        <div className="auth-page-inner auth-page-inner--settings-hub">
+          <div className="settings-hub">
+            <div className="settings-hub__primary">
+              <div className="auth-card auth-card--settings auth-card--form">
+                <div className="auth-card-icon">
+                  <i className="fa-solid fa-sliders fa-xl" aria-hidden="true" />
+                </div>
+                <h1>{t("settings.page_heading")}</h1>
 
-          <form
-            id="settings-form"
-            noValidate
-            onSubmit={(e) => {
-              e.preventDefault();
-            }}
-          >
+                <form
+                  id="settings-form"
+                  noValidate
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                  }}
+                >
             <p className="form-section-label">{t("settings.section_language")}</p>
             <div className="form-group">
               <label htmlFor="set-ui-lang">{t("settings.label_language_default")}</label>
@@ -429,16 +443,35 @@ export function SettingsFsViewClient({
             </div>
           </form>
 
-          <p className="auth-footer">
-            <Link href="/dashboard">{t("settings.link_dashboard")}</Link>
-          </p>
-        </div>
+              <p className="auth-footer settings-hub-dashboard-link">
+                <Link href="/dashboard">{t("settings.link_dashboard")}</Link>
+              </p>
+            </div>
+            </div>
+
+            <div className="settings-hub__secondary">
+              <SettingsChangePasswordPanel />
+              <Suspense fallback={null}>
+                <SettingsEmailNotificationsPanel
+                  userDisplay={userDisplay}
+                  initialPreferences={emailNotificationPreferencesRaw}
+                />
+              </Suspense>
+              <SettingsDeleteAccountPanel
+                userDisplay={userDisplay}
+                accountEmail={accountEmail}
+                ready={hydrated}
+              />
+            </div>
+          </div>
         </div>
       </AppPageContentGate>
 
       <SiteLandingFooter showAuthedActionLinks={Boolean(userDisplay)} />
 
-      <div className="toast-container toast-container--auth-pages" id="toast-container" />
+      <div className="toast-container toast-container--auth-pages" id="toast-container">
+        <FlashParamToast error={flashError} message={flashMessage} />
+      </div>
     </>
   );
 }

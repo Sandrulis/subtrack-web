@@ -68,6 +68,10 @@ const sharedFooterPath = path.join(modulesDir, "shared-footer.css");
 const landingShellPath = path.join(modulesDir, "landing-shell.css");
 const mockPanelPath = path.join(modulesDir, "landing-mock-panel.css");
 const demoAppPath = path.join(modulesDir, "demo-app.css");
+const subtrackAppPanelPath = path.join(modulesDir, "subtrack-app-panel.css");
+const subtrackAppDeferredPath = path.join(modulesDir, "subtrack-app-deferred.css");
+const subtrackAppShellNavPath = path.join(modulesDir, "subtrack-app-shell-nav.css");
+const subtrackAppTailPath = path.join(modulesDir, "subtrack-app-tail.css");
 const subtrackAppPath = path.join(modulesDir, "subtrack-app.css");
 
 fs.writeFileSync(corePath, sliceRange(1, idxLandingPage));
@@ -103,9 +107,38 @@ fs.writeFileSync(
 );
 
 fs.writeFileSync(
+  subtrackAppPanelPath,
+  "/* Panelis / analītika: layout, kalendārs, stats, saraksts (pirms Modal) */\n" +
+    sliceRange(idxDashboardLayout + 1, idxModal - 1),
+);
+
+fs.writeFileSync(
+  subtrackAppDeferredPath,
+  "/* Atlikts: modāļi, toast, admin, e-pasts dizains */\n" +
+    sliceRange(idxModal, idxMobileNav - 1),
+);
+
+fs.writeFileSync(
+  subtrackAppShellNavPath,
+  "/* Apakšējā navigācija (panelis, admin mobilā) */\n" +
+    sliceRange(idxMobileNav, idxSubscribe - 1),
+);
+
+fs.writeFileSync(
+  subtrackAppTailPath,
+  "/* Subscribe, legal, cookie, pārējais app */\n" +
+    sliceRange(idxSubscribe, lines.length),
+);
+
+fs.writeFileSync(
   subtrackAppPath,
-  "/* App UI: dashboard, admin, auth, panel */\n" +
-    sliceRange(idxDashboardLayout + 1, lines.length),
+  "/* App UI: dashboard, admin, auth, panel (kopā) */\n" +
+    [
+      fs.readFileSync(subtrackAppPanelPath, "utf8"),
+      fs.readFileSync(subtrackAppDeferredPath, "utf8"),
+      fs.readFileSync(subtrackAppShellNavPath, "utf8"),
+      fs.readFileSync(subtrackAppTailPath, "utf8"),
+    ].join(""),
 );
 
 function writeFlatBundle(outPath, partPaths) {
@@ -117,6 +150,9 @@ function writeFlatBundle(outPath, partPaths) {
 
 const landingOut = path.join(root, "styles", "landing.css");
 const appBundleOut = path.join(root, "styles", "subtrack-app.bundle.css");
+const appCriticalOut = path.join(root, "styles", "subtrack-app-critical.bundle.css");
+const appDeferredOut = path.join(root, "styles", "subtrack-app-deferred.bundle.css");
+const publicStylesDir = path.join(root, "public", "styles");
 
 writeFlatBundle(landingOut, [
   corePath,
@@ -127,6 +163,22 @@ writeFlatBundle(landingOut, [
 ]);
 
 writeFlatBundle(appBundleOut, [corePath, sharedFooterPath, demoAppPath, subtrackAppPath]);
+
+writeFlatBundle(appCriticalOut, [
+  corePath,
+  sharedFooterPath,
+  subtrackAppPanelPath,
+  subtrackAppShellNavPath,
+]);
+
+writeFlatBundle(appDeferredOut, [
+  demoAppPath,
+  subtrackAppDeferredPath,
+  subtrackAppTailPath,
+]);
+
+fs.mkdirSync(publicStylesDir, { recursive: true });
+fs.copyFileSync(appDeferredOut, path.join(publicStylesDir, "subtrack-app-deferred.bundle.css"));
 
 function assertValidCss(filePath) {
   const css = fs.readFileSync(filePath, "utf8");
@@ -140,11 +192,17 @@ function assertValidCss(filePath) {
   }
 }
 
-for (const f of [landingOut, appBundleOut]) {
+for (const f of [landingOut, appBundleOut, appCriticalOut, appDeferredOut]) {
   assertValidCss(f);
 }
 
-for (const f of ["styles/subtrack.css", "styles/landing.css", "styles/subtrack-app.bundle.css"]) {
+for (const f of [
+  "styles/subtrack.css",
+  "styles/landing.css",
+  "styles/subtrack-app.bundle.css",
+  "styles/subtrack-app-critical.bundle.css",
+  "styles/subtrack-app-deferred.bundle.css",
+]) {
   const kb = (fs.statSync(path.join(root, f)).size / 1024).toFixed(1);
   console.log(`${f}: ${kb} KB`);
 }

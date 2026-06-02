@@ -1659,6 +1659,17 @@ a.dash-nav-link--cta.is-active .dash-icon {
 }
 
 /* Analītikas lapa */
+.analytics-empty-hint {
+    margin: 48px auto 56px;
+    padding: 0 24px;
+    max-width: 28rem;
+    text-align: center;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
 .analytics-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

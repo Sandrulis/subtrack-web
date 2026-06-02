@@ -16,7 +16,7 @@ export function AuthLoginFlow({
   oauthGoogleEnabled: boolean;
   oauthAppleEnabled: boolean;
 }) {
-  const { t } = useSubtrackIntl();
+  const { t, signupEnabled } = useSubtrackIntl();
 
   return (
     <div className="auth-card auth-card--form auth-card--login">
@@ -83,10 +83,12 @@ export function AuthLoginFlow({
         nextPath={nextPath}
       />
 
-      <p className="auth-footer">
-        {t("auth.login.no_account")}{" "}
-        <Link href="/signup">{t("auth.login.signup_link")}</Link>
-      </p>
+      {signupEnabled ? (
+        <p className="auth-footer">
+          {t("auth.login.no_account")}{" "}
+          <Link href="/signup">{t("auth.login.signup_link")}</Link>
+        </p>
+      ) : null}
     </div>
   );
 }

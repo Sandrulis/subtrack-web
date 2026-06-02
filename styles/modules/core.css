@@ -282,7 +282,115 @@ a:hover { text-decoration: underline; }
 }
 
 .auth-card--settings {
-    max-width: 560px;
+    max-width: none;
+}
+
+.auth-page-inner--settings-hub {
+    flex: 1;
+    align-items: stretch;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: var(--app-shell-max);
+    margin: 0 auto;
+    padding: 28px var(--app-shell-pad-x) 40px;
+    box-sizing: border-box;
+}
+
+.settings-hub {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+    width: 100%;
+}
+
+.settings-hub__primary,
+.settings-hub__secondary {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.settings-hub-panel {
+    max-width: none;
+    width: 100%;
+    padding: 28px 24px 24px;
+    box-sizing: border-box;
+}
+
+.settings-hub-panel-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    border-radius: 12px;
+    background: linear-gradient(145deg, var(--primary-light) 0%, rgba(0, 163, 141, 0.12) 100%);
+    color: var(--primary-dark);
+    font-size: 18px;
+}
+
+.settings-hub-panel-title {
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.35px;
+    line-height: 1.25;
+    color: var(--text);
+}
+
+.settings-hub-panel-lead {
+    margin: 0 0 20px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text-muted);
+}
+
+.settings-hub-panel--password .auth-card-icon {
+    display: none;
+}
+
+.settings-hub-panel--email.auth-card--email-notif {
+    padding: 28px 24px 16px;
+}
+
+.settings-hub-panel--email .email-notif-header {
+    margin-bottom: 22px;
+}
+
+.settings-hub-panel--email .email-notif-section {
+    margin-bottom: 14px;
+}
+
+.settings-hub-panel--email .email-notif-footnote {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.settings-hub-panel--email .email-notif-title {
+    font-size: 22px;
+}
+
+.settings-hub-dashboard-link {
+    margin-top: 8px;
+}
+
+@media (max-width: 960px) {
+    .settings-hub {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-page-inner--settings-hub {
+        padding-top: 24px;
+    }
+}
+
+@media (min-width: 961px) {
+    .auth-page-inner--settings-hub .auth-card--settings {
+        height: 100%;
+    }
 }
 
 .settings-autosave-status {
@@ -497,6 +605,22 @@ a:hover { text-decoration: underline; }
 
 .settings-google-connect-btn {
     margin-top: 12px;
+}
+
+.settings-hub-panel-icon--danger {
+    background: linear-gradient(145deg, #fee2e2 0%, rgba(239, 68, 68, 0.12) 100%);
+    color: #b91c1c;
+}
+
+.settings-hub-panel--delete .settings-delete-account-btn {
+    margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+    .settings-hub-panel--delete .settings-delete-account-btn {
+        width: 100%;
+        box-sizing: border-box;
+    }
 }
 
 .settings-google-connect-linked {

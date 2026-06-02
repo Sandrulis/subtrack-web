@@ -167,28 +167,6 @@ export function NavUserMenu({
         aria-hidden={!open}
         hidden={!open}
       >
-        <Link
-          href="/change-password"
-          prefetch={false}
-          className="dash-user-dropdown-item"
-          role="menuitem"
-          onClick={() => setOpen(false)}
-        >
-          <svg
-            className="dash-user-dropdown-icon"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path
-              fill="currentColor"
-              d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H9V6c0-1.66 1.34-3 3-3s3 1.34 3 3v2z"
-            />
-          </svg>
-          <span>{t("session.change_password")}</span>
-        </Link>
         {integrations.familySharingEnabled ? (
           <Link
             href="/family-sharing"
@@ -213,28 +191,6 @@ export function NavUserMenu({
             <span>{t("session.family_sharing")}</span>
           </Link>
         ) : null}
-        <Link
-          href="/email-notifications"
-          prefetch={false}
-          className="dash-user-dropdown-item"
-          role="menuitem"
-          onClick={() => setOpen(false)}
-        >
-          <svg
-            className="dash-user-dropdown-icon"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path
-              fill="currentColor"
-              d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"
-            />
-          </svg>
-          <span>{t("session.email_notifications")}</span>
-        </Link>
         <NavUserBillingMenuItem
           userDisplay={userDisplay}
           onCloseMenu={() => setOpen(false)}

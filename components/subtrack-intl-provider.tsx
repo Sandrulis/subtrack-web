@@ -30,6 +30,8 @@ type SubtrackIntlCtx = {
   brandLogo: PublicBrandLogoAssets | null;
   /** Maksas plāna pitch no `system_settings` (cena, limits, ieslēgšana). */
   paidPlan: SubtrackPublicPaidPlan;
+  /** Admin slēdzis: ja false, reģistrācijas UI ir slēgts. */
+  signupEnabled: boolean;
   pwa: PublicPwaSettings;
   integrations: SubtrackIntegrationFlags;
   /** Valodu izvēlne globālajam slēdzim (no `public.languages`). */
@@ -61,6 +63,7 @@ const SubtrackIntlReactContext = createContext<SubtrackIntlCtx>({
   systemSiteName: DEFAULT_SYSTEM_NAME,
   brandLogo: null,
   paidPlan: PAID_PLAN_CTX_DEFAULT,
+  signupEnabled: true,
   pwa: normalizePwaRow(null, DEFAULT_SYSTEM_NAME),
   integrations: { familySharingEnabled: false },
   languageOptions: [],
@@ -73,6 +76,7 @@ export function SubtrackIntlProvider({
   systemSiteName,
   brandLogo: brandLogoProp,
   paidPlan,
+  signupEnabled: signupEnabledProp = true,
   pwa: pwaProp,
   integrations: integrationsProp,
   languageOptions = [],
@@ -84,6 +88,7 @@ export function SubtrackIntlProvider({
   systemSiteName: string;
   brandLogo?: PublicBrandLogoAssets | null;
   paidPlan?: SubtrackPublicPaidPlan | null;
+  signupEnabled?: boolean;
   pwa?: PublicPwaSettings | null;
   integrations?: SubtrackIntegrationFlags | null;
   languageOptions?: LanguageOption[];
@@ -94,6 +99,7 @@ export function SubtrackIntlProvider({
   const brand = systemSiteName.trim() || DEFAULT_SYSTEM_NAME;
   const brandLogo = brandLogoProp ?? null;
   const plan = paidPlan ?? PAID_PLAN_CTX_DEFAULT;
+  const signupEnabled = signupEnabledProp !== false;
   const pwa = pwaProp ?? normalizePwaRow(null, brand);
   const integrations = integrationsProp ?? { familySharingEnabled: false };
 
@@ -121,12 +127,13 @@ export function SubtrackIntlProvider({
       systemSiteName: brand,
       brandLogo,
       paidPlan: plan,
+      signupEnabled,
       pwa,
       integrations,
       languageOptions: langs,
       t,
     }),
-    [brand, brandLogo, hasPublishedBlogPosts, integrations, lc, langs, plan, pwa, t],
+    [brand, brandLogo, hasPublishedBlogPosts, integrations, lc, langs, plan, signupEnabled, pwa, t],
   );
 
   return (

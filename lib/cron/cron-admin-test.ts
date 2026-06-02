@@ -120,6 +120,7 @@ export function buildAdminTestWeeklyPayload(input: {
         dueLabel: formatWeekdayDueLabel(input.todayIso, input.locale, "UTC"),
       },
     ],
+    dueThisWeekTotalFormatted: amountFormatted,
     upcomingCount: 0,
     upcomingTotalFormatted: formatAmountForEmail(0, input.currency, input.locale),
   };

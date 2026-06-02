@@ -26,6 +26,7 @@ export function renderEmailHtml(
   const footer = escHtml(copy.footerNote);
   const systemName = escHtml(ctx.systemName);
   const actionUrl = escHtml(ctx.actionUrl);
+  const showCta = copy.ctaLabel.trim().length > 0;
 
   return `<!DOCTYPE html>
 <html lang="lv">
@@ -56,11 +57,15 @@ export function renderEmailHtml(
               ${ctx.extraSectionsHtml ? `<div style="margin-top:20px;">${ctx.extraSectionsHtml}</div>` : ""}
             </td>
           </tr>
-          <tr>
+          ${
+            showCta
+              ? `<tr>
             <td style="padding:0 32px 28px;" align="left">
               <a href="${actionUrl}" style="display:inline-block;padding:14px 28px;background:${accent.button};color:${accent.buttonText};font-size:15px;font-weight:600;text-decoration:none;border-radius:14px;">${cta}</a>
             </td>
-          </tr>
+          </tr>`
+              : ""
+          }
           <tr>
             <td style="padding:20px 32px 28px;background:${accent.light};border-top:1px solid ${EMAIL_BRAND.border};">
               <p style="margin:0;font-size:13px;line-height:1.55;color:${EMAIL_BRAND.textMuted};">${footer}</p>

@@ -16,6 +16,7 @@ const KEYS = {
   sectionDueWeek: "email.weekly.section_due_week",
   sectionUpcoming: "email.weekly.section_upcoming",
   upcomingTotal: "email.weekly.upcoming_total",
+  dueWeekTotal: "email.weekly.due_week_total",
   lineOverdue: "email.weekly.line_overdue",
   lineDueWeek: "email.weekly.line_due_week",
   unsubscribe: "email.weekly.unsubscribe",
@@ -52,6 +53,8 @@ export type WeeklySummarySubscription = {
 export type WeeklySummaryPayload = {
   overdue: Array<{ name: string; amountFormatted: string; overdueDays: number }>;
   dueThisWeek: Array<{ name: string; amountFormatted: string; dueLabel: string }>;
+  /** Summa visiem `dueThisWeek` (formatēta); kopsavilkuma rinda, ja > 1 maksājums. */
+  dueThisWeekTotalFormatted: string;
   upcomingCount: number;
   upcomingTotalFormatted: string;
 };
@@ -127,6 +130,7 @@ export function buildWeeklySummaryPayload(
 
   const overdue: WeeklySummaryPayload["overdue"] = [];
   const dueThisWeek: WeeklySummaryPayload["dueThisWeek"] = [];
+  let dueThisWeekSum = 0;
   let upcomingSum = 0;
   let upcomingCount = 0;
 
@@ -146,6 +150,7 @@ export function buildWeeklySummaryPayload(
         overdueDays: overdueDays(due, todayIso),
       });
     } else if (due >= startIso && due <= endIso) {
+      dueThisWeekSum += amount;
       dueThisWeek.push({
         name: s.name.trim() || "Payment",
         amountFormatted,
@@ -160,6 +165,7 @@ export function buildWeeklySummaryPayload(
   return {
     overdue,
     dueThisWeek,
+    dueThisWeekTotalFormatted: formatAmountForEmail(dueThisWeekSum, currency, locale),
     upcomingCount,
     upcomingTotalFormatted: formatAmountForEmail(upcomingSum, currency, locale),
   };
@@ -173,7 +179,11 @@ function escHtml(s: string): string {
     .replaceAll('"', "&quot;");
 }
 
-function sectionBlock(title: string, lines: string[]): string {
+function sectionBlock(
+  title: string,
+  lines: string[],
+  summaryLine: string | null = null,
+): string {
   if (lines.length === 0) return "";
   const items = lines
     .map(
@@ -181,8 +191,12 @@ function sectionBlock(title: string, lines: string[]): string {
         `<p style="margin:0 0 10px;font-size:15px;line-height:1.5;color:#1e1e2e;">${line}</p>`,
     )
     .join("");
+  const summary = summaryLine
+    ? `<p style="margin:0 0 12px;font-size:15px;line-height:1.5;color:#1e1e2e;">${summaryLine}</p>`
+    : "";
   return `<div style="margin-bottom:22px;">
     <h2 style="margin:0 0 12px;font-size:16px;font-weight:700;color:#1e1e2e;">${escHtml(title)}</h2>
+    ${summary}
     ${items}
   </div>`;
 }
@@ -217,7 +231,22 @@ export function buildWeeklySummarySectionsHtml(
     );
   }
   if (weekLines.length > 0) {
-    parts.push(sectionBlock(t(loc, KEYS.sectionDueWeek), weekLines.map((l) => `🟡 ${l}`)));
+    const weekSummary =
+      payload.dueThisWeek.length > 1
+        ? escHtml(
+            t(loc, KEYS.dueWeekTotal, {
+              total: payload.dueThisWeekTotalFormatted,
+              count: payload.dueThisWeek.length,
+            }),
+          )
+        : null;
+    parts.push(
+      sectionBlock(
+        t(loc, KEYS.sectionDueWeek),
+        weekLines.map((l) => `🟡 ${l}`),
+        weekSummary,
+      ),
+    );
   }
   if (payload.upcomingCount > 0) {
     parts.push(
@@ -241,6 +270,6 @@ export function buildWeeklyUnsubscribeFooterHtml(
 ): string {
   const base = siteUrl.replace(/\/$/, "");
   const label = t(locale, KEYS.unsubscribe);
-  const href = `${base}/email-notifications`;
+  const href = `${base}/settings?disable=weekly`;
   return `<a href="${escHtml(href)}" style="color:#64748b;text-decoration:underline;">${escHtml(label)}</a>`;
 }

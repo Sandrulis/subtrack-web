@@ -10,6 +10,7 @@ export const EMAIL_TEMPLATE_IDS = [
   "trial_ending",
   "win_back_7d",
   "win_back_30d",
+  "account_deletion_notice",
 ] as const;
 
 /** Cron / Resend šabloni (nav Supabase Auth). */
@@ -107,4 +108,5 @@ export const SUPABASE_AUTH_TEMPLATE_MAP: Record<
   trial_ending: null,
   win_back_7d: null,
   win_back_30d: null,
+  account_deletion_notice: null,
 };

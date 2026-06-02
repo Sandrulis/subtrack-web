@@ -18,6 +18,7 @@ export const FS_ANALYTICS_DEMO_KEYS = [
   "fs.analytics.per_month_abbr",
   "fs.analytics.upcoming_note",
   "fs.analytics.next_none",
+  "fs.analytics.empty_no_data",
 ] as const;
 
 export const FS_DASHBOARD_DEMO_EXTRA_KEYS = [

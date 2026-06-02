@@ -1,0 +1,2402 @@
+/* Atlikts: modāļi, toast, admin, e-pasts dizains */
+
+/* =============================================
+   Modal
+   ============================================= */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 30, .35);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.modal {
+    background: var(--bg-white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 480px;
+    min-width: 0;
+    box-sizing: border-box;
+    transform: translateY(20px) scale(.97);
+    transition: transform .22s cubic-bezier(.22,1,.36,1);
+}
+
+.modal--wide {
+    max-width: 560px;
+}
+
+/* Pievienot / labot abonementu: modāls aug ar saturu līdz ekrānam, tad ritina ķermeni */
+#modal-main {
+    max-height: calc(100vh - 48px);
+    max-height: calc(100dvh - 48px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+}
+
+#modal-main .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    padding: 26px 28px 28px;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Pievienot / labot: elpīgākas vertikālās atstarpes starp laukiem */
+#modal-main .modal-body > .form-group,
+#modal-main .modal-body > .form-row {
+    margin-bottom: 22px;
+}
+
+#modal-main .modal-body > .form-row {
+    gap: 18px;
+}
+
+#modal-main .modal-body > .form-row .form-group {
+    margin-bottom: 0;
+}
+
+#modal-main .modal-body > .form-group:last-of-type,
+#modal-main .modal-body > .modal-advanced {
+    margin-bottom: 0;
+}
+
+#modal-main .form-group label {
+    margin-bottom: 9px;
+}
+
+#modal-main .form-group .icon-picker-block {
+    margin-top: 6px;
+}
+
+#modal-main .icon-picker-toolbar {
+    margin-top: 12px;
+}
+
+#modal-main .icon-picker-expanded {
+    margin-top: 14px;
+    padding-top: 14px;
+}
+
+#modal-main .modal-advanced {
+    margin-top: 22px;
+    padding-top: 20px;
+}
+
+#modal-main .modal-advanced-toggle {
+    padding: 12px 14px;
+}
+
+#modal-main .modal-advanced-panel {
+    margin-top: 20px;
+    padding-top: 6px;
+}
+
+#modal-main .modal-advanced-panel .form-section-label {
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+#modal-main .modal-advanced-panel .form-section-label--spaced {
+    margin-top: 26px;
+    margin-bottom: 12px;
+}
+
+#modal-main .modal-advanced-panel .form-row {
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+#modal-main .modal-advanced-panel .form-row .form-group {
+    margin-bottom: 0;
+}
+
+#modal-main .modal-advanced-panel .form-hint--tight {
+    margin-top: -2px;
+    margin-bottom: 16px;
+}
+
+#modal-main .sub-devices-container {
+    gap: 16px;
+}
+
+#modal-main .sub-device-editor {
+    padding: 16px 18px 18px;
+}
+
+#modal-main .sub-device-editor-top {
+    margin-bottom: 14px;
+}
+
+#modal-main .sub-device-editor > .form-group {
+    margin-bottom: 18px;
+}
+
+#modal-main .sub-device-editor > .form-row {
+    gap: 18px;
+    margin-bottom: 0;
+}
+
+#modal-main .sub-device-editor > .form-row .form-group {
+    margin-bottom: 0;
+}
+
+#modal-main .sub-device-editor .form-group label {
+    margin-bottom: 9px;
+}
+
+#modal-main .modal-device-add {
+    margin-top: 18px;
+}
+
+/* Safari / iOS: date lauks nereti pārsniedz .form-group platumu */
+#modal-main .sub-name-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 6px;
+    margin-top: 8px;
+    max-height: calc(3 * (1.25rem + 10px) + 2 * 6px);
+    overflow: hidden;
+}
+
+#modal-main .sub-name-suggestions.hidden {
+    display: none;
+}
+
+#modal-main .sub-name-suggestion-chip {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--text-muted);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    padding: 5px 11px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+#modal-main .sub-name-suggestion-chip:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, var(--bg-subtle));
+}
+
+#modal-main .sub-name-suggestion-chip:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+#modal-main .form-group {
+    min-width: 0;
+}
+
+#modal-main input[type="date"] {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+#modal-main input[type="date"]::-webkit-date-and-time-value {
+    text-align: left;
+    min-width: 0;
+}
+
+#modal-main input[type="date"]::-webkit-datetime-edit {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.modal-overlay.open .modal {
+    transform: translateY(0) scale(1);
+}
+
+#modal-main .modal-header {
+    padding: 24px 28px 20px;
+}
+
+.modal-header {
+    padding: 22px 24px 18px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.modal-header h2 {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+
+.modal-close {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: var(--bg);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: background .15s, color .15s;
+}
+
+.modal-close:hover { background: var(--border); color: var(--text); }
+
+.modal-close:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.modal-body {
+    padding: 22px 24px;
+    overflow-y: auto;
+}
+
+#modal-main .modal-header,
+#modal-main .modal-footer {
+    flex-shrink: 0;
+}
+
+#modal-main .modal-footer {
+    padding: 18px 28px 24px;
+    border-top: 1px solid var(--border-light);
+}
+
+#modal-main .modal-footer.modal-footer--with-dynamic {
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+}
+
+.modal-footer-dynamic {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+    max-width: min(100%, 320px);
+}
+
+.modal-footer-dynamic-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.modal-footer-dynamic-carry {
+    width: 100%;
+}
+
+.modal-footer-dynamic-carry.hidden {
+    display: none;
+}
+
+.modal-footer-dynamic-label,
+.modal-footer-dynamic-carry-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    line-height: 1.3;
+}
+
+/* Abiem slēdžiem vienāds izmērs (kompaktāks par admin noklusējumu 46×28). */
+#modal-main .modal-footer-dynamic .admin-switch {
+    width: 40px;
+    height: 25px;
+}
+
+#modal-main .modal-footer-dynamic .admin-switch-thumb {
+    top: 3px;
+    left: 3px;
+    width: 19px;
+    height: 19px;
+}
+
+#modal-main .modal-footer-dynamic .admin-switch.is-on .admin-switch-thumb {
+    transform: translateX(15px);
+}
+
+#modal-main .modal-footer-dynamic .admin-switch:focus-visible .admin-switch-track {
+    box-shadow: 0 0 0 2px rgba(0, 163, 141, 0.35);
+}
+
+.modal-footer-actions {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.modal-footer {
+    padding: 16px 24px 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.color-picker-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.color-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2.5px solid transparent;
+    transition: transform .15s;
+}
+
+.color-dot:hover { transform: scale(1.15); }
+.color-dot.selected { border-color: var(--text); }
+
+.family-sharing-color-dot {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.family-sharing-color-dot.is-saving {
+    cursor: wait;
+    opacity: 0.85;
+}
+
+.family-sharing-color-dot-spinner {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    border-color: rgba(255, 255, 255, 0.35);
+    border-top-color: var(--text, #0f172a);
+}
+
+.icon-picker-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* Viena rindiņa nosaukuma meklētājam — skaits no JS pēc platuma, bez overflow clipping */
+.icon-picker-row--hints {
+    flex-wrap: nowrap;
+}
+
+.icon-picker-hints-shell {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: calc(36px + 6px);
+}
+
+.icon-picker-expanded {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+
+.icon-picker-search-field {
+    margin-bottom: 12px;
+}
+
+.icon-search-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.icon-picker-row--expanded .icon-opt {
+    flex-shrink: 0;
+}
+
+.icon-picker-block {
+    margin-top: 4px;
+}
+
+.icon-picker-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.icon-picker-more-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.icon-opt {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color .15s, background .15s;
+    color: var(--text-muted);
+}
+
+.icon-opt i { font-size: 15px; }
+
+.icon-opt:hover { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+.icon-opt.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+
+/* Delete confirm modal */
+.delete-modal.modal {
+    max-width: 380px;
+}
+
+.delete-modal .modal-footer {
+    justify-content: center;
+    gap: 12px;
+}
+
+.delete-modal .modal-body { text-align: center; padding: 30px 24px; }
+.delete-modal .delete-icon { font-size: 2.5rem; margin-bottom: 14px; color: var(--danger); }
+.delete-modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.delete-modal p { font-size: 14px; color: var(--text-muted); }
+
+/* Apstiprinājums pirms aizvēršanas (klikšķis uz fona) */
+.modal-backdrop-close-confirm-overlay {
+    z-index: 260;
+}
+
+.modal-backdrop-close-confirm.modal {
+    max-width: 400px;
+}
+
+.modal-backdrop-close-confirm .modal-footer {
+    justify-content: center;
+    gap: 12px;
+}
+
+.modal-backdrop-close-confirm .modal-body {
+    text-align: center;
+    padding: 28px 24px 22px;
+}
+
+.modal-backdrop-close-confirm-icon {
+    font-size: 2.25rem;
+    margin-bottom: 12px;
+    color: var(--primary);
+}
+
+.modal-backdrop-close-confirm h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.modal-backdrop-close-confirm p {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+
+.admin-todos-delete-confirm .admin-todos-delete-confirm-icon {
+    color: var(--danger);
+}
+
+.admin-todos-complete-confirm .admin-todos-complete-confirm-icon {
+    color: var(--primary);
+}
+
+/* Modālis atvērts: fons neritina (īpaši iOS Safari) */
+html.subtrack-modal-open,
+html.subtrack-modal-open body {
+    overflow: hidden;
+    max-width: 100%;
+    overscroll-behavior: none;
+}
+
+/* Pievienot / labot abonementu – iPhone un šauri skati */
+@media (max-width: 768px) {
+    #modal-overlay {
+        align-items: flex-end;
+        justify-content: center;
+        padding:
+            max(8px, env(safe-area-inset-top, 0px))
+            max(13px, env(safe-area-inset-right, 0px))
+            max(8px, env(safe-area-inset-bottom, 0px))
+            max(13px, env(safe-area-inset-left, 0px));
+    }
+
+    #modal-overlay .modal,
+    #modal-main {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        max-height: calc(
+            100svh
+            - max(8px, env(safe-area-inset-top, 0px))
+            - max(8px, env(safe-area-inset-bottom, 0px))
+            - 16px
+        );
+        max-height: calc(
+            100dvh
+            - max(8px, env(safe-area-inset-top, 0px))
+            - max(8px, env(safe-area-inset-bottom, 0px))
+            - 16px
+        );
+    }
+
+    #modal-main .modal-header {
+        padding: 16px 16px 12px;
+    }
+
+    #modal-main .modal-body {
+        padding: 16px 16px 18px;
+    }
+
+    #modal-main .modal-body > .form-group,
+    #modal-main .modal-body > .form-row {
+        margin-bottom: 18px;
+    }
+
+    #modal-main .modal-footer {
+        padding: 12px 16px max(14px, env(safe-area-inset-bottom, 0px));
+    }
+
+    #modal-main .icon-picker-hints-shell,
+    #modal-main .icon-picker-row--hints {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    #modal-main .form-group input,
+    #modal-main .form-group select,
+    #modal-main .form-select,
+    #modal-main .sub-device-editor {
+        max-width: 100%;
+        min-width: 0;
+    }
+}
+
+/* =============================================
+   Toast notification
+   ============================================= */
+.toast-container {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    background: var(--text);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    animation: slideUp .25s cubic-bezier(.22,1,.36,1) both;
+    max-width: 340px;
+}
+
+.toast.success { background: #166534; }
+.toast.error { background: #991b1b; }
+
+/* Uzvedība: pagarināts uzvedinājums (sk. FlashParamToast) */
+.toast.toast--dismiss-hover {
+    cursor: default;
+}
+
+/* Login / signup / change-password utt.: peldošie flash ziņojumi */
+.toast-container--auth-pages {
+    pointer-events: none;
+}
+
+.toast-container--auth-pages .toast {
+    pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+    .toast-container--auth-pages {
+        bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+        right: 16px;
+        left: 16px;
+        align-items: stretch;
+    }
+
+    .toast-container--auth-pages .toast {
+        max-width: none;
+    }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =============================================
+   Responsive
+   ============================================= */
+@media (max-width: 900px) {
+    /* Abonementu kartes: kreisā ikona šauros / „mobilus” skatos - vairāk teksta vietas */
+    .sub-item-top .sub-icon-col {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .dash-topbar {
+        padding: 10px 0 0;
+    }
+    .dash-topbar-inner {
+        padding: 10px 12px;
+        border-radius: 16px;
+        /* Lietotāja mobilā izvēlne: absolute izmanto inner kā pozicionēšanas bloku (pilna joslas platums) */
+        position: relative;
+        min-width: 0;
+    }
+
+    .dash-topbar-right {
+        min-width: 0;
+        flex-shrink: 1;
+    }
+
+    .dash-actions {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        max-width: 100%;
+    }
+
+    .dash-brand-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: min(46vw, 200px);
+    }
+    .dash-topbar .user-avatar {
+        width: 36px;
+        height: 36px;
+    }
+    .form-row { grid-template-columns: 1fr; }
+    .auth-card { padding: 28px 22px; }
+    .auth-page-inner {
+        padding: 32px var(--app-shell-pad-x) 40px;
+    }
+    .auth-card--form .auth-subtitle {
+        margin-bottom: 28px;
+    }
+    .auth-card--form form,
+    .auth-card--form form fieldset {
+        gap: 18px;
+    }
+    .sub-actions { opacity: 1; }
+    .main-content {
+        padding-top: 20px;
+    }
+
+    .sub-item-top .sub-main {
+        align-items: flex-start;
+    }
+
+    .sub-right {
+        align-items: flex-start;
+        padding-top: 2px;
+    }
+
+    .sub-device-term-sep {
+        display: none;
+    }
+
+    /* Statistikām: pirmās divas kartītes divās kolonās, „Nākamais maksājums” - pilnā platumā */
+    .stats-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .stats-row .stat-card:nth-child(3) {
+        grid-column: 1 / -1;
+    }
+
+    .stat-card {
+        padding: 16px 14px;
+        min-width: 0;
+    }
+
+    .stat-next-pay-col--next {
+        padding: 16px 14px;
+    }
+
+    .stat-label {
+        font-size: 10px;
+        letter-spacing: 0.45px;
+        line-height: 1.25;
+    }
+
+    .stat-value {
+        font-size: 24px;
+    }
+
+    .stat-value--next,
+    .dashboard-overview-stats-row > .stat-card .stat-value {
+        font-size: 24px;
+        letter-spacing: -0.5px;
+    }
+}
+
+@media (max-width: 520px) {
+    .dash-nav-link-text {
+        display: none;
+    }
+    .dash-nav-link {
+        justify-content: center;
+        padding: 10px 12px;
+        min-width: 44px;
+    }
+}
+
+@media (max-width: 480px) {
+    .dash-exit-text {
+        display: none;
+    }
+    .dash-exit {
+        justify-content: center;
+        padding: 10px 12px;
+        min-width: 44px;
+    }
+
+    .dash-user-name { display: none; }
+
+    .sub-item {
+        padding: 14px 14px;
+    }
+
+    .sub-item-top .sub-main {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .sub-right {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding-top: 0;
+        margin-top: 2px;
+    }
+
+    .sub-amount-wrap {
+        margin-left: 0;
+        text-align: right;
+    }
+
+    .sub-amount {
+        min-width: 0;
+        font-size: 17px;
+    }
+}
+
+/* =============================================
+   Administrācijas zona (/admin)
+   ============================================= */
+
+.admin-footer {
+    margin-top: auto;
+}
+
+.admin-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    max-width: var(--app-shell-max);
+    margin: 0 auto;
+    width: 100%;
+    flex: 1;
+    padding: 0 var(--app-shell-pad-x) 32px;
+    box-sizing: border-box;
+}
+
+.admin-sidebar {
+    flex-shrink: 0;
+    width: 220px;
+    padding: 24px 0 24px;
+    border-right: 1px solid var(--border);
+    margin-right: 28px;
+}
+
+.admin-sidebar-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.admin-sidebar-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-light);
+    margin: 0;
+}
+
+.admin-sidebar-scroll-hint {
+    display: none;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-light);
+}
+
+.admin-side-nav-scroll {
+    min-width: 0;
+}
+
+.admin-side-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.admin-side-link-text-full,
+.admin-side-link-text-short {
+    pointer-events: none;
+}
+
+.admin-side-link-text-short {
+    display: none;
+}
+
+.admin-side-link {
+    display: block;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: background .15s ease, color .15s ease;
+}
+
+.admin-side-link:hover {
+    background: rgba(0, 163, 141, 0.08);
+    color: var(--primary-dark);
+    text-decoration: none;
+}
+
+.admin-side-link.is-active {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+}
+
+.admin-main {
+    flex: 1;
+    min-width: 0;
+    padding: 28px 0 16px;
+}
+
+.admin-page-head {
+    margin-bottom: 24px;
+}
+
+.admin-page-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.admin-page-title-row .admin-page-title {
+    flex: 1 1 auto;
+    min-width: min(100%, 12rem);
+    margin-bottom: 0;
+}
+
+.admin-page-title-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+}
+
+.admin-page-head .admin-page-lead {
+    margin-top: 8px;
+}
+
+.admin-page-title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.45px;
+    margin-bottom: 8px;
+}
+
+.admin-page-lead {
+    font-size: 15px;
+    color: var(--text-muted);
+    max-width: 52rem;
+}
+
+.admin-inline-code {
+    font-family: ui-monospace, monospace;
+    font-size: 0.9em;
+    background: var(--bg-subtle);
+    padding: 2px 6px;
+    border-radius: 6px;
+    border: 1px solid var(--border-light);
+}
+
+.admin-alert {
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    font-size: 14px;
+}
+
+.admin-alert--error {
+    background: var(--danger-light);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: var(--danger);
+}
+
+.admin-alert--warning {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #92400e;
+}
+
+.admin-alert--success {
+    background: rgba(0, 163, 141, 0.09);
+    border-color: rgba(0, 163, 141, 0.32);
+    color: var(--primary-dark);
+}
+
+.admin-alert--info {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.28);
+    color: #1e40af;
+}
+
+.admin-lang-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Valodu administrācijas pogas - plakāns, bez smagnētām ēnām */
+.admin-lang-stack .btn.admin-lang-btn-soft,
+.admin-lang-stack .btn.admin-lang-add-btn {
+    border-radius: 7px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+        box-shadow 0.15s ease, opacity 0.15s ease, transform 0.12s ease;
+    box-shadow: none;
+}
+
+.admin-lang-stack .btn.admin-lang-add-btn:active,
+.admin-lang-stack .btn.admin-lang-btn-soft:active {
+    transform: translateY(1px);
+}
+
+.admin-lang-stack .btn-primary.admin-lang-add-btn:not(:disabled) {
+    border: none;
+    background: var(--primary);
+}
+
+.admin-lang-stack .btn-primary.admin-lang-add-btn:not(:disabled):hover {
+    background: var(--primary-dark);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
+}
+
+.admin-lang-stack .btn-outline.admin-lang-btn-soft:not(:disabled) {
+    background: var(--bg-white);
+    border: 1px solid var(--border-light);
+    color: var(--text);
+    backdrop-filter: none;
+}
+
+.admin-lang-stack .btn-outline.admin-lang-btn-soft:not(:disabled):hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    box-shadow: none;
+}
+
+.admin-lang-stack .btn-danger.admin-lang-btn-soft:not(:disabled) {
+    border: none;
+    background: var(--danger);
+    box-shadow: none;
+}
+
+.admin-lang-stack .btn-danger.admin-lang-btn-soft:not(:disabled):hover {
+    background: #dc2626;
+    box-shadow: none;
+}
+
+.admin-lang-stack .btn-sm.admin-lang-add-btn:not(:disabled),
+.admin-lang-stack .btn-sm.admin-lang-btn-soft:not(:disabled) {
+    padding: 9px 16px;
+    font-size: 13px;
+}
+
+.admin-lang-stack .btn.admin-lang-add-btn:focus-visible,
+.admin-lang-stack .btn.admin-lang-btn-soft:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.admin-lang-stack .btn-danger.admin-lang-btn-soft:focus-visible {
+    outline-color: rgb(185 28 28);
+}
+
+.admin-lang-stack .btn:disabled {
+    opacity: 0.53;
+}
+
+.admin-lang-card {
+    padding: 20px;
+    border-radius: var(--radius);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: var(--bg-white);
+    box-shadow: var(--shadow-sm);
+}
+
+.admin-lang-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+}
+
+.admin-lang-new-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.admin-lang-new-row {
+    display: grid;
+    grid-template-columns:
+        minmax(6.5rem, 0.9fr)
+        minmax(180px, 2.2fr)
+        auto;
+    align-items: flex-end;
+    gap: 12px 16px;
+}
+
+.admin-lang-new-row--integrations {
+    grid-template-columns:
+        minmax(6.5rem, 1fr)
+        minmax(160px, 2fr)
+        auto
+        auto;
+}
+
+@media (max-width: 640px) {
+    .admin-lang-new-row {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .admin-lang-new-row--integrations {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-lang-add-btn {
+        width: 100%;
+    }
+}
+
+.admin-lang-new-hints {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    max-width: 56rem;
+}
+
+.admin-lang-new-row .form-group,
+.admin-lang-edit-row .form-group {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.admin-lang-edit-row {
+    display: grid;
+    grid-template-columns:
+        minmax(6.5rem, 1fr)
+        minmax(200px, 2.8fr)
+        auto;
+    align-items: flex-end;
+    gap: 12px 16px;
+}
+
+.admin-lang-edit-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.admin-lang-edit--inline {
+    padding: 14px 0 6px;
+}
+
+@media (max-width: 640px) {
+    .admin-lang-edit-row {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-lang-edit-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+}
+
+.admin-btn-icon {
+    display: block;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+/* Kompaktas kvadrātveida darbību pogas (pastelis, ikona vienā krāsā kā atsaucē) */
+.admin-lang-stack .admin-icon-btn {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    margin: 0;
+    padding: 0;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    line-height: 0;
+    flex-shrink: 0;
+    font: inherit;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+        opacity 0.15s ease, transform 0.1s ease;
+    box-shadow: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.admin-lang-stack .admin-icon-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.admin-lang-stack .admin-icon-btn:active:not(:disabled) {
+    transform: scale(0.96);
+}
+
+.admin-lang-stack .admin-icon-btn--edit {
+    background: #e8f4ea;
+    border-color: #b7dcbf;
+    color: #3d5244;
+}
+
+.admin-lang-stack .admin-icon-btn--edit:hover:not(:disabled) {
+    background: #daf0de;
+    border-color: #9ccbaa;
+}
+
+.admin-lang-stack .admin-icon-btn--save {
+    background: #e8f4ea;
+    border-color: #b7dcbf;
+    color: #166534;
+}
+
+.admin-lang-stack .admin-icon-btn--save:hover:not(:disabled) {
+    background: #daf0de;
+    border-color: #9ccbaa;
+}
+
+.admin-lang-stack .admin-icon-btn--delete {
+    background: #fcebec;
+    border-color: #eec8ca;
+    color: #b91c1c;
+}
+
+.admin-lang-stack .admin-icon-btn--delete:hover:not(:disabled) {
+    background: #fad8db;
+    border-color: #e4a8ad;
+}
+
+.admin-lang-stack .admin-icon-btn--neutral {
+    background: #f7f3eb;
+    border-color: #e4dbd0;
+    color: #4b5563;
+}
+
+.admin-lang-stack .admin-icon-btn--neutral:hover:not(:disabled) {
+    background: #efe9df;
+    border-color: #d4c9b9;
+}
+
+.admin-lang-stack .admin-icon-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.admin-lang-stack .admin-icon-btn--delete:focus-visible {
+    outline-color: #b91c1c;
+}
+
+.admin-actions-cell {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 6px;
+    justify-content: flex-end;
+    align-items: center;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.admin-table.admin-table--languages {
+    table-layout: fixed;
+}
+
+.admin-table.admin-table--languages col.admin-table-col-code {
+    width: 6.75rem;
+}
+
+.admin-table.admin-table--languages col.admin-table-col-datetime {
+    width: 11rem;
+}
+
+.admin-table.admin-table--languages col.admin-table-col-default {
+    width: 3.25rem;
+}
+
+.admin-table.admin-table--languages col.admin-table-col-actions {
+    width: 5.75rem;
+}
+
+.admin-table.admin-table--languages th,
+.admin-table.admin-table--languages td {
+    vertical-align: middle;
+}
+
+.admin-table.admin-table--languages .admin-table-col-datetime-head,
+.admin-table.admin-table--languages .admin-table-col-datetime-cell {
+    white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+    .admin-table.admin-table--languages col.admin-table-col-datetime {
+        display: none;
+    }
+
+    .admin-table.admin-table--languages .admin-table-col-datetime-head,
+    .admin-table.admin-table--languages .admin-table-col-datetime-cell {
+        display: none;
+    }
+}
+
+.admin-table.admin-table--languages .admin-table-col-default-head,
+.admin-table.admin-table--languages .admin-table-col-default-cell {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.admin-lang-default-star {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    margin: 0 auto;
+    color: #b45309;
+}
+
+.admin-lang-default-star.is-active {
+    cursor: default;
+}
+
+/* Admin: kategorijas (`/admin/categories`) – drag kārtība */
+.admin-categories-drag-hint {
+    margin: 0 0 0.75rem;
+    font-size: 0.875rem;
+    color: var(--text-muted, #64748b);
+}
+
+.admin-table.admin-table--categories col.admin-table-col-drag {
+    width: 2.5rem;
+}
+
+.admin-categories-drag-cell {
+    width: 2.5rem;
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+    vertical-align: middle;
+}
+
+.admin-categories-drag-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted, #64748b);
+    cursor: grab;
+    touch-action: none;
+}
+
+.admin-categories-drag-handle:hover:not(:disabled) {
+    background: rgba(15, 118, 110, 0.08);
+    color: var(--primary, #0f766e);
+}
+
+.admin-categories-drag-handle:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.admin-categories-drag-handle:active {
+    cursor: grabbing;
+}
+
+.admin-categories-row--dragging {
+    opacity: 0.45;
+}
+
+.admin-categories-row--drop-before {
+    box-shadow: inset 0 3px 0 var(--primary, #0f766e);
+}
+
+.admin-lang-stack .admin-i18n-key-field input {
+    font-family: ui-monospace, monospace, system-ui;
+}
+
+.admin-lang-stack .admin-i18n-stack.admin-i18n-new {
+    width: 100%;
+    margin-top: 4px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.admin-categories-key-hint {
+    margin-top: 10px;
+}
+
+/* Admin: tulkojumi (`/admin/translations`) */
+.admin-i18n-stack .admin-i18n-new {
+    width: 100%;
+}
+
+.admin-i18n-stack .admin-i18n-key-field {
+    width: 100%;
+    max-width: none;
+}
+
+.admin-i18n-stack .admin-i18n-key-field input {
+    font-family: ui-monospace, monospace, system-ui;
+}
+
+.admin-i18n-stack .admin-i18n-code {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.admin-i18n-stack .admin-i18n-locale-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+    width: 100%;
+    max-width: none;
+}
+
+.admin-i18n-stack .admin-i18n-actions-row {
+    margin-top: 14px;
+}
+
+.admin-i18n-search {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 14px;
+}
+
+.admin-i18n-search-input {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    padding: 10px 14px;
+    font-size: 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-white);
+    color: var(--text);
+}
+
+.admin-i18n-search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 163, 141, 0.18);
+}
+
+.admin-i18n-search-scope-hint {
+    margin: -6px 0 14px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+.admin-i18n-lazy-hint {
+    margin: 0 0 10px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+.admin-i18n-lazy-sentinel {
+    height: 4px;
+    margin: 0;
+    pointer-events: none;
+}
+
+.modal.admin-i18n-modal {
+    max-width: min(720px, calc(100vw - 48px));
+    max-width: min(720px, calc(100dvw - 48px));
+    max-height: calc(100vh - 48px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal.admin-i18n-modal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.admin-i18n-modal-form .admin-i18n-edit-key--modal {
+    margin-top: 0;
+}
+
+.admin-i18n-cell-full {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.admin-table.admin-table--translations-compact {
+    min-width: 0;
+}
+
+.admin-i18n-stack .admin-i18n-locale-field textarea {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-height: 46px;
+    resize: vertical;
+    overflow-x: hidden;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-family: var(--font);
+    line-height: 1.375;
+    color: var(--text);
+    background: #fff;
+    transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+.admin-i18n-stack .admin-i18n-locale-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 650;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+}
+
+.admin-i18n-stack .admin-i18n-locale-field textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 163, 141, 0.12);
+}
+
+.admin-i18n-stack .admin-i18n-locale-field textarea::placeholder {
+    color: var(--text-light);
+}
+
+.admin-table.admin-table--translations {
+    min-width: 640px;
+    table-layout: auto;
+}
+
+.admin-table.admin-table--translations .admin-i18n-th-key {
+    min-width: 9rem;
+}
+
+.admin-table.admin-table--translations .admin-i18n-th-locale {
+    max-width: 14rem;
+    min-width: 7rem;
+    vertical-align: bottom;
+}
+
+.admin-table.admin-table--translations .admin-i18n-th-main {
+    display: block;
+    letter-spacing: 0.03em;
+    text-transform: none;
+    font-weight: 650;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.admin-table.admin-table--translations .admin-i18n-th-sub {
+    display: block;
+    margin-top: 4px;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-light);
+}
+
+.admin-table.admin-table--translations td.admin-i18n-cell-val {
+    vertical-align: top;
+    word-break: break-word;
+}
+
+.admin-i18n-edit-block {
+    margin: 8px 0;
+    padding: 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: rgba(248, 250, 252, 0.65);
+}
+
+.admin-i18n-edit-key {
+    margin: 0 0 12px;
+    font-size: 14px;
+}
+
+.admin-i18n-edit-actions {
+    margin-top: 12px;
+}
+
+.admin-lang-edit {
+    padding: 12px 0 4px;
+}
+
+.admin-lang-add-btn {
+    min-height: 38px;
+    white-space: nowrap;
+}
+
+.admin-empty {
+    color: var(--text-muted);
+    font-size: 15px;
+}
+
+.admin-placeholder-card {
+    padding: 24px;
+    border-radius: var(--radius);
+    border: 1px dashed var(--border);
+    background: var(--bg-white);
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.admin-table-wrap {
+    overflow-x: auto;
+    border-radius: var(--radius);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: var(--bg-white);
+    box-shadow: var(--shadow-sm);
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.admin-table th,
+.admin-table td {
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.admin-table th {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-light);
+    background: var(--bg-subtle);
+}
+
+.admin-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.admin-table tbody tr:hover td {
+    background: rgba(0, 163, 141, 0.04);
+}
+
+.admin-table th.admin-table-col-counts,
+.admin-table td.admin-table-col-counts {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.admin-table td.admin-table-col-counts .admin-sub-counts {
+    justify-content: center;
+    max-width: none;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.admin-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+}
+
+.admin-badge--admin {
+    background: rgba(0, 163, 141, 0.15);
+    color: var(--primary-dark);
+}
+
+.admin-badge--pro {
+    background: rgba(0, 163, 141, 0.12);
+    color: var(--primary-dark);
+}
+
+.admin-badge--vip {
+    background: rgba(251, 191, 36, 0.22);
+    color: #b45309;
+}
+
+.admin-badge--trial {
+    background: rgba(99, 102, 241, 0.14);
+    color: #4338ca;
+}
+
+.admin-users-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 16px;
+}
+
+.admin-users-filter-btn {
+    border-radius: 999px;
+}
+
+.admin-users-filter-btn--active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
+.admin-users-page .admin-table-col-pro {
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.subscribe-success-main {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 32px var(--app-shell-pad-x) 48px;
+}
+
+.subscribe-success-card {
+    text-align: center;
+    background: var(--bg-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 32px 28px;
+}
+
+.subscribe-success-icon {
+    font-size: 2.5rem;
+    color: var(--primary);
+    margin-bottom: 14px;
+}
+
+.subscribe-success-title {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0 0 10px;
+}
+
+.subscribe-success-lead {
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    margin: 0 0 22px;
+}
+
+.admin-user-cell {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.admin-user-avatar-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.admin-user-paid-crown {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    z-index: 2;
+    font-size: 15px;
+    color: #ca8a04;
+    line-height: 1;
+    filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.18));
+    pointer-events: none;
+}
+
+.admin-user-pro-crown-mobile-only {
+    display: none;
+}
+
+.admin-user-avatar {
+    box-sizing: border-box;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: linear-gradient(
+        145deg,
+        var(--primary) 0%,
+        var(--primary-dark) 100%
+    );
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.admin-user-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.admin-user-name {
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.admin-user-email {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.admin-user-role-under-email {
+    margin-top: 6px;
+}
+
+.admin-user-role-under-email .admin-badge {
+    vertical-align: baseline;
+}
+
+/* Šauri (≤640px): „Reģistrēts“ zem e-pasta; platākā mobilajā – pilna kolonna. */
+.admin-user-registered-mobile {
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+.admin-user-vip-mobile {
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.admin-users-page .admin-table-col-vip {
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.admin-users-page .admin-table-col-vip .admin-switch {
+    margin: 0;
+}
+
+.admin-user-meta-mobile-label {
+    font-weight: 600;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 10px;
+    flex-shrink: 0;
+}
+
+.admin-user-meta-mobile-value {
+    color: var(--text-muted);
+    min-width: 0;
+}
+
+.admin-user-meta-mobile-value > .admin-badge {
+    vertical-align: baseline;
+}
+
+.admin-user-dates-col {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    line-height: 1.35;
+}
+
+.admin-user-dates-col > time:first-child {
+    font-size: 13px;
+    color: var(--text);
+}
+
+.admin-user-last-seen {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    line-height: 1.25;
+}
+
+.admin-sub-counts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.45;
+    max-width: 22rem;
+}
+
+.admin-sub-counts-part {
+    white-space: nowrap;
+}
+
+.admin-sub-counts-part strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.admin-sub-counts-sep {
+    color: var(--text-light);
+    font-weight: 400;
+}
+
+.admin-sub-counts-total {
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+}
+
+.admin-sub-counts--empty {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+/* Admin Kanban uzdevumi (/admin/todos): 2 kolonnas, vilkšanas zona virs un apakš */
+.admin-todos-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.admin-todos-trash-zone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    border-radius: var(--radius);
+    border: 2px dashed rgba(148, 163, 184, 0.45);
+    background: rgba(239, 68, 68, 0.04);
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-todos-trash-zone--active {
+    border-color: var(--danger);
+    background: var(--danger-light);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.admin-todos-trash-zone-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    font-size: 1.25rem;
+    line-height: 1;
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.admin-todos-trash-zone--active .admin-todos-trash-zone-icon {
+    color: var(--danger);
+    transform: scale(1.08);
+}
+
+.admin-todos-columns-top {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+}
+
+.admin-todos-column--done-wide {
+    width: 100%;
+}
+
+.admin-todos-column--done-wide .admin-todos-column-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    align-items: start;
+}
+
+.admin-todos-column--done-wide .admin-todos-column-empty {
+    grid-column: 1 / -1;
+}
+
+.admin-todos-column {
+    display: flex;
+    flex-direction: column;
+    min-height: 12rem;
+    border-radius: var(--radius);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: var(--bg-subtle);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-todos-column-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.admin-todos-column-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.admin-todos-column-count {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: var(--bg-white);
+    border: 1px solid var(--border-light);
+    border-radius: 999px;
+    min-width: 1.5rem;
+    text-align: center;
+    padding: 2px 8px;
+}
+
+.admin-todos-column-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    flex: 1;
+    min-height: 5rem;
+}
+
+.admin-todos-column-empty {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 16px 8px;
+}
+
+.admin-todos-card-wrap {
+    position: relative;
+}
+
+.admin-todos-card-wrap--drop-before::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--primary);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.admin-todos-drop-slot {
+    flex-shrink: 0;
+    height: 3px;
+    margin: -2px 0 0;
+    border-radius: 2px;
+    background: var(--primary);
+}
+
+.admin-todos-card-wrap--dragging .admin-todos-card {
+    opacity: 0.45;
+}
+
+.admin-todos-card {
+    padding: 12px 12px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-white);
+    box-shadow: var(--shadow-sm);
+    cursor: grab;
+}
+
+.admin-todos-card:active {
+    cursor: grabbing;
+}
+
+.admin-todos-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.admin-todos-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.admin-todos-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.admin-todos-card .admin-todos-icon-btn {
+    width: auto;
+    height: auto;
+    min-width: 0;
+    padding: 3px 6px;
+    border-radius: 999px;
+    line-height: 1;
+}
+
+.admin-todos-card .admin-todos-icon-btn i {
+    font-size: 11px;
+    line-height: 1;
+}
+
+.admin-todos-card .admin-todos-icon-btn .admin-btn-icon {
+    width: 11px;
+    height: 11px;
+}
+
+.admin-todos-card-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.35;
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+}
+
+.admin-todos-priority {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.admin-todos-priority--low {
+    background: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
+}
+
+.admin-todos-priority--medium {
+    background: rgba(245, 158, 11, 0.14);
+    color: #92400e;
+}
+
+.admin-todos-priority--high {
+    background: rgba(239, 68, 68, 0.12);
+    color: #b91c1c;
+}
+
+.admin-todos-card-desc {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-muted);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.admin-todos-modal .modal-body.admin-todos-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+@media (max-width: 640px) {
+    .admin-todos-columns-top {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-todos-column--done-wide .admin-todos-column-body {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-body {
+        flex-direction: column;
+        /* Kolonnā flex-start sarauž sidebar un admin-main līdz saturam – paliek tukša labā puse */
+        align-items: stretch;
+        overflow-x: clip;
+    }
+
+    .admin-sidebar {
+        width: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        margin-right: calc(-1 * var(--app-shell-pad-x));
+        margin-left: calc(-1 * var(--app-shell-pad-x));
+        margin-bottom: 4px;
+        padding: 12px var(--app-shell-pad-x) 14px;
+        box-sizing: border-box;
+    }
+
+    .admin-sidebar-head {
+        margin-bottom: 8px;
+    }
+
+    .admin-sidebar-scroll-hint {
+        display: block;
+        opacity: 0.85;
+    }
+
+    /* Viena horizontāli ritināma rinda - ietaupa vertikālo vietu */
+    .admin-side-nav-scroll {
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+        scroll-snap-type: x proximity;
+        margin-right: calc(-1 * var(--app-shell-pad-x));
+        margin-left: calc(-1 * var(--app-shell-pad-x));
+        padding-left: var(--app-shell-pad-x);
+        padding-right: var(--app-shell-pad-x);
+        scrollbar-width: none;
+    }
+
+    .admin-side-nav-scroll::-webkit-scrollbar {
+        height: 0;
+    }
+
+    .admin-side-nav {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: stretch;
+        gap: 8px;
+        width: max-content;
+        min-height: 0;
+    }
+
+    .admin-side-link {
+        flex: 0 0 auto;
+        width: auto;
+        box-sizing: border-box;
+        min-height: 44px;
+        padding: 10px 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        font-size: 14px;
+        white-space: nowrap;
+        scroll-snap-align: start;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .admin-side-link-text-full {
+        display: none;
+    }
+
+    .admin-side-link-text-short {
+        display: inline;
+    }
+
+    /*
+     * Lietotāju lapa mobilajā (≤768px): teksts bez globālā max-width ierobežojuma.
+     */
+    .admin-users-page .admin-page-lead {
+        max-width: none;
+    }
+
+    .admin-users-page .admin-table-wrap {
+        border-radius: 16px;
+    }
+
+    .admin-users-page .admin-alert,
+    .admin-users-page .admin-empty {
+        margin-left: 0;
+        margin-right: 0;
+    }
+}
+
+/*
+ * Ļoti šaura administrācijas lietotāju tabula: „Reģistrēts“ / „VIP“ zem e‑pasta,
+ * bez iniciāļu apļa (Pro kronītis tad zem e‑pasta). Platums >640px un ≤768px – kolonnas kā desktopā.
+ */
+@media (max-width: 640px) {
+    .admin-users-page .admin-table-col-registered,
+    .admin-users-page .admin-table-col-vip {
+        display: none;
+    }
+
+    .admin-users-page .admin-user-registered-mobile,
+    .admin-users-page .admin-user-vip-mobile {
+        display: flex;
+    }
+
+    /* Avatārs paslēpts: Pro kronītis zem e-pasta. */
+    .admin-users-page .admin-user-avatar-wrap {
+        display: none;
+    }
+
+    .admin-users-page .admin-user-pro-crown-mobile-only {
+        display: inline-flex;
+        align-items: center;
+        margin-top: 6px;
+        font-size: 15px;
+        color: #ca8a04;
+        line-height: 1;
+        filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.18));
+    }
+
+    .admin-users-page .admin-table td:first-child {
+        vertical-align: top;
+        overflow: visible;
+    }
+
+    .admin-users-page .admin-user-cell {
+        grid-template-columns: 1fr;
+        gap: 0;
+        align-items: start;
+    }
+
+    /* Saīsināt „Ieraksti“, lai rinda biežāk ietilpst bez horizontālās ritināšanas. */
+    .admin-users-page .admin-table-col-counts .admin-sub-counts {
+        max-width: 11rem;
+        font-size: 12px;
+        line-height: 1.4;
+        justify-content: flex-start;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .admin-users-page .admin-table-col-counts {
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .admin-users-page .admin-table th:first-child,
+    .admin-users-page .admin-table td:first-child {
+        min-width: 12rem;
+    }
+}

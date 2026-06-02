@@ -61,6 +61,8 @@ async function afterSystemSettingsMutation() {
   revalidateTag("system-settings", "default");
   revalidatePath("/admin/system");
   revalidatePath("/settings");
+  revalidatePath("/signup");
+  revalidatePath("/login");
   revalidatePath("/");
 }
 
@@ -83,6 +85,7 @@ export async function saveSystemSettingsAction(
     return { ok: false, message: "Nederīga laika zonas izvēle." };
   }
 
+  const signup_enabled = readFormBool(formData, "signup_enabled");
   const paid_plan_enabled = readFormBool(formData, "paid_plan_enabled");
   const pro_trial_enabled =
     paid_plan_enabled && readFormBool(formData, "pro_trial_enabled");
@@ -207,6 +210,7 @@ export async function saveSystemSettingsAction(
       system_name,
       support_contact_email: support_contact_email || null,
       default_display_preferences: partial,
+      signup_enabled,
       paid_plan_enabled,
       paid_plan_annual_enabled,
       paid_plan_annual_price_eur,
@@ -241,6 +245,9 @@ export async function saveSystemSettingsAction(
     } else if (/support_contact_email/i.test(msg) && /column/i.test(msg)) {
       msg =
         "Migrācija `database/supabase/149_system_settings_support_contact_email.sql` vēl nav palaista.";
+    } else if (/signup_enabled/i.test(msg) && /column/i.test(msg)) {
+      msg =
+        "Migrācija `database/supabase/166_system_settings_signup_enabled.sql` vēl nav palaista.";
     } else if (/relation .* does not exist/i.test(msg) || /schema cache/i.test(msg)) {
       msg = "Migrācija `database/supabase/012_system_settings.sql` vēl nav palaista.";
     }

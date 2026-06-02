@@ -25,10 +25,19 @@ const FALLBACK_LANGUAGE_OPTIONS: SettingsLanguageOption[] = [
 
 type LangDbRow = { code: string; label: string };
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; message?: string; disable?: string }>;
+}) {
+  const sp = await searchParams;
   const supabase = await createServerSupabaseClient();
   const { locale } = await resolveRequestUiLocales();
   const collLocale = uiLocaleCodeToBcp47ForIntl(locale);
+
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
 
   const [userDisplay, dbPreferencesRaw, languagesRes, catalog, publicSys] = await Promise.all([
     getSessionUserDisplay(),
@@ -37,6 +46,18 @@ export default async function SettingsPage() {
     getLanguagesCatalog(),
     getPublicSystemSettings(),
   ]);
+
+  const accountEmail = (authUser?.email ?? "").trim();
+
+  let emailNotificationPreferencesRaw: unknown = null;
+  if (authUser) {
+    const { data } = await supabase
+      .from("users")
+      .select("email_notification_preferences")
+      .eq("id", authUser.id)
+      .maybeSingle();
+    emailNotificationPreferencesRaw = data?.email_notification_preferences ?? null;
+  }
 
   let languageOptions: SettingsLanguageOption[] = [];
 
@@ -67,9 +88,13 @@ export default async function SettingsPage() {
           logoTopbar: publicSys.brandLogo?.topbar ?? null,
         }}
         userDisplay={userDisplay}
+        accountEmail={accountEmail}
         dbPreferencesRaw={dbPreferencesRaw}
         languageOptions={languageOptions}
         preferenceBase={preferenceBase}
+        emailNotificationPreferencesRaw={emailNotificationPreferencesRaw}
+        flashError={sp.error}
+        flashMessage={sp.message}
       />
     </div>
   );

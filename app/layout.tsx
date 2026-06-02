@@ -154,6 +154,7 @@ export default async function RootLayout({
           systemSiteName={systemSiteName}
           brandLogo={brandLogo}
           paidPlan={publicSettings.paidPlan}
+          signupEnabled={publicSettings.signupEnabled}
           pwa={publicSettings.pwa}
           integrations={{ familySharingEnabled }}
           languageOptions={catalog.options}

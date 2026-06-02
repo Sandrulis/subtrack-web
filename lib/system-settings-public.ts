@@ -48,6 +48,8 @@ export type PublicSystemSettings = {
   brandLogo: PublicBrandLogoAssets | null;
   /** Pilns `DisplayPreferences`: koda `DISPLAY_PREFERENCES_DEFAULTS` + `default_display_preferences` no DB */
   displayPreferenceDefaults: DisplayPreferences;
+  /** Admin slēdzis: ja false, /signup un reģistrācijas UI ir slēgti. */
+  signupEnabled: boolean;
   paidPlan: SubtrackPublicPaidPlan;
   pwa: PublicPwaSettings;
 };
@@ -72,6 +74,13 @@ const PAID_PLAN_DEFAULTS: SubtrackPublicPaidPlan = {
 
 export function coercePgBool(v: unknown): boolean {
   return v === true || v === "true" || v === 1 || v === "1";
+}
+
+export function normalizeSignupEnabledRow(data: unknown): boolean {
+  if (!data || typeof data !== "object") return true;
+  const r = data as Record<string, unknown>;
+  if (r.signup_enabled === undefined || r.signup_enabled === null) return true;
+  return coercePgBool(r.signup_enabled);
 }
 
 export function normalizePaidPlanRow(data: unknown): SubtrackPublicPaidPlan {
@@ -115,6 +124,7 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
       systemName: DEFAULT_SYSTEM_NAME,
       brandLogo: null,
       displayPreferenceDefaults: DISPLAY_PREFERENCES_DEFAULTS,
+      signupEnabled: true,
       paidPlan: { ...PAID_PLAN_DEFAULTS },
       pwa: normalizePwaRow(null, DEFAULT_SYSTEM_NAME),
     };
@@ -123,7 +133,7 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
   const { data, error } = await supabase
     .from("system_settings")
     .select(
-      "system_name, logo_revision, topbar_logo_revision, default_display_preferences, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, paid_plan_lifetime_enabled, paid_plan_lifetime_price_eur, paid_plan_lifetime_ends_at, paid_plan_lifetime_purchase_limit, paid_plan_lifetime_purchase_count, pwa_enabled, pwa_install_banner_enabled, pwa_install_settings_enabled, pwa_cache_revision, pwa_theme_color, pwa_background_color, pwa_short_name",
+      "system_name, logo_revision, topbar_logo_revision, default_display_preferences, signup_enabled, paid_plan_enabled, paid_plan_price_eur, paid_plan_free_subscription_limit, paid_plan_annual_enabled, paid_plan_annual_price_eur, paid_plan_lifetime_enabled, paid_plan_lifetime_price_eur, paid_plan_lifetime_ends_at, paid_plan_lifetime_purchase_limit, paid_plan_lifetime_purchase_count, pwa_enabled, pwa_install_banner_enabled, pwa_install_settings_enabled, pwa_cache_revision, pwa_theme_color, pwa_background_color, pwa_short_name",
     )
     .eq("id", 1)
     .maybeSingle();
@@ -133,6 +143,7 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
       systemName: DEFAULT_SYSTEM_NAME,
       brandLogo: null,
       displayPreferenceDefaults: DISPLAY_PREFERENCES_DEFAULTS,
+      signupEnabled: true,
       paidPlan: { ...PAID_PLAN_DEFAULTS },
       pwa: normalizePwaRow(null, DEFAULT_SYSTEM_NAME),
     };
@@ -161,8 +172,9 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
 
   const paidPlan = normalizePaidPlanRow(data);
   const pwa = normalizePwaRow(data, systemName);
+  const signupEnabled = normalizeSignupEnabledRow(data);
 
-  return { systemName, brandLogo, displayPreferenceDefaults, paidPlan, pwa };
+  return { systemName, brandLogo, displayPreferenceDefaults, signupEnabled, paidPlan, pwa };
 }
 
 /**
@@ -170,7 +182,7 @@ async function fetchPublicSystemSettings(): Promise<PublicSystemSettings> {
  * Pēc `/admin/system` saglabāšanas: `revalidateTag("system-settings")`.
  */
 export async function getPublicSystemSettings(): Promise<PublicSystemSettings> {
-  return unstable_cache(fetchPublicSystemSettings, ["subtrack-system-settings-v10"], {
+  return unstable_cache(fetchPublicSystemSettings, ["subtrack-system-settings-v11"], {
     revalidate: 3600,
     tags: ["system-settings"],
   })();

@@ -407,7 +407,7 @@ export async function LandingPageContent() {
   const featureRows = familySharingEnabled
     ? [...FEATURE_ROWS, FEATURE_ROW_FAMILY_SHARING]
     : FEATURE_ROWS;
-  const { paidPlan, systemName: systemSiteName } = publicSettings;
+  const { paidPlan, signupEnabled, systemName: systemSiteName } = publicSettings;
   const t = buildLandingPhraseLookup(phrases, systemSiteName);
   const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
 
@@ -471,10 +471,12 @@ export async function LandingPageContent() {
             </h1>
             <p className="hero-subtitle">{t("landing.hero.subtitle")}</p>
             <div className="hero-actions">
-              <Link href="/signup" className="btn btn-primary btn-lg">
-                {t("landing.hero.cta_signup")}
-                <i className="fa-solid fa-arrow-right" />
-              </Link>
+              {signupEnabled ? (
+                <Link href="/signup" className="btn btn-primary btn-lg">
+                  {t("landing.hero.cta_signup")}
+                  <i className="fa-solid fa-arrow-right" />
+                </Link>
+              ) : null}
               <Link href="/demo/dashboard" className="btn btn-outline btn-lg">
                 {t("landing.hero.cta_demo")}
               </Link>
@@ -587,10 +589,12 @@ export async function LandingPageContent() {
               </div>
               <p className="landing-pricing-blurb">{paidPitch.blurb}</p>
               <div className="landing-pricing-cta">
-                <Link href="/signup" className="btn btn-primary btn-lg">
-                  {t("landing.hero.cta_signup")}
-                  <i className="fa-solid fa-arrow-right" />
-                </Link>
+                {signupEnabled ? (
+                  <Link href="/signup" className="btn btn-primary btn-lg">
+                    {t("landing.hero.cta_signup")}
+                    <i className="fa-solid fa-arrow-right" />
+                  </Link>
+                ) : null}
               </div>
             </div>
           </div>
@@ -760,10 +764,12 @@ export async function LandingPageContent() {
           <h2>{t("landing.cta.title")}</h2>
           <p>{t("landing.cta.subtitle")}</p>
           <div className="landing-cta-actions">
-            <Link href="/signup" className="btn btn-white btn-lg">
-              {t("landing.cta.btn_signup")}
-              <i className="fa-solid fa-arrow-right" />
-            </Link>
+            {signupEnabled ? (
+              <Link href="/signup" className="btn btn-white btn-lg">
+                {t("landing.cta.btn_signup")}
+                <i className="fa-solid fa-arrow-right" />
+              </Link>
+            ) : null}
             <Link href="/demo/dashboard" className="btn btn-outline-light btn-lg">
               {t("landing.cta.btn_demo")}
             </Link>

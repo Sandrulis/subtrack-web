@@ -14,12 +14,16 @@ import {
   canSendAuthEmailsViaResend,
   isAuthEmailResendMisconfigured,
 } from "@/lib/emails/send-transactional";
-import { resolveRequestUiLocales } from "@/lib/ui/server-ui-phrases";
+import {
+  getUiPhraseForRequest,
+  resolveRequestUiLocales,
+} from "@/lib/ui/server-ui-phrases";
 import {
   isSignupEmailBlocked,
   SIGNUP_EMAIL_TAKEN_MESSAGE,
 } from "@/lib/auth/signup-email-blocked";
 import { buildRegistrationGeoPayload } from "@/lib/auth/registration-country-payload";
+import { getPublicSignupEnabled } from "@/lib/auth/signup-enabled";
 import { guestEntryPath } from "@/lib/capacitor/brand-home-href";
 
 /** Signup e-pasta pārbaude: max pieprasījumi uz IP minūtē (M2 enumerācijas mazināšana). */
@@ -116,6 +120,10 @@ export async function signUpAction(
       error:
         "Supabase nav konfigurēts. Pievieno .env.local ar URL un anon atslēgu.",
     };
+  }
+
+  if (!(await getPublicSignupEnabled())) {
+    return { ok: false, error: await getUiPhraseForRequest("auth.signup.disabled") };
   }
 
   const firstName = String(formData.get("first_name") ?? "").trim();
@@ -297,9 +305,7 @@ export async function changePasswordAction(formData: FormData) {
   const newPw2 = String(formData.get("pwd_new2") ?? "");
 
   if (!isRecovery && !current) {
-    redirect(
-      "/change-password?error=" + errParam("Ievadiet pašreizējo paroli."),
-    );
+    redirect("/settings?error=" + errParam("Ievadiet pašreizējo paroli."));
   }
   if (!newPw || !newPw2) {
     redirect(
@@ -337,9 +343,7 @@ export async function changePasswordAction(formData: FormData) {
     });
 
     if (verifyErr) {
-      redirect(
-        "/change-password?error=" + errParam("Pašreizējā parole nav pareiza."),
-      );
+      redirect("/settings?error=" + errParam("Pašreizējā parole nav pareiza."));
     }
   }
 
@@ -363,5 +367,5 @@ export async function changePasswordAction(formData: FormData) {
     );
   }
 
-  redirect("/change-password?message=" + errParam("Parole veiksmīgi nomainīta."));
+  redirect("/settings?message=" + errParam("Parole veiksmīgi nomainīta."));
 }

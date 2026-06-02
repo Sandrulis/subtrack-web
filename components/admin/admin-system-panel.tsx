@@ -29,6 +29,7 @@ export type AdminSystemPanelProps = {
   initialLogoRevision: number;
   initialTopbarLogoRevision: number;
   initialDefaults: DisplayPreferences;
+  initialSignupEnabled: boolean;
   initialPaidPlan: {
     enabled: boolean;
     priceEur: number;
@@ -77,6 +78,7 @@ function PaidPlanSwitch({
 function buildFormData(
   systemName: string,
   supportContactEmail: string,
+  signupEnabled: boolean,
   prefs: DisplayPreferences,
   paid: {
     enabled: boolean;
@@ -95,6 +97,7 @@ function buildFormData(
   const fd = new FormData();
   fd.set("system_name", name);
   fd.set("support_contact_email", supportContactEmail.trim());
+  fd.set("signup_enabled", signupEnabled ? "1" : "0");
   fd.set("currency", prefs.currency);
   fd.set("date_order", prefs.date_order);
   fd.set("date_sep", prefs.date_sep);
@@ -134,7 +137,7 @@ function buildFormData(
 
 function fdSignature(fd: FormData): string {
   return (
-    `${String(fd.get("system_name"))}\0${String(fd.get("support_contact_email"))}\0${String(fd.get("currency"))}` +
+    `${String(fd.get("system_name"))}\0${String(fd.get("support_contact_email"))}\0${String(fd.get("signup_enabled"))}\0${String(fd.get("currency"))}` +
     `\0${String(fd.get("date_order"))}\0${String(fd.get("date_sep"))}` +
     `\0${String(fd.get("time_format"))}\0${String(fd.get("time_sep"))}` +
     `\0${String(fd.get("timezone"))}\0${String(fd.get("week_start"))}` +
@@ -157,6 +160,7 @@ export function AdminSystemPanel({
   initialLogoRevision,
   initialTopbarLogoRevision,
   initialDefaults,
+  initialSignupEnabled,
   initialPaidPlan,
   initialProTrial,
   initialPaidPlanLifetime,
@@ -169,6 +173,7 @@ export function AdminSystemPanel({
   const [prefs, setPrefs] = useState<DisplayPreferences>(() => ({
     ...initialDefaults,
   }));
+  const [signupEnabled, setSignupEnabled] = useState(initialSignupEnabled);
   const [paidPlanEnabled, setPaidPlanEnabled] = useState(initialPaidPlan.enabled);
   const [paidPlanAnnualEnabled, setPaidPlanAnnualEnabled] = useState(
     initialPaidPlan.annualBillingEnabled,
@@ -215,6 +220,7 @@ export function AdminSystemPanel({
   const snapshotRef = useRef({
     systemName: initialSystemName,
     supportContactEmail: initialSupportContactEmail,
+    signupEnabled: initialSignupEnabled,
     prefs: initialDefaults,
     paid: initialPaidPlan,
     trial: initialProTrial,
@@ -223,6 +229,7 @@ export function AdminSystemPanel({
   snapshotRef.current = {
     systemName,
     supportContactEmail,
+    signupEnabled,
     prefs,
     paid: {
       enabled: paidPlanEnabled,
@@ -310,11 +317,12 @@ export function AdminSystemPanel({
     const {
       systemName: sn,
       supportContactEmail: sce,
+      signupEnabled: se,
       prefs: p,
       paid: pd,
       trial: tr,
     } = snapshotRef.current;
-    const fd = buildFormData(sn, sce, p, pd, tr, snapshotRef.current.lifetime);
+    const fd = buildFormData(sn, sce, se, p, pd, tr, snapshotRef.current.lifetime);
     if (!fd) return;
     const sig = fdSignature(fd);
     if (sig === persistedSigRef.current) return;
@@ -331,11 +339,12 @@ export function AdminSystemPanel({
     const {
       systemName: sn,
       supportContactEmail: sce,
+      signupEnabled: se,
       prefs: p,
       paid: pd,
       trial: tr,
     } = snapshotRef.current;
-    const fd = buildFormData(sn, sce, p, pd, tr, snapshotRef.current.lifetime);
+    const fd = buildFormData(sn, sce, se, p, pd, tr, snapshotRef.current.lifetime);
     if (!fd) {
       pushDomToast(t("admin.forms.err_system_name_required"), "error");
       return;
@@ -383,6 +392,7 @@ export function AdminSystemPanel({
       const fd = buildFormData(
         initialSystemName,
         initialSupportContactEmail,
+        initialSignupEnabled,
         initialDefaults,
         initialPaidPlan,
         initialProTrial,
@@ -393,6 +403,7 @@ export function AdminSystemPanel({
   }, [
     initialDefaults,
     initialSupportContactEmail,
+    initialSignupEnabled,
     initialSystemName,
     initialPaidPlan,
     initialProTrial,
@@ -486,6 +497,33 @@ export function AdminSystemPanel({
             />
             <p className="form-hint">{t("admin.forms.hint_support_contact_email")}</p>
           </div>
+
+          <p className="form-section-label" style={{ marginTop: "20px" }}>
+            {t("admin.forms.section_signup")}
+          </p>
+          <div
+            className="form-group"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <PaidPlanSwitch
+              checked={signupEnabled}
+              disabled={loadError !== null}
+              onCheckedChange={(next) => {
+                setSignupEnabled(next);
+                scheduleAutosave();
+              }}
+              ariaLabelledBy="sys_signup_toggle_label"
+            />
+            <span id="sys_signup_toggle_label">{t("admin.forms.signup_enable")}</span>
+          </div>
+          <p className="form-hint" style={{ marginTop: 8 }}>
+            {t("admin.forms.signup_enable_hint")}
+          </p>
 
           <p className="form-section-label" style={{ marginTop: "20px" }}>
             {t("admin.forms.section_paid_plan")}

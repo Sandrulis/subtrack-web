@@ -658,6 +658,64 @@ const defaults: Record<EmailTemplateId, LocaleMap> = {
       "Вы получили это, потому что включили письма возврата в {SYSTEM_NAME}.",
     ),
   },
+  account_deletion_notice: {
+    en: c(
+      "Account deleted – {USER_EMAIL}",
+      "A user deleted their account and left feedback.",
+      "Account deleted",
+      "User: {USER_DISPLAY_NAME}\nEmail: {USER_EMAIL}\nAccount ID: {USER_ID}\n\nReason:\n{DELETION_REASON}",
+      "",
+      "Internal notice from {SYSTEM_NAME}. Reply goes to the user's inbox if still available.",
+    ),
+    fr: c(
+      "Compte supprimé – {USER_EMAIL}",
+      "Un utilisateur a supprimé son compte et a laissé un commentaire.",
+      "Compte supprimé",
+      "Utilisateur : {USER_DISPLAY_NAME}\nE-mail : {USER_EMAIL}\nID compte : {USER_ID}\n\nMotif :\n{DELETION_REASON}",
+      "",
+      "Notification interne {SYSTEM_NAME}. La réponse peut atteindre la boîte de l'utilisateur.",
+    ),
+    de: c(
+      "Konto gelöscht – {USER_EMAIL}",
+      "Ein Nutzer hat sein Konto gelöscht und Feedback hinterlassen.",
+      "Konto gelöscht",
+      "Nutzer: {USER_DISPLAY_NAME}\nE-Mail: {USER_EMAIL}\nKonto-ID: {USER_ID}\n\nGrund:\n{DELETION_REASON}",
+      "",
+      "Interne Mitteilung von {SYSTEM_NAME}. Antwort ggf. an die Nutzer-Mailbox.",
+    ),
+    es: c(
+      "Cuenta eliminada – {USER_EMAIL}",
+      "Un usuario eliminó su cuenta y dejó un comentario.",
+      "Cuenta eliminada",
+      "Usuario: {USER_DISPLAY_NAME}\nCorreo: {USER_EMAIL}\nID de cuenta: {USER_ID}\n\nMotivo:\n{DELETION_REASON}",
+      "",
+      "Aviso interno de {SYSTEM_NAME}. La respuesta puede llegar al buzón del usuario.",
+    ),
+    pt: c(
+      "Conta eliminada – {USER_EMAIL}",
+      "Um utilizador eliminou a conta e deixou comentário.",
+      "Conta eliminada",
+      "Utilizador: {USER_DISPLAY_NAME}\nE-mail: {USER_EMAIL}\nID da conta: {USER_ID}\n\nMotivo:\n{DELETION_REASON}",
+      "",
+      "Aviso interno do {SYSTEM_NAME}. A resposta pode chegar à caixa do utilizador.",
+    ),
+    lv: c(
+      "Konts dzēsts – {USER_EMAIL}",
+      "Lietotājs izdzēsa kontu un atstāja atsauksmi.",
+      "Konts dzēsts",
+      "Lietotājs: {USER_DISPLAY_NAME}\nE-pasts: {USER_EMAIL}\nKonta ID: {USER_ID}\n\nIemesls:\n{DELETION_REASON}",
+      "",
+      "Iekšējs paziņojums no {SYSTEM_NAME}. Atbilde nonāk lietotāja pastkastē, ja pieejama.",
+    ),
+    ru: c(
+      "Аккаунт удалён – {USER_EMAIL}",
+      "Пользователь удалил аккаунт и оставил отзыв.",
+      "Аккаунт удалён",
+      "Пользователь: {USER_DISPLAY_NAME}\nE-mail: {USER_EMAIL}\nID: {USER_ID}\n\nПричина:\n{DELETION_REASON}",
+      "",
+      "Внутреннее уведомление {SYSTEM_NAME}. Ответ может попасть в почту пользователя.",
+    ),
+  },
 };
 
 export function getDefaultEmailCopy(
@@ -768,6 +826,33 @@ export function applyWinBackPlaceholders(
       .replaceAll("{SYSTEM_NAME}", ctx.systemName)
       .replaceAll("{INACTIVE_DAYS}", String(ctx.inactiveDays))
       .replaceAll("{LAST_SEEN_DATE}", ctx.lastSeenFormatted);
+  return {
+    subject: rep(copy.subject),
+    preheader: rep(copy.preheader),
+    headline: rep(copy.headline),
+    body: rep(copy.body),
+    ctaLabel: rep(copy.ctaLabel),
+    footerNote: rep(copy.footerNote),
+  };
+}
+
+export function applyAccountDeletionPlaceholders(
+  copy: EmailTemplateCopy,
+  ctx: {
+    systemName: string;
+    userEmail: string;
+    userDisplayName: string;
+    userId: string;
+    deletionReason: string;
+  },
+): EmailTemplateCopy {
+  const rep = (s: string) =>
+    s
+      .replaceAll("{SYSTEM_NAME}", ctx.systemName)
+      .replaceAll("{USER_EMAIL}", ctx.userEmail)
+      .replaceAll("{USER_DISPLAY_NAME}", ctx.userDisplayName)
+      .replaceAll("{USER_ID}", ctx.userId)
+      .replaceAll("{DELETION_REASON}", ctx.deletionReason);
   return {
     subject: rep(copy.subject),
     preheader: rep(copy.preheader),

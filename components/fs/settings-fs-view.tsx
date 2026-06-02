@@ -11,12 +11,18 @@ export type SettingsLanguageOption = {
 export function SettingsFsView({
   brand = null,
   userDisplay,
+  accountEmail = "",
   dbPreferencesRaw,
   languageOptions,
   preferenceBase,
+  emailNotificationPreferencesRaw,
+  flashError,
+  flashMessage,
 }: {
   brand?: NavBrandSnapshot | null;
   userDisplay?: NavUserDisplay | null;
+  /** Sesijas e-pasts konta dzēšanas apstiprinājumam */
+  accountEmail?: string;
   dbPreferencesRaw: unknown | null;
   /** No `languages` tabulas; ja tukšs `[]`, atlasei izmantoti statiski pagaidu varianti */
   languageOptions: SettingsLanguageOption[];
@@ -25,14 +31,21 @@ export function SettingsFsView({
    * `interface_language_code` (`getPublicSystemSettings` + valodu katalogs).
    */
   preferenceBase: DisplayPreferences;
+  emailNotificationPreferencesRaw: unknown;
+  flashError?: string;
+  flashMessage?: string;
 }) {
   return (
     <SettingsFsViewClient
       brand={brand}
       userDisplay={userDisplay}
+      accountEmail={accountEmail}
       dbPreferencesRaw={dbPreferencesRaw}
       languageOptions={languageOptions}
       preferenceBase={preferenceBase}
+      emailNotificationPreferencesRaw={emailNotificationPreferencesRaw}
+      flashError={flashError}
+      flashMessage={flashMessage}
     />
   );
 }
