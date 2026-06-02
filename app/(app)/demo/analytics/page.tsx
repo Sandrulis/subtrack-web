@@ -5,6 +5,7 @@ import { FsDemoAnalyticsWindowFlag } from "@/components/fs/fs-demo-window-flags"
 import { DemoAnalyticsPage } from "@/components/demo/demo-analytics-page";
 import { getSessionUserDisplaySafe } from "@/lib/auth/user-display";
 import { buildDemoAnalyticsSnapshot } from "@/lib/demo/build-demo-analytics-snapshot";
+import { buildPublicPageMetadata } from "@/lib/seo/public-page-metadata";
 import { buildDemoDashboardSubscriptions } from "@/lib/demo/demo-dashboard-subscriptions";
 import {
   buildDashboardFreeTierGatePayload,
@@ -23,9 +24,11 @@ import {
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: await getUiPhraseForRequest("meta.title.app.demo.analytics"),
-  };
+  const title = await getUiPhraseForRequest("meta.title.app.demo.analytics");
+  return buildPublicPageMetadata({
+    canonicalPath: "/demo/analytics",
+    title,
+  });
 }
 
 export default async function DemoAnalyticsRoute() {

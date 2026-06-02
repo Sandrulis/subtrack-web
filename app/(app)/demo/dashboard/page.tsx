@@ -5,6 +5,7 @@ import { DashboardFsView } from "@/components/fs/dashboard-fs-view";
 import { loadNavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
 import { getSessionUserDisplaySafe } from "@/lib/auth/user-display";
 import { DEMO_DASHBOARD_PHRASE_KEYS } from "@/lib/demo/demo-dashboard-phrase-keys";
+import { buildPublicPageMetadata } from "@/lib/seo/public-page-metadata";
 import { buildDemoDashboardSubscriptions } from "@/lib/demo/demo-dashboard-subscriptions";
 import {
   buildDashboardFreeTierGatePayload,
@@ -22,9 +23,11 @@ import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 const DEMO_SUB_PHRASE_KEYS = DEMO_DASHBOARD_PHRASE_KEYS;
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: await getUiPhraseForRequest("meta.title.app.demo.dashboard"),
-  };
+  const title = await getUiPhraseForRequest("meta.title.app.demo.dashboard");
+  return buildPublicPageMetadata({
+    canonicalPath: "/demo/dashboard",
+    title,
+  });
 }
 
 export default async function DemoDashboardRoute() {
