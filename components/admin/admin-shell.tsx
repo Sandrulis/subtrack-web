@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
-import { AuthedFooterActionLinks } from "@/components/authed/authed-footer-action-links";
-import { AuthedNavOverlaysProvider } from "@/components/authed/authed-nav-overlays-provider";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { NavDash } from "@/components/nav-dash";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
@@ -23,6 +21,7 @@ export type AdminNavActive =
   | "pwa"
   | "todos"
   | "blog"
+  | "user_messages"
   | "";
 
 function navActiveFromPath(pathname: string): AdminNavActive {
@@ -43,6 +42,7 @@ function navActiveFromPath(pathname: string): AdminNavActive {
   if (pathname.startsWith("/admin/pwa")) return "pwa";
   if (pathname.startsWith("/admin/todos")) return "todos";
   if (pathname.startsWith("/admin/blog")) return "blog";
+  if (pathname.startsWith("/admin/user-messages")) return "user_messages";
   return "";
 }
 
@@ -66,7 +66,8 @@ const navItems: {
     | "admin.nav.cron_jobs"
     | "admin.nav.pwa"
     | "admin.nav.todos"
-    | "admin.nav.blog";
+    | "admin.nav.blog"
+    | "admin.nav.user_messages";
 }[] = [
   { href: "/admin/users", key: "users", labelKey: "admin.nav.users" },
   {
@@ -103,6 +104,11 @@ const navItems: {
   },
   { href: "/admin/todos", key: "todos", labelKey: "admin.nav.todos" },
   { href: "/admin/blog", key: "blog", labelKey: "admin.nav.blog" },
+  {
+    href: "/admin/user-messages",
+    key: "user_messages",
+    labelKey: "admin.nav.user_messages",
+  },
 ];
 
 export function AdminShell({
@@ -166,9 +172,6 @@ export function AdminShell({
         <div className="admin-main">{children}</div>
       </div>
       <footer className="landing-footer landing-footer--with-legal admin-footer">
-        <AuthedNavOverlaysProvider>
-          <AuthedFooterActionLinks />
-        </AuthedNavOverlaysProvider>
         <LegalFooterLinks />
         <p>
           &copy; {year} {systemSiteName}. {t("admin.footer.rights_reserved")}

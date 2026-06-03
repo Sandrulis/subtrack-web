@@ -50,7 +50,7 @@ export function BlogPostView({
           <BlogBbcodeContent bbcode={post.body_bbcode} />
         </article>
       </main>
-      <SiteLandingFooter showAuthedActionLinks={authed} />
+      <SiteLandingFooter />
     </div>
   );
 }

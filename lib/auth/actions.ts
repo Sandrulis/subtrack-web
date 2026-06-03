@@ -72,6 +72,19 @@ function errParam(msg: string) {
   return encodeURIComponent(msg);
 }
 
+function loginRedirect(params: {
+  error?: string;
+  email?: string;
+  next?: string;
+}) {
+  const qs = new URLSearchParams();
+  if (params.error) qs.set("error", params.error);
+  if (params.email) qs.set("email", params.email);
+  if (params.next) qs.set("next", params.next);
+  const query = qs.toString();
+  return query ? `/login?${query}` : "/login";
+}
+
 export async function signInWithPasswordAction(formData: FormData) {
   const cfg = getSupabasePublicConfig();
   if (!cfg) {
@@ -88,14 +101,20 @@ export async function signInWithPasswordAction(formData: FormData) {
     nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : "/dashboard";
 
   if (!email || !password) {
-    redirect("/login?error=" + errParam("Aizpildiet e-pastu un paroli."));
+    redirect(
+      loginRedirect({
+        error: "Aizpildiet e-pastu un paroli.",
+        email: email || undefined,
+        next,
+      }),
+    );
   }
 
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirect("/login?error=" + errParam(error.message));
+    redirect(loginRedirect({ error: error.message, email, next }));
   }
 
   revalidatePath("/", "layout");

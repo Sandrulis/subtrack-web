@@ -1,13 +1,14 @@
 "use server";
 
 import { loadAuthContext } from "@/lib/auth/load-auth-context";
+import { resolveSessionIsAdmin } from "@/lib/auth/is-admin";
 import type { SuggestionRow } from "@/lib/suggestions/types";
 import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
 export type SuggestionsActionResult = { ok: true } | { ok: false; message: string };
 
 export type FetchSuggestionsResult =
-  | { ok: true; items: SuggestionRow[] }
+  | { ok: true; items: SuggestionRow[]; viewerIsAdmin: boolean }
   | { ok: false; message: string };
 
 const TITLE_MIN = 3;
@@ -59,6 +60,28 @@ async function requireAuthedUserId(): Promise<
   return { ok: true, userId: ctx.user.id, supabase: ctx.supabase };
 }
 
+async function requireAuthedAdmin(): Promise<
+  | {
+      ok: true;
+      userId: string;
+      supabase: Awaited<ReturnType<typeof loadAuthContext>>["supabase"];
+    }
+  | { ok: false; message: string }
+> {
+  const auth = await requireAuthedUserId();
+  if (!auth.ok) return auth;
+
+  const isAdmin = await resolveSessionIsAdmin(auth.supabase);
+  if (!isAdmin) {
+    return {
+      ok: false,
+      message: await getUiPhraseForRequest("suggestions.err_forbidden"),
+    };
+  }
+
+  return auth;
+}
+
 export async function fetchSuggestionsAction(): Promise<FetchSuggestionsResult> {
   const auth = await requireAuthedUserId();
   if (!auth.ok) return auth;
@@ -74,8 +97,10 @@ export async function fetchSuggestionsAction(): Promise<FetchSuggestionsResult> 
   }
 
   const rows = Array.isArray(data) ? data : [];
+  const viewerIsAdmin = await resolveSessionIsAdmin(auth.supabase);
   return {
     ok: true,
+    viewerIsAdmin,
     items: rows.map((r) =>
       mapRow(
         r as {
@@ -181,6 +206,32 @@ export async function toggleSuggestionVoteAction(
     suggestion_id: id,
     user_id: auth.userId,
   });
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  return { ok: true };
+}
+
+export async function deleteSuggestionAction(
+  suggestionId: string,
+): Promise<SuggestionsActionResult> {
+  const auth = await requireAuthedAdmin();
+  if (!auth.ok) return auth;
+
+  const id = String(suggestionId ?? "").trim();
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    return {
+      ok: false,
+      message: await getUiPhraseForRequest("suggestions.err_invalid_id"),
+    };
+  }
+
+  const { error } = await auth.supabase
+    .from("user_suggestions")
+    .delete()
+    .eq("id", id);
 
   if (error) {
     return { ok: false, message: error.message };

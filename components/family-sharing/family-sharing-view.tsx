@@ -748,7 +748,7 @@ export function FamilySharingView({
           <p>{t("family_sharing.err_disabled")}</p>
           <Link href="/dashboard">{t("nav.dashboard")}</Link>
         </main>
-        <SiteLandingFooter showAuthedActionLinks={Boolean(userDisplay)} />
+        <SiteLandingFooter />
       </div>
     );
   }
@@ -935,7 +935,7 @@ export function FamilySharingView({
         }}
         onConfirm={() => void runConfirmedAction()}
       />
-      <SiteLandingFooter showAuthedActionLinks={Boolean(userDisplay)} />
+      <SiteLandingFooter />
     </div>
   );
 }

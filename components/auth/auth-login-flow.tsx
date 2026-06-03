@@ -9,10 +9,12 @@ import { signInWithPasswordAction } from "@/lib/auth/actions";
 
 export function AuthLoginFlow({
   nextPath,
+  defaultEmail = "",
   oauthGoogleEnabled,
   oauthAppleEnabled,
 }: {
   nextPath: string;
+  defaultEmail?: string;
   oauthGoogleEnabled: boolean;
   oauthAppleEnabled: boolean;
 }) {
@@ -32,6 +34,7 @@ export function AuthLoginFlow({
               type="email"
               id="email"
               name="email"
+              defaultValue={defaultEmail}
               placeholder={t("auth.login.email_placeholder")}
               autoComplete="email"
               required

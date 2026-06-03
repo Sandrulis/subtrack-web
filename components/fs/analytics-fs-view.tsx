@@ -157,7 +157,7 @@ export function AnalyticsFsView({
           </AppPageContentGate>
         </main>
 
-        <SiteLandingFooter showAuthedActionLinks={Boolean(userDisplay)} />
+        <SiteLandingFooter />
       </div>
     </>
   );

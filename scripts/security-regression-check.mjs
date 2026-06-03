@@ -119,6 +119,69 @@ if (fs.existsSync(adminActionsDir)) {
   }
 }
 
+// L2.2b – admin user-messages: datu ielāde + SQL 174 RLS / admin RPC
+const userMessagesData = path.join(ROOT, "lib", "admin", "admin-user-messages-data.ts");
+if (fs.existsSync(userMessagesData)) {
+  const text = fs.readFileSync(userMessagesData, "utf8");
+  if (!/requireAdminUser/.test(text)) {
+    errors.push(`${rel(userMessagesData)}: trūkst requireAdminUser`);
+  }
+  for (const rpc of [
+    "list_admin_user_suggestions",
+    "list_admin_user_feedback",
+    "list_admin_user_support_requests",
+  ]) {
+    if (!text.includes(rpc)) {
+      errors.push(`${rel(userMessagesData)}: trūkst RPC ${rpc}`);
+    }
+  }
+}
+
+const userMessagesPage = path.join(ROOT, "app", "(app)", "admin", "user-messages", "page.tsx");
+if (fs.existsSync(userMessagesPage)) {
+  const text = fs.readFileSync(userMessagesPage, "utf8");
+  if (!/loadAdminUserMessagesPageData/.test(text)) {
+    errors.push(`${rel(userMessagesPage)}: jāielādē caur loadAdminUserMessagesPageData`);
+  }
+}
+
+const userMessagesView = path.join(ROOT, "components", "admin", "admin-user-messages-view.tsx");
+if (fs.existsSync(userMessagesView)) {
+  const text = fs.readFileSync(userMessagesView, "utf8");
+  if (/dangerouslySetInnerHTML/.test(text)) {
+    errors.push(`${rel(userMessagesView)}: lietotāja saturs nedrīkst dangerouslySetInnerHTML`);
+  }
+  if (!/deleteAdminSuggestionAction|deleteAdminFeedbackAction|deleteAdminSupportRequestAction/.test(text)) {
+    warnings.push(`${rel(userMessagesView)}: pārbaudi server action importus`);
+  }
+}
+
+const sql174 = path.join(ROOT, "database", "supabase", "174_user_support_requests.sql");
+if (fs.existsSync(sql174)) {
+  const text = fs.readFileSync(sql174, "utf8");
+  const required174 = [
+    "user_support_requests_select_admin",
+    "user_support_requests_delete_admin",
+    "user_support_requests_insert_own",
+    "where public.current_user_is_admin()",
+  ];
+  for (const needle of required174) {
+    if (!text.includes(needle)) {
+      errors.push(`174_user_support_requests.sql: trūkst “${needle}”`);
+    }
+  }
+} else {
+  warnings.push("database/supabase/174_user_support_requests.sql nav atrasts");
+}
+
+const supportActions = path.join(ROOT, "lib", "support", "support-actions.ts");
+if (fs.existsSync(supportActions)) {
+  const text = fs.readFileSync(supportActions, "utf8");
+  if (!/user_support_requests/.test(text) || !/user_id:\s*user\.id/.test(text)) {
+    warnings.push(`${rel(supportActions)}: atbalsta ziņojums jāieraksta DB ar user_id no sesijas`);
+  }
+}
+
 // L2.3 – API route handlers (izņēmumi: cron, dev-env-check); atbalsta route grupas app/(app)/api
 const appDir = path.join(ROOT, "app");
 const apiRoutes = walk(appDir).filter(

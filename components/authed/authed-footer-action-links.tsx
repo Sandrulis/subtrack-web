@@ -13,7 +13,7 @@ export function AuthedFooterActionLinks() {
 
   return (
     <nav
-      className="legal-footer-links authed-footer-action-links"
+      className="legal-footer-links authed-content-action-links"
       aria-label={t("footer.authed_nav_aria")}
     >
       <button

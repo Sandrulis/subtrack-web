@@ -204,7 +204,7 @@ export function SubscribeProView({
           </div>
         </section>
       </main>
-      <SiteLandingFooter showAuthedActionLinks={Boolean(userDisplay)} />
+      <SiteLandingFooter />
       <div className="toast-container" id="toast-container" />
     </div>
   );

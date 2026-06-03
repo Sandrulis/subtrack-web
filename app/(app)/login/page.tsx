@@ -18,13 +18,20 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string; next?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    message?: string;
+    next?: string;
+    email?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const next =
     sp.next?.startsWith("/") && !sp.next.startsWith("//")
       ? sp.next
       : "/dashboard";
+  const defaultEmail =
+    typeof sp.email === "string" && sp.email.includes("@") ? sp.email : "";
 
   const { googleEnabled: oauthGoogleEnabled, appleEnabled: oauthAppleEnabled } =
     await getLoginSocialIntegrationFlags();
@@ -36,6 +43,7 @@ export default async function LoginPage({
         <main id="main" className="auth-page-inner">
           <AuthLoginFlow
             nextPath={next}
+            defaultEmail={defaultEmail}
             oauthGoogleEnabled={oauthGoogleEnabled}
             oauthAppleEnabled={oauthAppleEnabled}
           />

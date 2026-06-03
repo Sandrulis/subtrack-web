@@ -721,8 +721,21 @@
     margin-bottom: 12px;
 }
 
-.authed-footer-action-links {
-    margin-bottom: 10px;
+.authed-content-action-links-bar {
+    flex-shrink: 0;
+    width: 100%;
+    max-width: var(--app-shell-max);
+    margin: 0 auto;
+    padding: 8px var(--app-shell-pad-x) 0;
+    box-sizing: border-box;
+}
+
+.authed-content-action-links-bar .legal-footer-links {
+    justify-content: center;
+}
+
+.authed-content-action-links {
+    margin: 0;
 }
 
 .landing-footer-byline {

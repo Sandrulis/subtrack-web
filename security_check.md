@@ -15,7 +15,7 @@ Datums: **2026-06-03** | Pārskatīts: **2026-06-03** | Iepriekšējais: **2026-
 
 Detalizētas tabulas un pa kategorijām → sadaļa **[Vērtējums – detalizēti](#vērtējums--detalizēti)** zemāk.
 
-**Satura rādītājs:** [Vērtējums detalizēti](#vērtējums--detalizēti) · [Veicamie soļi](#veicamie-soļi) · [Atskaite](#atskaite-2026-06-03) · [Komandas](#komandas)
+**Satura rādītājs:** [Vērtējums detalizēti](#vērtējums--detalizēti) · [Veicamie soļi](#veicamie-soļi) · [Atskaite](#atskaite-2026-06-03) · [`/admin/user-messages`](#adminuser-messages-174175) · [Komandas](#komandas)
 
 ---
 
@@ -29,6 +29,7 @@ Detalizētas tabulas un pa kategorijām → sadaļa **[Vērtējums – detalizē
 | Cron | Tikai **`Authorization: Bearer <CRON_SECRET>`** |
 | Stripe | Webhook paraksts; billing RLS **159** |
 | Konta dzēšana | **`/api/user/delete-account`** – sesija, admin guards, Stripe/storage/family cleanup |
+| Admin lietotāju saturs | **`/admin/user-messages`** – tikai admin; RLS + RPC **`174`**; server actions |
 | Reģistrācijas slēdzis | **`signup_enabled`** (166) – UI + `signUpAction`; OAuth bypass iespējams (skat. N1) |
 | Automatizācija | `security:regression-check`, `verify-migrations`, `deploy-checklist`, `security:check` |
 
@@ -87,6 +88,7 @@ Statiskā regresija: **OK**. `npm audit --audit-level=high`: **0** high.
 | 3d | **160** Stripe tulkojumi | Nav auto | SQL Editor |
 | 3e | **162** `private_loan` | Nav auto | SQL Editor |
 | 3f | **166** `signup_enabled` | Nav auto | SQL Editor (ja nav) |
+| 3g | **174** `user_support_requests` + admin RPC | **verify-migrations** (opc.) | SQL Editor (ja nav) |
 
 ### Manuāli – TODO
 
@@ -121,6 +123,7 @@ Middleware **401** · Auth/signup **OK** · API `requireApiSession` **OK** · RL
 |----------|---------------------|
 | **`/api/user/delete-account`** | Sesija + admin block; `deleteUserAccountById` (Stripe, storage, family); iemesls max 4000; e-pasts caur `escHtml` |
 | **`signup_enabled` (166)** | `/signup` redirect + `signUpAction` guard; OAuth / tiešs Supabase signUp var apiet (N1) |
+| **`/admin/user-messages` (174–175)** | Admin layout + `requireAdminUser`; RLS; RPC ar `current_user_is_admin()`; React text (nav innerHTML) |
 | Migrācijas **163–173** | Galvenokārt tulkojumi; drošības ietekme minimāla |
 
 ### Atklātie punkti
@@ -134,6 +137,60 @@ Middleware **401** · Auth/signup **OK** · API `requireApiSession` **OK** · RL
 | L3 | CSP bez script-src | Apzināts |
 | N1 | OAuth reģistrācija ar `signup_enabled=false` | **Jauns** – skat. ieteikumus |
 | N2 | Konta dzēšana bez paroles re-auth | **Jauns** – zema prioritāte |
+| U1 | **`174` nav palaists** – admin UI tukšs / support bez DB | **Jauns** – palaid SQL + verify |
+| U2 | Atbalsta insert pēc e-pasta – ja DB insert fail, e-pasts jau nosūtīts | **Jauns** – zema prioritāte (audit) |
+
+---
+
+## `/admin/user-messages` (174/175)
+
+**Maršruts:** `app/(app)/admin/user-messages` · **Migrācijas:** `174_user_support_requests.sql`, `175_site_translations_admin_user_messages.sql`
+
+### Slāņi
+
+| Slānis | Implementācija | Novērtējums |
+|--------|----------------|------------:|
+| **Maršruta aizsardzība** | `app/(app)/admin/layout.tsx` → `requireAdminUser()` (redirect uz `/` / `/dashboard`) | **9,5** |
+| **SSR dati** | `loadAdminUserMessagesPageData()` – atkārtots `requireAdminUser()` pirms RPC | **9,5** |
+| **Mutācijas** | `lib/admin/admin-user-messages-actions.ts` – katrā action `requireAdminUser()` + UUID regex | **9,5** |
+| **Nav atsevišķa API** | Tikai Server Actions (nav `/api/admin/user-messages`) | **9,0** |
+| **RLS – support** | `user_support_requests`: insert tikai `user_id = auth.uid()`; select/delete tikai admin | **9,5** |
+| **RLS – suggestions/feedback** | Esošās politikas **150** / **151–152**; admin delete / landing update | **9,5** |
+| **Admin saraksta RPC** | `list_admin_user_*` – `WHERE current_user_is_admin()`; ne-admin → tukšs saraksts (bez e-pastu noplūdes) | **9,0** |
+| **PII admin UI** | Rāda `author_email` tikai adminiem (apzināts) | **8,5** |
+| **XSS frontend** | `{row.title}`, `{row.body}`, `{row.message}` kā React text; nav `dangerouslySetInnerHTML` | **9,0** |
+| **CSRF** | Next.js Server Actions noklusējuma aizsardzība | **9,0** |
+| **Atbalsta iesniegšana** | `submitSupportRequestAction` – sesija, garuma limits, e-pasts + DB insert ar `user_id: user.id` | **9,0** |
+
+**Kopā (šī funkcija):** **~9,1 / 10**
+
+### Ko pārbaudīt manuāli
+
+1. **Ne-admin** atver `/admin/user-messages` → redirect (nevis 200 ar datiem).
+2. **Ne-admin** izsauc `list_admin_user_suggestions` (SQL/RPC) → **0 rindu**, nevis kļūda ar e-pastiem.
+3. **Admin** redz ieteikumus / atsauksmes / support; dzēšana un „Sākumlapā” toggle strādā.
+4. **Palīdzība** modālis → e-pasts uz `support_contact_email` **un** jauns ieraksts `user_support_requests` (pēc **174**).
+5. **`npm run security:regression-check`** – L2.2b blokam jābūt **OK**.
+
+### Regresijas signāli (automātiski)
+
+`scripts/security-regression-check.mjs` (L2.2b):
+
+- `admin-user-messages-data.ts` – `requireAdminUser` + trīs `list_admin_*` RPC
+- `admin/user-messages/page.tsx` – `loadAdminUserMessagesPageData`
+- `admin-user-messages-view.tsx` – nav `dangerouslySetInnerHTML`
+- `174_user_support_requests.sql` – RLS politikas + `current_user_is_admin()` RPC filtrā
+- `support-actions.ts` – DB insert ar `user_id` no sesijas
+
+`npm run security:verify-migrations` (opc.): tabula **`user_support_requests`** kolonnas `message`, `email_sent`.
+
+### Atvērumi (nav bloķējoši)
+
+| ID | Apraksts |
+|----|----------|
+| U2 | Ja DB insert pēc veiksmīga Resend fail, lietotājs redz success, bet admin UI bez ieraksta |
+| U3 | Nav atsevišķa rate limit admin Server Actions (tikai `is_admin > 0`) |
+| U4 | Admin RPC `GRANT … TO authenticated` – drošība balstās uz `current_user_is_admin()` query iekšā, ne atsevišķu EXECUTE revoke |
 
 ---
 
@@ -172,7 +229,7 @@ npm run security:check
 
 ## Vēsture
 
-- **2026-06-03:** atkārtota pārbaude; jauns delete-account; signup_enabled (166); N1/N2
+- **2026-06-03:** `/admin/user-messages` (174–175); L2.2b regresija; verify **174**; atkārtota pārbaude; delete-account; signup_enabled (166); N1/N2
 - **2026-05-30:** regresija, billing RL, verify/deploy skripti, šis pārskats
 - **2026-05-22:** M1–M3 family/cron/rate limit, L5 middleware 401, **116** Pro trial RPC
 

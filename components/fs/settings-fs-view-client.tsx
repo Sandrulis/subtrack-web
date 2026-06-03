@@ -467,7 +467,7 @@ export function SettingsFsViewClient({
         </div>
       </AppPageContentGate>
 
-      <SiteLandingFooter showAuthedActionLinks={Boolean(userDisplay)} />
+      <SiteLandingFooter />
 
       <div className="toast-container toast-container--auth-pages" id="toast-container">
         <FlashParamToast error={flashError} message={flashMessage} />

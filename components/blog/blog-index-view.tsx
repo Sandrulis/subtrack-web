@@ -75,7 +75,7 @@ export function BlogIndexView({
           )}
         </article>
       </main>
-      <SiteLandingFooter showAuthedActionLinks={authed} />
+      <SiteLandingFooter />
     </div>
   );
 }

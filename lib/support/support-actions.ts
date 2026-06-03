@@ -99,5 +99,15 @@ export async function submitSupportRequestAction(
     return { ok: false, message: sendResult.message };
   }
 
+  const { error: insertErr } = await supabase.from("user_support_requests").insert({
+    user_id: user.id,
+    message,
+    email_sent: true,
+  });
+
+  if (insertErr && !/user_support_requests/i.test(insertErr.message)) {
+    return { ok: false, message: insertErr.message };
+  }
+
   return { ok: true };
 }

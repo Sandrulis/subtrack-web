@@ -3,6 +3,7 @@
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import {
   createSuggestionAction,
+  deleteSuggestionAction,
   fetchSuggestionsAction,
   toggleSuggestionVoteAction,
 } from "@/lib/suggestions/suggestions-actions";
@@ -39,6 +40,8 @@ export function SuggestionsModal({ open, onClose }: SuggestionsModalProps) {
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [votingId, setVotingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [viewerIsAdmin, setViewerIsAdmin] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -47,9 +50,11 @@ export function SuggestionsModal({ open, onClose }: SuggestionsModalProps) {
       const res = await fetchSuggestionsAction();
       if (res.ok) {
         setItems(res.items);
+        setViewerIsAdmin(res.viewerIsAdmin);
       } else {
         setLoadError(res.message);
         setItems([]);
+        setViewerIsAdmin(false);
       }
     } catch {
       setLoadError(t("suggestions.err_load_failed"));
@@ -66,6 +71,8 @@ export function SuggestionsModal({ open, onClose }: SuggestionsModalProps) {
     setBody("");
     setBusy(false);
     setVotingId(null);
+    setDeletingId(null);
+    setViewerIsAdmin(false);
     void reload();
   }, [open, reload]);
 
@@ -77,6 +84,8 @@ export function SuggestionsModal({ open, onClose }: SuggestionsModalProps) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, busy, onClose]);
+
+  const modalBusy = busy || Boolean(votingId) || Boolean(deletingId);
 
   if (!open) return null;
 
@@ -157,13 +166,33 @@ export function SuggestionsModal({ open, onClose }: SuggestionsModalProps) {
     }
   }
 
+  async function handleDelete(item: SuggestionRow) {
+    if (deletingId || votingId) return;
+    if (!window.confirm(t("suggestions.confirm_delete"))) return;
+
+    setDeletingId(item.id);
+    try {
+      const res = await deleteSuggestionAction(item.id);
+      if (res.ok) {
+        pushDomToast(t("suggestions.toast_deleted"), "success");
+        setItems((prev) => prev.filter((row) => row.id !== item.id));
+      } else {
+        pushDomToast(res.message, "error");
+      }
+    } catch {
+      pushDomToast(t("suggestions.err_delete_failed"), "error");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div
       className="modal-overlay open"
       role="presentation"
       onMouseDown={(e) =>
         handleModalBackdropMouseDown(e, onClose, {
-          busy: busy || Boolean(votingId),
+          busy: modalBusy,
           confirmMessage: t("ui.modal.confirm_close_backdrop"),
         })
       }
@@ -188,7 +217,7 @@ export function SuggestionsModal({ open, onClose }: SuggestionsModalProps) {
           <button
             type="button"
             className="modal-close"
-            disabled={busy || Boolean(votingId)}
+            disabled={modalBusy}
             aria-label={t("suggestions.modal_close_aria")}
             onClick={onClose}
           >
@@ -319,7 +348,7 @@ export function SuggestionsModal({ open, onClose }: SuggestionsModalProps) {
                         (item.viewerVoted ? " is-voted" : "") +
                         (votingId === item.id ? " is-busy" : "")
                       }
-                      disabled={Boolean(votingId)}
+                      disabled={Boolean(votingId) || Boolean(deletingId)}
                       aria-pressed={item.viewerVoted}
                       aria-label={
                         item.viewerVoted
@@ -332,7 +361,23 @@ export function SuggestionsModal({ open, onClose }: SuggestionsModalProps) {
                       <span className="suggestions-vote-count">{item.voteCount}</span>
                     </button>
                     <div className="suggestions-item-main">
-                      <p className="suggestions-item-title">{item.title}</p>
+                      <div className="suggestions-item-head">
+                        <p className="suggestions-item-title">{item.title}</p>
+                        {viewerIsAdmin ? (
+                          <button
+                            type="button"
+                            className={
+                              "suggestions-item-delete" +
+                              (deletingId === item.id ? " is-busy" : "")
+                            }
+                            disabled={Boolean(deletingId) || Boolean(votingId)}
+                            aria-label={t("suggestions.btn_delete")}
+                            onClick={() => void handleDelete(item)}
+                          >
+                            <i className="fas fa-trash" aria-hidden="true" />
+                          </button>
+                        ) : null}
+                      </div>
                       <p className="suggestions-item-body">{item.body}</p>
                       <p className="suggestions-item-meta">
                         {item.isOwn

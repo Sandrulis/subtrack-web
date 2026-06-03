@@ -26,6 +26,12 @@ const CHECKS = [
     table: "subscriptions",
     columns: ["is_private_loan", "loan_payments"],
   },
+  {
+    id: "174",
+    file: "174_user_support_requests.sql",
+    table: "user_support_requests",
+    columns: ["message", "email_sent"],
+  },
 ];
 
 async function columnExists(supabase, table, column) {
@@ -42,7 +48,7 @@ async function main() {
     console.log(
       "[security-verify-migrations] Bez NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY - izlaists.",
     );
-    console.log("  Pēc SQL 159/161 palaid ar .env.local vai CI secrets.");
+    console.log("  Pēc SQL 159/161/174 palaid ar .env.local vai CI secrets.");
     process.exit(0);
   }
 
@@ -72,7 +78,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("\n[security-verify-migrations] OK - 159 un 161 kolonnas redzamas.");
+  console.log("\n[security-verify-migrations] OK - 159, 161 un 174 kolonnas redzamas.");
   process.exit(0);
 }
 

@@ -8,6 +8,7 @@ import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import { AuthedNotifyBootstrap } from "@/components/authed-notify-bootstrap";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { NavSessionActions } from "@/components/nav-session-actions";
+import { AuthedContentActionLinksBar } from "@/components/authed/authed-content-action-links-bar";
 
 export type NavDashActive = "dashboard" | "analytics" | "admin" | "";
 
@@ -143,6 +144,7 @@ export function NavDash({
         </div>
       </div>
     </header>
+    {userDisplay && !demoMode ? <AuthedContentActionLinksBar /> : null}
     <MobileBottomNav
       mode={demoMode ? "demo" : "authed"}
       isAdmin={Boolean(userDisplay?.isAdmin)}
