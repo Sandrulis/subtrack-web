@@ -9,7 +9,7 @@ import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-cli
 import { buildAuthCallbackActionUrl } from "@/lib/auth/auth-callback-link";
 import {
   isSignupEmailBlocked,
-  SIGNUP_EMAIL_TAKEN_MESSAGE,
+  SIGNUP_GENERIC_ERROR,
 } from "@/lib/auth/signup-email-blocked";
 import type { RegistrationGeoPayload } from "@/lib/auth/registration-country-payload";
 
@@ -20,7 +20,7 @@ export type AuthLocalizedEmailResult =
 function mapSignupAuthError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("already registered") || m.includes("already been registered")) {
-    return SIGNUP_EMAIL_TAKEN_MESSAGE;
+    return SIGNUP_GENERIC_ERROR;
   }
   if (m.includes("password")) {
     return message;
@@ -75,7 +75,8 @@ export async function registerUserWithLocalizedConfirmEmail(input: {
 
   const blocked = await isSignupEmailBlocked(email);
   if (blocked === true) {
-    return { ok: false, stage: "auth", message: SIGNUP_EMAIL_TAKEN_MESSAGE };
+    /* Bez enumerācijas – tā pati „pārbaudi e-pastu” UX kā veiksmīgai reģistrācijai. */
+    return { ok: true };
   }
   if (blocked === null) {
     return {

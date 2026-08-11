@@ -2,16 +2,6 @@ import type { FamilySharingDashboardBootstrap } from "@/lib/family-sharing/famil
 import type { SubscriptionWithFamilyShare } from "@/lib/family-sharing/family-sharing-types";
 import type { DashboardFreeTierGatePayload } from "@/lib/subscriptions/dashboard-free-tier-gate-payload";
 import type { SubscriptionCategoryUiOption } from "@/lib/subscriptions/subscription-categories-server";
-import { getFsIconPickerSearchBootstrap } from "@/lib/fs-icon-picker-search";
-import { getSubscriptionVisualSuggestBootstrap } from "@/lib/subscription-visual-suggest";
-
-const SUBTRACK_ICON_SEARCH_BOOTSTRAP = JSON.stringify({
-  icons: getFsIconPickerSearchBootstrap(),
-}).replace(/</g, "\\u003c");
-
-const SUBTRACK_VISUAL_SUGGEST_BOOTSTRAP = JSON.stringify(
-  getSubscriptionVisualSuggestBootstrap(),
-).replace(/</g, "\\u003c");
 
 function jsonTemplate(id: string, payload: unknown) {
   return (
@@ -52,14 +42,6 @@ export function FsDashboardBootstrapTemplates({
       {!demoMode
         ? jsonTemplate("subtrack-display-prefs-bootstrap-json", { monthlyBudget })
         : null}
-      <template
-        id="subtrack-icon-search-bootstrap"
-        dangerouslySetInnerHTML={{ __html: SUBTRACK_ICON_SEARCH_BOOTSTRAP }}
-      />
-      <template
-        id="subtrack-visual-suggest-bootstrap"
-        dangerouslySetInnerHTML={{ __html: SUBTRACK_VISUAL_SUGGEST_BOOTSTRAP }}
-      />
       {jsonTemplate("subtrack-free-tier-gate-json", freeTierGate)}
       {!demoMode
         ? jsonTemplate(

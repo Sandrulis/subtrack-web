@@ -207,6 +207,27 @@ function subtrackFamilySharingTintCss(hex) {
  * Paneļa skripti tiek ielādēti pēc React mount (FsScripts); DOMContentLoaded
  * šajā brīdī jau ir noticis – inicializāciju jāpalaiž arī tad.
  */
+function subtrackSubscriptionsFingerprint() {
+    try {
+        return (subscriptions || [])
+            .map(function (s) {
+                var devicesLen = s.devices && s.devices.length ? s.devices.length : 0;
+                return [
+                    s.id,
+                    s.date || '',
+                    s.amount,
+                    s.period || '',
+                    s.termEnd || '',
+                    devicesLen,
+                    s.familyShare && s.familyShare.linkId ? s.familyShare.linkId : '',
+                ].join(':');
+            })
+            .join('|');
+    } catch (e) {
+        return String((subscriptions && subscriptions.length) || 0);
+    }
+}
+
 function continueDashboardBoot() {
     subtrackEnrichAllSubscriptionsFamilyShare();
     subtrackRefreshFamilySharedCache();
@@ -242,11 +263,19 @@ function fsBootDashboard() {
     if (typeof subtrackNotifyPageContentReady === 'function') {
         subtrackNotifyPageContentReady();
     }
+    var beforeFp = subtrackSubscriptionsFingerprint();
     Promise.all([
         subtrackSyncSubscriptionsFromApi(),
         subtrackSyncFamilySharingBootstrapFromApi(),
     ])
         .then(function () {
+            var afterFp = subtrackSubscriptionsFingerprint();
+            if (afterFp === beforeFp) {
+                if (typeof refreshDashNotifications === 'function') {
+                    refreshDashNotifications();
+                }
+                return;
+            }
             continueDashboardBoot();
         })
         .catch(function () {
@@ -2188,13 +2217,11 @@ function openAddModal() {
     syncSubDynamicCarryVisibility();
     userPickedIcon = false;
     userPickedColor = false;
-    applyAutoVisualForAdd('');
     document.getElementById('modal-overlay').classList.add('open');
     syncBodyModalScrollLock();
-    requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-            renderIconPickerHints();
-        });
+    void ensureIconVisualBootstrapLoaded().then(function () {
+        applyAutoVisualForAdd('');
+        renderIconPickerHints();
     });
     renderNameSuggestions();
     setTimeout(function() { document.getElementById('sub-name').focus(); }, 100);
@@ -2252,10 +2279,8 @@ function openEditModal(id) {
     syncSubDynamicCarryVisibility();
     document.getElementById('modal-overlay').classList.add('open');
     syncBodyModalScrollLock();
-    requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-            renderIconPickerHints();
-        });
+    void ensureIconVisualBootstrapLoaded().then(function () {
+        renderIconPickerHints();
     });
     renderNameSuggestions();
     setTimeout(function() { document.getElementById('sub-name').focus(); }, 100);
@@ -2610,6 +2635,57 @@ function confirmDelete() {
 }
 
 /* ---- Ikonas/krāsa: nejauši + nosaukums (zīmoli, meklēšana) ---- */
+var iconVisualBootstrapFetchPromise = null;
+
+function iconVisualBootstrapHasData() {
+    return (
+        visualSuggestBootstrap !== null &&
+        Array.isArray(visualSuggestBootstrap.icons) &&
+        visualSuggestBootstrap.icons.length > 0 &&
+        fsIconSearchRows !== null &&
+        fsIconSearchRows.length > 0
+    );
+}
+
+/** Sync no `<template>`, tad vienreizējs fetch uz `/api/fs/icon-visual-bootstrap`. */
+function ensureIconVisualBootstrapLoaded() {
+    loadVisualSuggestBootstrap();
+    loadFsIconSearchBootstrap();
+    if (iconVisualBootstrapHasData()) {
+        return Promise.resolve();
+    }
+    if (iconVisualBootstrapFetchPromise) {
+        return iconVisualBootstrapFetchPromise;
+    }
+    iconVisualBootstrapFetchPromise = fetch('/api/fs/icon-visual-bootstrap', {
+        credentials: 'same-origin',
+    })
+        .then(function (res) {
+            if (!res.ok) throw new Error('icon-visual-bootstrap');
+            return res.json();
+        })
+        .then(function (data) {
+            visualSuggestBootstrap = {
+                icons: data && Array.isArray(data.icons) ? data.icons : [],
+                colors: data && Array.isArray(data.colors) ? data.colors : [],
+                brandRules:
+                    data && Array.isArray(data.brandRules) ? data.brandRules : [],
+            };
+            fsIconSearchRows =
+                data && Array.isArray(data.iconSearch) ? data.iconSearch : [];
+        })
+        .catch(function () {
+            iconVisualBootstrapFetchPromise = null;
+            if (visualSuggestBootstrap === null) {
+                visualSuggestBootstrap = { icons: [], colors: [], brandRules: [] };
+            }
+            if (fsIconSearchRows === null) {
+                fsIconSearchRows = [];
+            }
+        });
+    return iconVisualBootstrapFetchPromise;
+}
+
 function loadVisualSuggestBootstrap() {
     if (visualSuggestBootstrap !== null) return;
     visualSuggestBootstrap = { icons: [], colors: [], brandRules: [] };

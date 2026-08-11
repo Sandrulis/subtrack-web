@@ -49,7 +49,7 @@ export const AUTHED_NOTIFY_SCRIPTS = [
 
 /**
  * Ielādē FS skriptus pa atkarību līmeņiem; katrā līmenī – paralēli (`async`).
- * 1) prefs + subscriptions-data; 2) helpers; 3) dash-alerts.
+ * 1) prefs + subscriptions-data; 2) helpers; 3) dash-alerts (tikai notify ceļam).
  */
 async function loadScriptsInTiers(
   tiers: readonly (readonly string[])[],
@@ -59,7 +59,8 @@ async function loadScriptsInTiers(
   }
 }
 
-export async function ensureAuthedNotifyScriptsLoaded(): Promise<void> {
+/** Prefs + data + helpers – pietiek panelim pirms gate (bez dash-alerts). */
+export async function ensureAuthedCoreScriptsLoaded(): Promise<void> {
   hydrateFsI18nFromTemplate();
   await loadScriptsInTiers([
     [
@@ -67,16 +68,25 @@ export async function ensureAuthedNotifyScriptsLoaded(): Promise<void> {
       "/fs/js/subscriptions-data.js",
     ],
     ["/fs/js/subscriptions-helpers.js"],
-    ["/fs/js/dash-alerts.js"],
   ]);
 }
 
-/** `/dashboard` – kopīgie notify skripti + modāļa guards un dashboard.js paralēli. */
+export async function ensureAuthedNotifyScriptsLoaded(): Promise<void> {
+  await ensureAuthedCoreScriptsLoaded();
+  await loadScriptOnce("/fs/js/dash-alerts.js");
+}
+
+/** `/dashboard` – kritiskais ceļš līdz gate (bez dash-alerts / modal guard). */
 export async function loadDashboardPageScripts(): Promise<void> {
-  await ensureAuthedNotifyScriptsLoaded();
+  await ensureAuthedCoreScriptsLoaded();
+  await loadScriptOnce("/fs/js/dashboard.js");
+}
+
+/** Pēc gate: zvans + modāļa overlay (nebloķē SI/LCP). */
+export async function loadDashboardDeferredScripts(): Promise<void> {
   await Promise.all([
+    loadScriptOnce("/fs/js/dash-alerts.js"),
     loadScriptOnce("/fs/js/modal-overlay-guard.js"),
-    loadScriptOnce("/fs/js/dashboard.js"),
   ]);
 }
 

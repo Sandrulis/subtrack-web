@@ -12,6 +12,10 @@ import {
   buildDashboardFreeTierGatePayload,
   fetchSystemPaidPlanLiveForDashboard,
 } from "@/lib/subscriptions/dashboard-free-tier-gate";
+import {
+  buildSsrDueCountByDay,
+  buildSsrPaidDaySet,
+} from "@/lib/dashboard/ssr-calendar-due-markers";
 import { fsDashboardPhraseKeys } from "@/lib/fs/fs-page-i18n-keys";
 import {
   getUiPhraseForRequest,
@@ -40,18 +44,29 @@ export default async function DashboardPage() {
       getSessionDisplayPreferencesRow(),
       loadNavBrandSnapshot(),
     ]);
-  const categoryOptions = await fetchEnabledSubscriptionCategoryOptions(
-    subsBundle.subscriptions.map((s) => s.category),
-  );
+
   const initialSubscriptions = subsBundle.subscriptions;
   const familySharingBootstrap = subsBundle.familyBootstrap;
   const freeTierGate = buildDashboardFreeTierGatePayload(userDisplay, paidPlanLive);
   const monthlyBudget = readMonthlyBudgetFromPreferences(
     sanitizeDisplayPreferencesPartial(dbPreferencesRaw),
   );
-  const { locale } = await resolveRequestUiLocales();
-  const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
-  const fsI18n = await getUiPhrasesForRequest(fsDashboardPhraseKeys());
+
+  const [categoryOptions, localeBundle, fsI18n] = await Promise.all([
+    fetchEnabledSubscriptionCategoryOptions(
+      initialSubscriptions.map((s) => s.category),
+    ),
+    resolveRequestUiLocales(),
+    getUiPhrasesForRequest(fsDashboardPhraseKeys()),
+  ]);
+  const intlLocale = uiLocaleCodeToBcp47ForIntl(localeBundle.locale);
+
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const dueCountByDay = buildSsrDueCountByDay(initialSubscriptions, y, m);
+  const paidDaySet = buildSsrPaidDaySet(initialPaidCalendarDays, y, m);
+  const paidDays = Array.from(paidDaySet).sort((a, b) => a - b);
 
   return (
     <>
@@ -67,12 +82,12 @@ export default async function DashboardPage() {
       <DashboardFsView
         brand={brand}
         userDisplay={userDisplay}
-        initialSubscriptions={initialSubscriptions}
-        initialPaidCalendarDays={initialPaidCalendarDays}
-        familySharingBootstrap={familySharingBootstrap}
+        hasSubscriptions={initialSubscriptions.length > 0}
+        hasMonthlyBudget={monthlyBudget != null}
         freeTierGate={freeTierGate}
         categoryOptions={categoryOptions}
-        monthlyBudget={monthlyBudget}
+        dueCountByDay={dueCountByDay}
+        paidDays={paidDays}
       />
     </>
   );

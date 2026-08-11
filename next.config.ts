@@ -5,8 +5,18 @@ import { loadEnvConfig } from "@next/env";
 // Palīdz, ja .env.local netiek ielādēts (cwd / server puse).
 loadEnvConfig(process.cwd());
 
-/** M3 – CSP enforce (minimāls; bez script-src, lai Next.js bundļi netiktu bloķēti). */
+/** M3 – CSP enforce (paplašināts; script-src ar unsafe-inline Next bundļiem). */
 const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${
+    process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""
+  }`,
+  "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
+  "font-src 'self' data: https://cdnjs.cloudflare.com",
+  "img-src 'self' data: blob: https:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.de.sentry.io",
+  "worker-src 'self' blob:",
+  "frame-src 'self' https://checkout.stripe.com https://billing.stripe.com",
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
@@ -26,6 +36,24 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: securityHeaders,
+      },
+      {
+        source: "/fs/js/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+      {
+        source: "/styles/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
       },
     ];
   },

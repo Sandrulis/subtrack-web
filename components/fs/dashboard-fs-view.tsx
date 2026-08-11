@@ -5,13 +5,11 @@ import { DashboardPayCalendarInitial } from "@/components/fs/dashboard-pay-calen
 import { uiLocaleCodeToBcp47ForIntl } from "@/lib/ui/ui-locale-from-request";
 import { NavDash } from "@/components/nav-dash";
 import { SiteLandingFooter } from "@/components/legal/site-landing-footer";
-import { loadDashboardPageScripts } from "@/components/fs/load-fs-scripts";
+import { loadDashboardDeferredScripts, loadDashboardPageScripts } from "@/components/fs/load-fs-scripts";
 import { FsDemoDashboardWindowFlag } from "@/components/fs/fs-demo-window-flags";
 import type { NavBrandSnapshot } from "@/lib/brand/nav-brand-snapshot";
 import type { NavUserDisplay } from "@/lib/auth/user-display";
 import { FA_ICONS_ALL, FS_COLOR_DOTS } from "@/lib/fs-icons";
-import type { FamilySharingDashboardBootstrap } from "@/lib/family-sharing/family-sharing-types";
-import type { SubscriptionWithFamilyShare } from "@/lib/family-sharing/family-sharing-types";
 import {
   isProFeaturePreviewLocked,
   type DashboardFreeTierGatePayload,
@@ -30,25 +28,25 @@ import {
 
 export function DashboardFsView({
   userDisplay,
-  initialSubscriptions,
-  initialPaidCalendarDays = {},
-  familySharingBootstrap = { enabled: false, links: [] },
+  hasSubscriptions = false,
+  hasMonthlyBudget = false,
   freeTierGate,
   categoryOptions = [],
-  monthlyBudget = null,
   demoMode = false,
   brand = null,
+  dueCountByDay,
+  paidDays,
 }: {
   brand?: NavBrandSnapshot | null;
   userDisplay?: NavUserDisplay | null;
-  initialSubscriptions: SubscriptionWithFamilyShare[];
-  initialPaidCalendarDays?: Record<string, number>;
-  familySharingBootstrap?: FamilySharingDashboardBootstrap;
+  hasSubscriptions?: boolean;
+  hasMonthlyBudget?: boolean;
   freeTierGate: DashboardFreeTierGatePayload;
   categoryOptions?: SubscriptionCategoryUiOption[];
-  monthlyBudget?: number | null;
   /** Publiskais `/demo/dashboard`: bez API, navigācija paliek demo maršrutos. */
   demoMode?: boolean;
+  dueCountByDay?: Record<number, number>;
+  paidDays?: number[];
 }) {
   const { t, paidPlan, signupEnabled, locale } = useSubtrackIntl();
   const intlLocale = useMemo(() => uiLocaleCodeToBcp47ForIntl(locale), [locale]);
@@ -95,6 +93,14 @@ export function DashboardFsView({
         await loadDashboardPageScripts();
         if (cancelled) return;
         window.fsBootDashboard?.();
+        void loadDashboardDeferredScripts()
+          .then(() => {
+            if (cancelled) return;
+            window.fsBootDashAlerts?.();
+          })
+          .catch(() => {
+            /* zvans / modal – sekundāri */
+          });
       } catch {
         dispatchSubtrackPageContentReady();
       }
@@ -183,7 +189,11 @@ export function DashboardFsView({
                         role="region"
                         aria-labelledby="pay-calendar-title"
                       >
-                        <DashboardPayCalendarInitial previewLocked={calendarPreviewLocked} />
+                        <DashboardPayCalendarInitial
+                          previewLocked={calendarPreviewLocked}
+                          dueCountByDay={dueCountByDay}
+                          paidDays={paidDays}
+                        />
                       </div>
                       {calendarPreviewLocked ? (
                         <div
@@ -238,7 +248,7 @@ export function DashboardFsView({
             <div
               className={
                 "dashboard-overview-right-col" +
-                (monthlyBudget != null
+                (hasMonthlyBudget
                   ? " dashboard-overview-right-col--has-budget"
                   : "")
               }
@@ -272,7 +282,7 @@ export function DashboardFsView({
                 <div
                   className={
                     "dashboard-overview-stats-row" +
-                    (monthlyBudget != null
+                    (hasMonthlyBudget
                       ? " dashboard-overview-stats-row--has-budget"
                       : "")
                   }
@@ -324,7 +334,7 @@ export function DashboardFsView({
                       <div className="stat-note">{t("landing.mock.stat_active_note")}</div>
                     </div>
                   </div>
-                  {monthlyBudget != null ? (
+                  {hasMonthlyBudget ? (
                     <div
                       className="stat-card stat-card--budget"
                       id="stat-budget-card"
@@ -384,7 +394,7 @@ export function DashboardFsView({
             id="dashboard-sub-list-empty-hint"
             className={
               "dashboard-sub-list-empty-hint" +
-              (initialSubscriptions.length === 0 ? "" : " hidden")
+              (hasSubscriptions ? " hidden" : "")
             }
             role="status"
           >

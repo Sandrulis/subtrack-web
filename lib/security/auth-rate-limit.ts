@@ -47,6 +47,16 @@ export async function authRateLimitedResponse(
   }
   const path = request.nextUrl.pathname;
 
+  /* Stripe / cron: atsevišķa auth (paraksts / Bearer) – neierobežot ar IP RL. */
+  if (
+    path === "/api/stripe/webhook" ||
+    path.startsWith("/api/stripe/webhook/") ||
+    path === "/api/cron" ||
+    path.startsWith("/api/cron/")
+  ) {
+    return null;
+  }
+
   const now = Date.now();
   for (const rule of RULES) {
     if (!(path === rule.prefix || path.startsWith(`${rule.prefix}/`))) {

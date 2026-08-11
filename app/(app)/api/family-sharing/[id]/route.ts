@@ -231,21 +231,34 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
     );
   }
 
+  const inviteEmailNorm = normalizeInviteEmail(row.invite_email);
+
   const buildQuery: UpdateQueryBuilder = (client) => {
     let q = client.from("family_sharing_links").update(patch).eq("id", id);
     if (rec.action === "accept") {
-      q = q.eq("status", "pending");
+      /* service_role fallback: piesaisti invite_email / partneri, ne tikai id. */
+      q = q.eq("status", "pending").eq("invite_email", inviteEmailNorm);
+      if (row.partner_user_id) {
+        q = q.eq("partner_user_id", user.id);
+      }
     } else if (rec.action === "decline") {
-      q = q.eq("status", "pending");
+      q = q.eq("status", "pending").eq("invite_email", inviteEmailNorm);
+      if (row.partner_user_id) {
+        q = q.eq("partner_user_id", user.id);
+      }
     } else if (rec.action === "leave") {
       q = q.eq("status", "active");
       if (row.partner_user_id) {
         q = q.eq("partner_user_id", user.id);
+      } else {
+        q = q.eq("invite_email", inviteEmailNorm);
       }
     } else if (isPartner && isMetaUpdate) {
       q = q.eq("status", "active");
       if (row.partner_user_id && userIdsEqual(row.partner_user_id, user.id)) {
         q = q.eq("partner_user_id", user.id);
+      } else {
+        q = q.eq("invite_email", inviteEmailNorm);
       }
     } else if (isOwner && isMetaUpdate) {
       q = q.eq("owner_user_id", user.id).eq("status", "active");

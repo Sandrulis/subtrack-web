@@ -1,6 +1,6 @@
 # Drošības pārskats - repazy (subtrack-web)
 
-Datums: **2026-06-03** | Pārskatīts: **2026-06-03** | Iepriekšējais: **2026-05-30**
+Datums: **2026-08-11** | Pārskatīts: **2026-08-11** | Iepriekšējais: **2026-06-03**
 
 ---
 
@@ -8,10 +8,10 @@ Datums: **2026-06-03** | Pārskatīts: **2026-06-03** | Iepriekšējais: **2026-
 
 | | Atzīme |
 |---|-------:|
-| **Repozitorijs (kods + CI)** | **9,0** |
-| **Produkcija (pilna DB + smoke)** | **9,1** |
-| **+ cron Bearer + Upstash** | **9,3** |
-| **Vidēji** | **~9,0** (repo) / **~9,1** (ar deploy disciplīnu) |
+| **Repozitorijs (kods + CI)** | **9,2** |
+| **Produkcija (pilna DB + smoke)** | **9,2** |
+| **+ cron Bearer + Upstash** | **9,4** |
+| **Vidēji** | **~9,2** (repo) / **~9,2** (ar deploy disciplīnu + **176**) |
 
 Detalizētas tabulas un pa kategorijām → sadaļa **[Vērtējums – detalizēti](#vērtējums--detalizēti)** zemāk.
 
@@ -25,12 +25,12 @@ Detalizētas tabulas un pa kategorijām → sadaļa **[Vērtējums – detalizē
 |------|--------|
 | Maršruti / admin | `proxy.ts`, `requireAdminUser`, RLS **015** / **078** / **159** |
 | API | `requireApiSession` / `requireApiAdmin` + middleware **401** |
-| Rate limit | Auth + **`/api/billing`**, **`/api/user`**, catch-all **`/api`**; opcija **Upstash** |
+| Rate limit | Auth + **`/api/billing`**, **`/api/user`**, catch-all **`/api`**; **izņemts** Stripe webhook + cron; opcija **Upstash** |
 | Cron | Tikai **`Authorization: Bearer <CRON_SECRET>`** |
 | Stripe | Webhook paraksts; billing RLS **159** |
-| Konta dzēšana | **`/api/user/delete-account`** – sesija, admin guards, Stripe/storage/family cleanup |
+| Konta dzēšana | **`/api/user/delete-account`** – sesija, paroles re-auth, admin guards, Stripe/storage/family cleanup |
 | Admin lietotāju saturs | **`/admin/user-messages`** – tikai admin; RLS + RPC **`174`**; server actions |
-| Reģistrācijas slēdzis | **`signup_enabled`** (166) – UI + `signUpAction`; OAuth bypass iespējams (skat. N1) |
+| Reģistrācijas slēdzis | **`signup_enabled`** (166 + **176** `handle_new_user` gate) – UI, action un DB |
 | Automatizācija | `security:regression-check`, `verify-migrations`, `deploy-checklist`, `security:check` |
 
 ---
@@ -58,13 +58,13 @@ Statiskā regresija: **OK**. `npm audit --audit-level=high`: **0** high.
 | **Admin / service_role** | 8,8 | Tikai serverī; delete guards | Family lookup |
 | **Ģimenes dalīšana** | 8,9 | RLS **093**; enumerācija samazināta | PATCH service_role fallback |
 | **Rate limiting** | 8,7 | Auth + `/api/*` (iesk. billing, user) | Bez Upstash – uz instanci |
-| **XSS / frontends** | 8,7 | escHtml, JSON `\u003c`, e-pasta body escHtml | CSP bez script-src |
+| **XSS / frontends** | 8,9 | escHtml, JSON `\u003c`, e-pasta body escHtml; paplašināts CSP | CSP `unsafe-inline` scripts |
 | **Noslēpumi / ENV** | 9,0 | Nav public service role | Vercel ENV |
 | **Atkarības (npm)** | 9,5 | 0 vulnerabilities audit | Dependabot |
 | **Operācijas / observability** | 8,5 | deploy-checklist, smoke CI | Leaked password – Dashboard |
-| **Konta dzēšana / GDPR** | 8,8 | Pilns cleanup; admin nevar self-delete | Nav paroles re-auth |
+| **Konta dzēšana / GDPR** | 9,0 | Pilns cleanup; admin nevar self-delete; **paroles re-auth** | – |
 
-**Pret 10:** stingrs CSP (`script-src`), globāls RL bez Upstash, signup OAuth bypass, konta dzēšana bez paroles apstiprinājuma, pentests, Leaked password Dashboard.
+**Pret 10:** stingrāks CSP (bez `unsafe-inline`), globāls RL bez Upstash, pentests, Leaked password Dashboard.
 
 ---
 
@@ -122,7 +122,7 @@ Middleware **401** · Auth/signup **OK** · API `requireApiSession` **OK** · RL
 | Funkcija | Drošības novērtējums |
 |----------|---------------------|
 | **`/api/user/delete-account`** | Sesija + admin block; `deleteUserAccountById` (Stripe, storage, family); iemesls max 4000; e-pasts caur `escHtml` |
-| **`signup_enabled` (166)** | `/signup` redirect + `signUpAction` guard; OAuth / tiešs Supabase signUp var apiet (N1) |
+| **`signup_enabled` (166 + 176)** | UI + `signUpAction` + **`handle_new_user`** DB gate (`signup_enabled=false` → exception) |
 | **`/admin/user-messages` (174–175)** | Admin layout + `requireAdminUser`; RLS; RPC ar `current_user_is_admin()`; React text (nav innerHTML) |
 | Migrācijas **163–173** | Galvenokārt tulkojumi; drošības ietekme minimāla |
 
@@ -134,11 +134,13 @@ Middleware **401** · Auth/signup **OK** · API `requireApiSession` **OK** · RL
 | M1 | 158/160/162/166 bez auto-verify | SQL Editor |
 | L1 | Leaked password | **TODO** Dashboard |
 | L2 | Upstash opcija | ENV |
-| L3 | CSP bez script-src | Apzināts |
-| N1 | OAuth reģistrācija ar `signup_enabled=false` | **Jauns** – skat. ieteikumus |
-| N2 | Konta dzēšana bez paroles re-auth | **Jauns** – zema prioritāte |
+| L3 | CSP ar script-src (unsafe-inline) | Apzināts (Next) |
+| N1 | OAuth / Auth signUp ar `signup_enabled=false` | **Labots** – SQL **`176_handle_new_user_signup_enabled_gate.sql`** |
+| N2 | Konta dzēšana bez paroles re-auth | **Labots** – paroles solis + API `password` |
 | U1 | **`174` nav palaists** – admin UI tukšs / support bez DB | **Jauns** – palaid SQL + verify |
 | U2 | Atbalsta insert pēc e-pasta – ja DB insert fail, e-pasts jau nosūtīts | **Jauns** – zema prioritāte (audit) |
+
+Signup e-pasta enumerācija mīkstināta: bloķēts e-pasts → tā pati „pārbaudi e-pastu” UX; `signupEmailExistsAction` vienmēr `{ exists: false }`; `mapSignupAuthError` → ģeneriska ziņa.
 
 ---
 
@@ -229,6 +231,8 @@ npm run security:check
 
 ## Vēsture
 
+- **2026-08-11 (turpinājums):** N2 labots (delete-account paroles re-auth); signup enumerācija mīkstināta; CSP paplašināts (`script-src` u.c.)
+- **2026-08-11:** N1 labots (**176** `handle_new_user` + `signup_enabled`); RL izņēmums webhook/cron; middleware fail-closed bez Supabase env; family PATCH filtri + invite oracle mīkstināts; panelis – defer alerts, skip dubulto boot, FS/CSS cache
 - **2026-06-03:** `/admin/user-messages` (174–175); L2.2b regresija; verify **174**; atkārtota pārbaude; delete-account; signup_enabled (166); N1/N2
 - **2026-05-30:** regresija, billing RL, verify/deploy skripti, šis pārskats
 - **2026-05-22:** M1–M3 family/cron/rate limit, L5 middleware 401, **116** Pro trial RPC

@@ -21,3 +21,7 @@ export async function isSignupEmailBlocked(
 }
 
 export const SIGNUP_EMAIL_TAKEN_MESSAGE = "Šāds e-pasts jau ir sistēmā.";
+
+/** Ģeneriska reģistrācijas kļūda (bez e-pasta enumerācijas). */
+export const SIGNUP_GENERIC_ERROR =
+  "Neizdevās reģistrēties. Mēģini vēlreiz vai ieej ar esošo kontu.";

@@ -8,14 +8,27 @@ import { getUiPhraseForRequest } from "@/lib/ui/server-ui-phrases";
 
 const REASON_MAX = 4000;
 
+function userHasPasswordIdentity(user: {
+  identities?: Array<{ provider?: string }> | null;
+  app_metadata?: { providers?: string[] } | null;
+}): boolean {
+  const identities = user.identities ?? [];
+  if (identities.some((i) => String(i.provider ?? "").toLowerCase() === "email")) {
+    return true;
+  }
+  const providers = user.app_metadata?.providers ?? [];
+  return providers.some((p) => String(p).toLowerCase() === "email");
+}
+
 export async function POST(request: Request) {
   const auth = await requireApiSession(
     await getUiPhraseForRequest("api.user.delete_account.unauthorized"),
   );
   if (!auth.ok) return auth.response;
-  const { user } = auth;
+  const { user, supabase } = auth;
 
   let deletionReason = "";
+  let password = "";
   const parsedBody = await parseJsonBody(request);
   if (parsedBody.ok) {
     const rec = asJsonRecord(parsedBody.body);
@@ -23,9 +36,45 @@ export async function POST(request: Request) {
     if (typeof raw === "string") {
       deletionReason = raw.trim().slice(0, REASON_MAX);
     }
+    if (typeof rec.password === "string") {
+      password = rec.password;
+    }
   }
 
-  const { data: row, error: rowErr } = await auth.supabase
+  const email = String(user.email ?? "").trim();
+  if (!email) {
+    return apiJsonError(
+      400,
+      await getUiPhraseForRequest("api.user.delete_account.failed"),
+    );
+  }
+
+  if (!userHasPasswordIdentity(user)) {
+    return apiJsonError(
+      400,
+      await getUiPhraseForRequest("api.user.delete_account.oauth_only"),
+    );
+  }
+
+  if (!password) {
+    return apiJsonError(
+      400,
+      await getUiPhraseForRequest("api.user.delete_account.password_required"),
+    );
+  }
+
+  const { error: verifyErr } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (verifyErr) {
+    return apiJsonError(
+      401,
+      await getUiPhraseForRequest("api.user.delete_account.wrong_password"),
+    );
+  }
+
+  const { data: row, error: rowErr } = await supabase
     .from("users")
     .select("is_admin")
     .eq("id", user.id)

@@ -15,8 +15,13 @@ function cellPreviewLocked(cellIndex: number, previewLocked: boolean): boolean {
  */
 export function DashboardPayCalendarInitial({
   previewLocked = false,
+  dueCountByDay,
+  paidDays,
 }: {
   previewLocked?: boolean;
+  dueCountByDay?: Record<number, number>;
+  /** Samaksāto dienu numuri (1–31) šajā mēnesī. */
+  paidDays?: number[];
 }) {
   const { locale } = useSubtrackIntl();
   const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
@@ -30,6 +35,15 @@ export function DashboardPayCalendarInitial({
     () => calendarWeekdayHeaders(intlLocale),
     [intlLocale],
   );
+
+  const paidDaySet = useMemo(() => {
+    const out = new Set<number>();
+    if (!paidDays) return out;
+    for (const d of paidDays) {
+      if (d >= 1 && d <= 31) out.add(d);
+    }
+    return out;
+  }, [paidDays]);
 
   const cells = useMemo(() => {
     const today = new Date();
@@ -60,15 +74,39 @@ export function DashboardPayCalendarInitial({
       if (cellDate.getTime() === today.getTime()) {
         classes.push("pay-cal-cell--today");
       }
+
+      const dueCount = dueCountByDay?.[day] ?? 0;
+      const isPaid = paidDaySet.has(day);
+      const children: ReactNode[] = [day];
+
+      if (dueCount > 0) {
+        classes.push("pay-cal-cell--due");
+        if (cellDate.getTime() < today.getTime()) {
+          classes.push("pay-cal-cell--overdue");
+        }
+        if (isPaid) {
+          classes.push("pay-cal-cell--due-with-paid");
+        }
+        if (dueCount > 1) {
+          children.push(
+            <span key="more" className="pay-cal-cell-more" aria-hidden="true">
+              +{dueCount}
+            </span>,
+          );
+        }
+      } else if (isPaid) {
+        classes.push("pay-cal-cell--paid-past");
+      }
+
       out.push(
         <div key={`day-${day}`} className={classes.join(" ")}>
-          {day}
+          {children}
         </div>,
       );
     }
 
     return out;
-  }, [previewLocked, view.m, view.y]);
+  }, [dueCountByDay, paidDaySet, previewLocked, view.m, view.y]);
 
   return (
     <>

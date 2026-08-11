@@ -17,11 +17,12 @@ const PROTECTED_PREFIXES = [
 /** Tikai bez sesijas - ar sesiju vienmēr uz paneļu. */
 const GUEST_ONLY_PATHS = ["/login", "/signup", "/forgot-password"] as const;
 
-/** API bez sesijas (cron, dev probe). */
+/** API bez sesijas (cron, webhook, publisks ikonu katalogs, dev probe). */
 const API_PUBLIC_PREFIXES = [
   "/api/cron/",
   "/api/dev-env-check",
   "/api/stripe/webhook",
+  "/api/fs/icon-visual-bootstrap",
 ] as const;
 
 function isApiPath(path: string): boolean {
@@ -75,6 +76,22 @@ function nextWithPathname(request: NextRequest) {
 export async function updateSession(request: NextRequest) {
   const cfg = getSupabasePublicConfig();
   if (!cfg) {
+    /* Produkcijā: bez Supabase env nav silent fail-open uz aizsargātiem ceļiem. */
+    if (process.env.NODE_ENV === "production") {
+      const path = request.nextUrl.pathname;
+      if (isApiPath(path) && !isPublicApiPath(path)) {
+        return NextResponse.json(
+          { success: false, message: "Service unavailable" },
+          { status: 503 },
+        );
+      }
+      if (isProtectedPath(path) || isGuestOnlyPath(path)) {
+        return new NextResponse("Service unavailable", {
+          status: 503,
+          headers: { "Cache-Control": "no-store", "Content-Type": "text/plain; charset=utf-8" },
+        });
+      }
+    }
     return nextWithPathname(request);
   }
 

@@ -1,6 +1,6 @@
 # SubTrack (subtrack-web)
 
-**Versija:** `0.6.28` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**; native Android – **[Capacitor (Android)](#capacitor-android)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`). Lietotājam redzamais nosaukums – **`system_settings.system_name`** (admin **`/admin/system`**).
+**Versija:** `0.6.30` (skatīt **[Izmaiņu žurnāls](#izmaiņu-žurnāls)**; **0.4.x** sākas ar **0.4.0** = agrāk žurnāla **0.3.54**; PWA – **[PWA (SubTrack)](#pwa-subtrack)**; native Android – **[Capacitor (Android)](#capacitor-android)**). Produkcija: **[Vercel un domēns](#vercel-un-produkcijas-domēns)** (`repazy.com`). Lietotājam redzamais nosaukums – **`system_settings.system_name`** (admin **`/admin/system`**).
 
 **SubTrack** (repozitorijs `subtrack-web`; zīmols **repazy**) ir abonementu un periodisko maksājumu pārvaldības lietotne. Šis repozitorijs satur **web saskarni** (Next.js): paneli ar kalendāru, abonementu sarakstu, analītiku un autentifikācijas ekrānus. **Paneļa dati** (`/dashboard`, `/analytics`) lasās no **Supabase** (`public.subscriptions`, **`public.subscription_payments`** maksājumu žurnālam, RLS); CRUD notiek caur **Route Handlers** (`app/(app)/api/subscriptions/*`) ar kopīgu **`lib/api/`** (sesija, JSON, atbildes) un sesijas sīkdatēm; prototipa **FS** JavaScript (`public/fs/js/`, datumi – **`display-preferences-format.js`**) renderē UI un izsauc API (kopā ar **Supabase Auth** un **`database/supabase/`** migrācijām).
 
@@ -1096,6 +1096,17 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 
 Šeit īss pieraksts par izlaistām izmaiņām. **PWA** – **[PWA (SubTrack)](#pwa-subtrack)**. **0.4.x** no **0.4.0** (= agrāk **0.3.54**).
 
+### 0.6.30 (2026-08-11)
+
+- **Drošība** – konta dzēšana ar **paroles re-auth** (N2, SQL **`177_*`**); signup e-pasta enumerācija mīkstināta (bloķēts e-pasts → check-email UX; `signupEmailExistsAction` bez noplūdes); blog attēli **sharp** pārkodēti uz WebP; **CSP** paplašināts (`default-src`, `script-src`, Stripe frames, Sentry, Supabase).
+- **Veiktspēja (panelis)** – ikonu/vizuālo bootstrap noņemts no SSR HTML (`GET /api/fs/icon-visual-bootstrap` pie modāļa); `DashboardFsView` props retināti; SSR kalendāra due/paid marķieri; dashboard SSR `Promise.all` paralelizācija.
+
+### 0.6.29 (2026-08-11)
+
+- **Drošība** – **`176_handle_new_user_signup_enabled_gate.sql`**: `signup_enabled=false` bloķē arī Auth/OAuth jauno kontu (N1); rate limit **neattiecas** uz Stripe webhook un cron; middleware **503** produkcijā bez Supabase env; family PATCH `service_role` filtri ar `invite_email` / partneri; family invite bez e-pasta orākula (`emailed` noņemts).
+- **Veiktspēja (panelis)** – `dash-alerts` / modal guard **pēc** gate; API sync bez dubultā `continueDashboardBoot`, ja dati nemainās; **Cache-Control** `/fs/js/*` un `/styles/*`.
+- **`security_check.md`** – N1 labots; vērtējums ~**9,2**.
+
 ### 0.6.28 (2026-08-11)
 
 - **Atkarības – `npm audit`** – **`next`/`eslint-config-next` `16.3.0`**, **`sharp` `^0.35.3`**, **`npm audit fix`** (babel, brace-expansion, esbuild, fast-uri, js-yaml, nanoid, shell-quote, tar u.c.); **`overrides.postcss` ≥ 8.5.23**. **`npm run audit`** → **0** high+.
@@ -1150,7 +1161,7 @@ Paneļa **abonementu CRUD** izmanto **Supabase Postgres** (`001` → **`subscrip
 
 ### 0.6.18 (2026-06-03)
 
-- **Admin – jaunu reģistrāciju slēdzis** – **`/admin/system`**: **`signup_enabled`** (autosave). Izslēdzot: **`/signup`** → **`/login`**, **`NavLanding`** / landing / demo topbar bez reģistrācijas; **`signUpAction`** atgriež kļūdu. Publiski **`getPublicSystemSettings().signupEnabled`**. SQL **`166_system_settings_signup_enabled.sql`**, **`167_site_translations_signup_enabled.sql`**.
+- **Admin – jaunu reģistrāciju slēdzis** – **`/admin/system`**: **`signup_enabled`** (autosave). Izslēdzot: **`/signup`** → **`/login`**, **`NavLanding`** / landing / demo topbar bez reģistrācijas; **`signUpAction`** atgriež kļūdu; **`handle_new_user`** (**`176_*`**) bloķē arī Auth/OAuth jauno kontu. Publiski **`getPublicSystemSettings().signupEnabled`**. SQL **`166_*`**, **`167_*`**, **`176_*`**.
 - **Nedēļas kopsavilkums – „šonedēļ” kopsumma** – e-pastā sadaļa **Jāmaksā šonedēļ**: ja **> 1** maksājums, rinda **`Kopā šonedēļ: … (N maksājumi)`** virs atsevišķajām rindām (**`lib/emails/weekly-summary-email.ts`**, **`email.weekly.due_week_total`**). SQL **`168_site_translations_weekly_due_week_total.sql`**.
 
 ### 0.6.17 (2026-05-31)

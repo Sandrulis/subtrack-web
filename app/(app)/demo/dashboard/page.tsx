@@ -12,6 +12,7 @@ import {
   fetchSystemPaidPlanLiveForDashboard,
 } from "@/lib/subscriptions/dashboard-free-tier-gate";
 import { fetchEnabledSubscriptionCategoryOptions } from "@/lib/subscriptions/subscription-categories-server";
+import { buildSsrDueCountByDay } from "@/lib/dashboard/ssr-calendar-due-markers";
 import { fsDashboardPhraseKeys } from "@/lib/fs/fs-page-i18n-keys";
 import {
   getUiPhraseForRequest,
@@ -49,10 +50,6 @@ export default async function DemoDashboardRoute() {
     mockWeekBill: demoPhrases["demo.dashboard.mock_week_bill"],
   });
 
-  const categoryOptions = await fetchEnabledSubscriptionCategoryOptions(
-    initialSubscriptions.map((s) => s.category),
-  );
-
   const freeTierGate = buildDashboardFreeTierGatePayload(
     userDisplay,
     paidPlanLive,
@@ -63,9 +60,21 @@ export default async function DemoDashboardRoute() {
     isPaidUser: true,
   };
 
-  const { locale } = await resolveRequestUiLocales();
-  const intlLocale = uiLocaleCodeToBcp47ForIntl(locale);
-  const fsI18n = await getUiPhrasesForRequest(fsDashboardPhraseKeys());
+  const [categoryOptions, localeBundle, fsI18n] = await Promise.all([
+    fetchEnabledSubscriptionCategoryOptions(
+      initialSubscriptions.map((s) => s.category),
+    ),
+    resolveRequestUiLocales(),
+    getUiPhrasesForRequest(fsDashboardPhraseKeys()),
+  ]);
+  const intlLocale = uiLocaleCodeToBcp47ForIntl(localeBundle.locale);
+
+  const now = new Date();
+  const dueCountByDay = buildSsrDueCountByDay(
+    initialSubscriptions,
+    now.getFullYear(),
+    now.getMonth(),
+  );
 
   return (
     <>
@@ -79,10 +88,12 @@ export default async function DemoDashboardRoute() {
       <DashboardFsView
         brand={brand}
         userDisplay={userDisplay}
-        initialSubscriptions={initialSubscriptions}
+        hasSubscriptions={initialSubscriptions.length > 0}
+        hasMonthlyBudget={false}
         freeTierGate={demoFreeTierGate}
         categoryOptions={categoryOptions}
         demoMode
+        dueCountByDay={dueCountByDay}
       />
     </>
   );

@@ -5,7 +5,6 @@ import { AuthFormPendingFieldset } from "@/components/auth/auth-form-pending-fie
 import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { useSubtrackIntl } from "@/components/subtrack-intl-provider";
 import Link from "next/link";
-import { signupEmailExistsAction } from "@/lib/auth/actions";
 import {
   PASSWORD_STRENGTH_META,
   scorePassword,
@@ -16,15 +15,6 @@ function isValidEmail(value: string): boolean {
   const e = value.trim();
   if (!e) return false;
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-}
-
-function useDebounced<T>(value: T, ms: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(id);
-  }, [value, ms]);
-  return debounced;
 }
 
 export function SignupForm({
@@ -47,8 +37,6 @@ export function SignupForm({
   const passwordRef = useRef<HTMLInputElement>(null);
   const passwordConfirmRef = useRef<HTMLInputElement>(null);
 
-  const debouncedEmail = useDebounced(email, 450);
-
   /** Pārlūka/aizpildītāja autofill bieži nemaina React stāvokli – sinhronizē no DOM. */
   useEffect(() => {
     const syncPasswordFieldsFromDom = () => {
@@ -69,15 +57,6 @@ export function SignupForm({
     };
   }, []);
 
-  const [emailCheck, setEmailCheck] = useState<{
-    email: string;
-    exists: boolean;
-    unavailable?: boolean;
-  } | null>(null);
-  const [checkInflight, setCheckInflight] = useState<string | null>(null);
-  /** Palielina, lai pēc blur atkārtoti vaicātu DB (piem. kad noņemts retired_signup_emails). */
-  const [emailRecheckSeq, setEmailRecheckSeq] = useState(0);
-
   const strengthScore = useMemo(() => scorePassword(password), [password]);
   const strength = PASSWORD_STRENGTH_META[strengthScore];
   const strengthLabel = useMemo(() => {
@@ -89,83 +68,17 @@ export function SignupForm({
   const confirmMismatch =
     passwordConfirm.length > 0 && password !== passwordConfirm;
 
-  const emailLooksValid = useMemo(
-    () => isValidEmail(debouncedEmail),
-    [debouncedEmail],
-  );
-
   const emailTrimmed = email.trim();
   const emailFormatInvalid =
     emailTrimmed.length > 0 && !isValidEmail(emailTrimmed);
 
-  const normalizedDebounced = useMemo(
-    () => debouncedEmail.trim().toLowerCase(),
-    [debouncedEmail],
-  );
-
-  useEffect(() => {
-    if (!emailLooksValid) return;
-
-    const target = normalizedDebounced;
-    let active = true;
-
-    queueMicrotask(() => {
-      if (!active) return;
-      setCheckInflight(target);
-    });
-
-    signupEmailExistsAction(debouncedEmail.trim()).then((res) => {
-      if (!active) return;
-      if (res.unavailable) {
-        setEmailCheck({ email: target, exists: false, unavailable: true });
-      } else {
-        setEmailCheck({ email: target, exists: res.exists });
-      }
-      setCheckInflight((prev) => (prev === target ? null : prev));
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [debouncedEmail, emailLooksValid, normalizedDebounced, emailRecheckSeq]);
-
-  const checkingEmail =
-    emailLooksValid &&
-    checkInflight !== null &&
-    checkInflight === normalizedDebounced;
-
-  const emailCheckUnavailable =
-    emailLooksValid &&
-    emailCheck !== null &&
-    emailCheck.email === normalizedDebounced &&
-    emailCheck.unavailable === true;
-
-  const emailTaken =
-    emailLooksValid &&
-    emailCheck !== null &&
-    emailCheck.email === normalizedDebounced &&
-    emailCheck.exists &&
-    !emailCheck.unavailable;
-
   const submitDisabled =
-    emailTaken ||
-    emailCheckUnavailable ||
     !isValidEmail(emailTrimmed) ||
     password !== passwordConfirm ||
-    checkingEmail ||
     !firstName.trim() ||
     !lastName.trim() ||
     !password ||
     password.length < 8;
-
-  const emailFieldInvalid = emailFormatInvalid || emailTaken;
-
-  const emailInputClass =
-    emailTaken
-      ? "input--signup-invalid"
-      : emailFormatInvalid
-        ? "input--signup-email-format"
-        : undefined;
 
   return (
     <form action={formAction} noValidate autoComplete="on">
@@ -209,26 +122,10 @@ export function SignupForm({
           autoComplete="username"
           required
           value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            setEmailCheck(null);
-          }}
-          onBlur={() => {
-            if (!isValidEmail(emailTrimmed)) return;
-            setEmailCheck(null);
-            setEmailRecheckSeq((n) => n + 1);
-          }}
-          aria-invalid={emailFieldInvalid}
-          aria-describedby={
-            emailFormatInvalid
-              ? "email-format-hint"
-              : emailTaken
-                ? "email-taken-hint"
-                : emailCheckUnavailable
-                  ? "email-check-unavailable-hint"
-                  : undefined
-          }
-          className={emailInputClass}
+          onChange={(e) => setEmail(e.target.value)}
+          aria-invalid={emailFormatInvalid}
+          aria-describedby={emailFormatInvalid ? "email-format-hint" : undefined}
+          className={emailFormatInvalid ? "input--signup-email-format" : undefined}
         />
         {emailFormatInvalid ? (
           <p
@@ -237,22 +134,6 @@ export function SignupForm({
             role="alert"
           >
             {t("auth.validation.email_hint")}
-          </p>
-        ) : emailTaken ? (
-          <p
-            id="email-taken-hint"
-            className="form-hint form-hint--error"
-            role="alert"
-          >
-            {t("auth.signup.email_taken")}
-          </p>
-        ) : emailCheckUnavailable ? (
-          <p
-            id="email-check-unavailable-hint"
-            className="form-hint form-hint--error"
-            role="alert"
-          >
-            {t("auth.signup.email_check_unavailable")}
           </p>
         ) : null}
       </div>

@@ -76,10 +76,14 @@ export async function POST(request: Request) {
   const partnerId = await lookupUserIdByEmail(email);
   const isExternalInvite = !partnerId;
 
+  /*
+   * Ārējs uzaicinājums bez Resend: tāds pats kļūdas teksts kā neveiksmīgai sūtīšanai,
+   * lai neatklātu, vai e-pasts ir sistēmā (account oracle).
+   */
   if (isExternalInvite && !isTransactionalEmailConfigured()) {
     return apiJsonError(
-      503,
-      await getUiPhraseForRequest("family_sharing.err_email_not_configured"),
+      502,
+      await getUiPhraseForRequest("family_sharing.err_invite_failed"),
     );
   }
 
@@ -139,5 +143,5 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ success: true, id: linkId, emailed: isExternalInvite });
+  return NextResponse.json({ success: true, id: linkId });
 }

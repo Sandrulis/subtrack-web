@@ -193,6 +193,10 @@ for (const f of apiRoutes) {
   const r = normalizeAppRoutePath(rel(f));
   const text = fs.readFileSync(f, "utf8");
   if (r.includes("dev-env-check") || r.includes("sentry-test")) continue;
+  if (r.includes("fs/icon-visual-bootstrap")) {
+    /* Publisks ikonu/zīmola katalogs (bez lietotāja datiem) – demo + panelis. */
+    continue;
+  }
   if (r.includes("stripe/webhook")) {
     if (!hasStripeWebhookAuth(text)) {
       errors.push(`${r}: Stripe webhook bez constructEvent / stripe-signature`);

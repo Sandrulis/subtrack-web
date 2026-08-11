@@ -4,8 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
-import { allowServerActionRateLimit } from "@/lib/security/server-action-rate-limit";
-import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role-client";
 import {
   registerUserWithLocalizedConfirmEmail,
   sendPasswordResetWithLocalizedEmail,
@@ -18,21 +16,14 @@ import {
   getUiPhraseForRequest,
   resolveRequestUiLocales,
 } from "@/lib/ui/server-ui-phrases";
-import {
-  isSignupEmailBlocked,
-  SIGNUP_EMAIL_TAKEN_MESSAGE,
-} from "@/lib/auth/signup-email-blocked";
+import { isSignupEmailBlocked } from "@/lib/auth/signup-email-blocked";
 import { buildRegistrationGeoPayload } from "@/lib/auth/registration-country-payload";
 import { getPublicSignupEnabled } from "@/lib/auth/signup-enabled";
 import { guestEntryPath } from "@/lib/capacitor/brand-home-href";
 
-/** Signup e-pasta pārbaude: max pieprasījumi uz IP minūtē (M2 enumerācijas mazināšana). */
-const SIGNUP_EMAIL_EXISTS_MAX_PER_MIN = 24;
-
 /**
- * Klienta formai: vai šis e-pasts jau ir auth.users.
- * Pēc migrācijas `023_security_advisor_rpcs.sql` RPC ir tikai `service_role` –
- * iestatiet `SUPABASE_SERVICE_ROLE_KEY` serverī (.env.local).
+ * Klienta formai: vēsturiski e-pasta aizņemtības pārbaude.
+ * Vienmēr `{ exists: false }` – bez enumerācijas (privātums).
  */
 export type SignupEmailExistsResult = {
   exists: boolean;
@@ -41,31 +32,9 @@ export type SignupEmailExistsResult = {
 };
 
 export async function signupEmailExistsAction(
-  email: string,
+  _email: string,
 ): Promise<SignupEmailExistsResult> {
-  if (!getSupabasePublicConfig()) {
-    return { exists: false };
-  }
-
-  const trimmed = email.trim().toLowerCase();
-  if (!trimmed.includes("@") || trimmed.length < 5) {
-    return { exists: false };
-  }
-
-  const allowed = await allowServerActionRateLimit(
-    "signup-email-exists",
-    SIGNUP_EMAIL_EXISTS_MAX_PER_MIN,
-    60_000,
-  );
-  if (!allowed) {
-    return { exists: false, unavailable: true };
-  }
-
-  const blocked = await isSignupEmailBlocked(trimmed);
-  if (blocked === null) {
-    return { exists: false, unavailable: true };
-  }
-  return { exists: blocked };
+  return { exists: false };
 }
 
 function errParam(msg: string) {
@@ -166,7 +135,8 @@ export async function signUpAction(
 
   const emailBlocked = await isSignupEmailBlocked(email);
   if (emailBlocked === true) {
-    return { ok: false, error: SIGNUP_EMAIL_TAKEN_MESSAGE };
+    /* Tā pati UX kā veiksmīgai reģistrācijai – bez e-pasta enumerācijas. */
+    return { ok: true, email };
   }
 
   const site =
