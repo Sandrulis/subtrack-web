@@ -211,6 +211,9 @@ function continueDashboardBoot() {
     subtrackEnrichAllSubscriptionsFamilyShare();
     subtrackRefreshFamilySharedCache();
     setDefaultDate();
+    if (typeof subtrackInitDataTooltipPortals === 'function') {
+        subtrackInitDataTooltipPortals();
+    }
     renderList();
     initCalendarNav();
     initPayCalIncludePaidToggle();
@@ -1084,24 +1087,29 @@ function buildDeviceTermHtml(dev, parentColor) {
     if (!dev || !dev.name || !dev.termStart || !dev.termEnd) return '';
     var pct = computeTermProgressPct(dev.termStart, dev.termEnd);
     if (pct === null) return '';
-    var c = parentColor || '#0d9488';
-    var rightCol;
-    var dateLine = escHtml(formatDateWithYear(dev.termStart)) + ' - ' + escHtml(formatDateWithYear(dev.termEnd));
-    if (pct >= 100) {
-        rightCol = '<span class="sub-term-pct sub-term-pct-done">' + escHtml(FsT('fs.dashboard.term_done')) + '</span>';
-    } else {
-        var moD = wholeMonthsFromEndRemaining(dev.termEnd);
-        var remParenD = moD > 0
-            ? ' <span class="sub-term-atlikums">(' + escHtml(formatMonthsRemainingLong(moD)) + ')</span>'
-            : '';
-        dateLine = dateLine + remParenD;
-        rightCol =
-            '<span class="sub-term-pct"><strong>' +
-            pct +
-            '%</strong> ' +
-            escHtml(FsT('fs.dashboard.term_progress_suffix')) +
-            '</span>';
+    /* Beigušās iekārtas (papildu uzstādījumi) vairs nerāda sarakstā. */
+    if (
+        pct >= 100 ||
+        (typeof isTermEndedForRef === 'function' && isTermEndedForRef(dev.termEnd))
+    ) {
+        return '';
     }
+    var c = parentColor || '#0d9488';
+    var moD = wholeMonthsFromEndRemaining(dev.termEnd);
+    var remParenD = moD > 0
+        ? ' <span class="sub-term-atlikums">(' + escHtml(formatMonthsRemainingLong(moD)) + ')</span>'
+        : '';
+    var dateLine =
+        escHtml(formatDateWithYear(dev.termStart)) +
+        ' - ' +
+        escHtml(formatDateWithYear(dev.termEnd)) +
+        remParenD;
+    var rightCol =
+        '<span class="sub-term-pct"><strong>' +
+        pct +
+        '%</strong> ' +
+        escHtml(FsT('fs.dashboard.term_progress_suffix')) +
+        '</span>';
     return '<div class="sub-term-block sub-term-block--device">' +
         '<div class="sub-term-header">' +
         '<div class="sub-term-label"><i class="fa-solid fa-layer-group"></i> ' + deviceNameWithNoteHtml(dev) + deviceAmountInlineHtml(dev) + ' <span class="sub-device-term-sep" aria-hidden="true">·</span> ' +
@@ -1435,7 +1443,8 @@ function markPaid(id) {
         );
         showToast(FsT('fs.dashboard.toast_demo_only'), 'success');
         subtrackSetMarkPaidPending(id, false);
-        renderList(id);
+        /* Bez step-scroll „vilkšanas” animācijas pēc apmaksas. */
+        renderList();
         return;
     }
 
@@ -1471,7 +1480,8 @@ function markPaid(id) {
         .then(function (shownDate) {
             var raw = FsT('fs.dashboard.toast_marked_paid');
             showToast(raw ? raw.replace(/\{date\}/g, formatDate(shownDate)) : 'Maksājums.', 'success');
-            renderList(id);
+            /* Bez step-scroll „vilkšanas” animācijas pēc apmaksas. */
+            renderList();
         })
         .catch(function () {
             showToast(FsT('fs.dashboard.toast_api_save_failed'), 'error');

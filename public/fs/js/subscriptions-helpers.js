@@ -1176,7 +1176,142 @@ function subtrackNotifyPageContentReady() {
     } catch (e) {}
 }
 
+/**
+ * [data-tooltip] → fixed bubble uz document.body (kā SubtrackTooltip),
+ * lai parent overflow / blakus kartes neapgrieztu tekstu.
+ */
+var subtrackDataTooltipBubbleEl = null;
+var subtrackDataTooltipAnchorEl = null;
+var subtrackDataTooltipCloseTimer = null;
+
+function subtrackSupportsHoverTooltip() {
+    if (typeof window === 'undefined' || !window.matchMedia) return true;
+    try {
+        if (window.matchMedia('(hover: none)').matches) return false;
+        if (window.matchMedia('(pointer: coarse)').matches) return false;
+    } catch (e) {}
+    return true;
+}
+
+function subtrackHideDataTooltipBubble() {
+    if (subtrackDataTooltipCloseTimer) {
+        clearTimeout(subtrackDataTooltipCloseTimer);
+        subtrackDataTooltipCloseTimer = null;
+    }
+    subtrackDataTooltipAnchorEl = null;
+    if (subtrackDataTooltipBubbleEl && subtrackDataTooltipBubbleEl.parentNode) {
+        subtrackDataTooltipBubbleEl.parentNode.removeChild(subtrackDataTooltipBubbleEl);
+    }
+    subtrackDataTooltipBubbleEl = null;
+}
+
+function subtrackPositionDataTooltipBubble(anchor) {
+    if (!subtrackDataTooltipBubbleEl || !anchor) return;
+    var r = anchor.getBoundingClientRect();
+    var left = r.left + r.width / 2;
+    var top = r.top;
+    var pad = 8;
+    var bw = subtrackDataTooltipBubbleEl.offsetWidth || 0;
+    var half = bw / 2;
+    if (left - half < pad) left = pad + half;
+    if (left + half > window.innerWidth - pad) left = window.innerWidth - pad - half;
+    subtrackDataTooltipBubbleEl.style.left = left + 'px';
+    subtrackDataTooltipBubbleEl.style.top = top + 'px';
+}
+
+function subtrackShowDataTooltipBubble(anchor) {
+    if (!anchor || !subtrackSupportsHoverTooltip()) return;
+    var text = (anchor.getAttribute('data-tooltip') || '').trim();
+    if (!text) return;
+    if (subtrackDataTooltipCloseTimer) {
+        clearTimeout(subtrackDataTooltipCloseTimer);
+        subtrackDataTooltipCloseTimer = null;
+    }
+    subtrackDataTooltipAnchorEl = anchor;
+    if (!subtrackDataTooltipBubbleEl) {
+        subtrackDataTooltipBubbleEl = document.createElement('span');
+        subtrackDataTooltipBubbleEl.className = 'subtrack-tooltip-bubble is-visible';
+        subtrackDataTooltipBubbleEl.setAttribute('role', 'tooltip');
+        document.body.appendChild(subtrackDataTooltipBubbleEl);
+    }
+    subtrackDataTooltipBubbleEl.textContent = text;
+    subtrackPositionDataTooltipBubble(anchor);
+}
+
+function subtrackScheduleHideDataTooltipBubble() {
+    if (subtrackDataTooltipCloseTimer) clearTimeout(subtrackDataTooltipCloseTimer);
+    subtrackDataTooltipCloseTimer = setTimeout(function () {
+        subtrackHideDataTooltipBubble();
+    }, 80);
+}
+
+function subtrackInitDataTooltipPortals() {
+    if (typeof document === 'undefined') return;
+    if (document.documentElement.getAttribute('data-subtrack-tooltip-portals') === '1') {
+        return;
+    }
+    document.documentElement.setAttribute('data-subtrack-tooltip-portals', '1');
+
+    function closestTooltipTarget(node) {
+        if (!node || !node.closest) return null;
+        return node.closest('[data-tooltip]');
+    }
+
+    document.addEventListener(
+        'mouseover',
+        function (e) {
+            var t = closestTooltipTarget(e.target);
+            if (!t) return;
+            subtrackShowDataTooltipBubble(t);
+        },
+        true,
+    );
+    document.addEventListener(
+        'mouseout',
+        function (e) {
+            var t = closestTooltipTarget(e.target);
+            if (!t) return;
+            var to = e.relatedTarget;
+            if (to && t.contains(to)) return;
+            if (to === subtrackDataTooltipBubbleEl) return;
+            subtrackScheduleHideDataTooltipBubble();
+        },
+        true,
+    );
+    document.addEventListener(
+        'focusin',
+        function (e) {
+            var t = closestTooltipTarget(e.target);
+            if (t) subtrackShowDataTooltipBubble(t);
+        },
+        true,
+    );
+    document.addEventListener(
+        'focusout',
+        function (e) {
+            var t = closestTooltipTarget(e.target);
+            if (t) subtrackScheduleHideDataTooltipBubble();
+        },
+        true,
+    );
+    window.addEventListener(
+        'scroll',
+        function () {
+            if (subtrackDataTooltipAnchorEl) {
+                subtrackPositionDataTooltipBubble(subtrackDataTooltipAnchorEl);
+            }
+        },
+        true,
+    );
+    window.addEventListener('resize', function () {
+        if (subtrackDataTooltipAnchorEl) {
+            subtrackPositionDataTooltipBubble(subtrackDataTooltipAnchorEl);
+        }
+    });
+}
+
 if (typeof window !== 'undefined') {
     window.subtrackReloadSubscriptionsFromBootstrap = subtrackReloadSubscriptionsFromBootstrap;
     window.subtrackNotifyPageContentReady = subtrackNotifyPageContentReady;
+    window.subtrackInitDataTooltipPortals = subtrackInitDataTooltipPortals;
 }

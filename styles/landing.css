@@ -4823,6 +4823,18 @@ body.landing-page .landing-cta {
     visibility: visible;
 }
 
+/* Portal tooltips (FS) – ::after izslēgts, lai nebūtu dubultā / clipping */
+html[data-subtrack-tooltip-portals='1'] [data-tooltip]::after {
+    content: none !important;
+    display: none !important;
+}
+
+.sub-item:hover,
+.sub-item:focus-within {
+    position: relative;
+    z-index: 30;
+}
+
 .empty-state {
     text-align: center;
     padding: 60px 24px;
