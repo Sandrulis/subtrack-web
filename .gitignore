@@ -24,6 +24,9 @@
 public/sw.js
 public/sw.js.map
 
+# Font Awesome (copy-font-awesome.mjs → postinstall / build)
+public/vendor/font-awesome/
+
 # misc
 .DS_Store
 *.pem

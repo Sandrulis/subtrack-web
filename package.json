@@ -1,6 +1,6 @@
 {
   "name": "subtrack-web",
-  "version": "0.6.32",
+  "version": "0.6.33",
   "private": true,
   "scripts": {
     "dev": "concurrently -p none \"serwist build --watch\" \"next dev\"",
@@ -8,7 +8,8 @@
     "dev:webpack": "next dev --webpack",
     "css:split": "node scripts/split-landing-css.mjs",
     "cap:assets": "npx --yes @capacitor/assets@3 generate --android",
-    "build": "node scripts/split-landing-css.mjs && next build && serwist build",
+    "build": "node scripts/split-landing-css.mjs && node scripts/copy-font-awesome.mjs && next build && serwist build",
+    "postinstall": "node scripts/copy-font-awesome.mjs",
     "start": "next start",
     "lint": "eslint",
     "audit": "npm audit --audit-level=high",
@@ -42,6 +43,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@fortawesome/fontawesome-free": "6.5.1",
     "@serwist/cli": "^9.5.11",
     "@serwist/next": "^9.5.11",
     "@tailwindcss/postcss": "^4",
