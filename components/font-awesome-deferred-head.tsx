@@ -4,8 +4,8 @@ import {
 } from "@/lib/icons/font-awesome-cdn";
 
 /**
- * Nebloķējoša FA ielāde: pirmais paint nav atkarīgs no ~70KB CDN CSS.
- * Skripts – `next/script` root layout (`afterInteractive`); šeit tikai resursu hinti (`prefetch`, ne `preload`).
+ * Font Awesome 6 no CDN. Parasts `<link rel="stylesheet">` – aizturi ar skriptu
+ * salauza ikonas (skat. README 0.4.22); sinhrona ielāde ir uzticamāka.
  */
 export function FontAwesomeDeferredHead() {
   const href = FONT_AWESOME_CDN_STYLESHEET;
@@ -13,15 +13,12 @@ export function FontAwesomeDeferredHead() {
   return (
     <>
       <link rel="preconnect" href={FONT_AWESOME_CDN_ORIGIN} crossOrigin="anonymous" />
-      <link rel="prefetch" href={href} as="style" crossOrigin="anonymous" />
-      <noscript>
-        <link
-          rel="stylesheet"
-          href={href}
-          crossOrigin="anonymous"
-          referrerPolicy="no-referrer"
-        />
-      </noscript>
+      <link
+        rel="stylesheet"
+        href={href}
+        crossOrigin="anonymous"
+        referrerPolicy="no-referrer"
+      />
     </>
   );
 }

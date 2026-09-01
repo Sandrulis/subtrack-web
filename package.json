@@ -1,6 +1,6 @@
 {
   "name": "subtrack-web",
-  "version": "0.4.49",
+  "version": "0.6.31",
   "private": true,
   "scripts": {
     "dev": "concurrently -p none \"serwist build --watch\" \"next dev\"",
